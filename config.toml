@@ -14,13 +14,13 @@ workers = 10                    # parallel engines, one search thread each
 
 # Pass 1: every position of every game. Labels, accuracy and Win% drops come from here.
 [engine.pass1]
-nodes = 500_000
+nodes = 2_000_000                # chosen by the 2026-10-24 study, docs/calibration.md
 multipv = 2
 hash_mb = 128
 
 # Pass 2: deeper look at candidate positions. Lines, mistake types and puzzles come from here.
 [engine.pass2]
-nodes = 4_000_000
+nodes = 16_000_000               # chosen by the 2026-10-24 study, docs/calibration.md
 multipv = 3
 hash_mb = 256
 

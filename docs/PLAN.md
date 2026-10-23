@@ -13,7 +13,9 @@ this file wins.
   `config.toml` names the version and the pipeline refuses any other binary.
 - **Budgets come from data.** `coach calibrate` compares every candidate budget with a much deeper
   Stockfish reference; we pick the smallest budget past which agreement stops improving
-  ([calibration.md](calibration.md)).
+  ([calibration.md](calibration.md)). Chosen 2026-10-24 against a 64M-node reference: pass 1 at 2M nodes
+  (best-move agreement peaks there; 4M is within noise for twice the time) and pass 2 at 16M nodes (still
+  improving at 16M, but it's the most the machine affords for a full year in two nights).
 - **Progress sync via Supabase (free plan):** puzzle and repertoire review state, attempts and settings,
   synced between phone and Mac. Offline-first (device first, sync when online). Email magic-link sign-in,
   sign-ups disabled after the account exists, row-level security. The Supabase URL and publishable key go
