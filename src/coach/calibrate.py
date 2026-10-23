@@ -114,6 +114,16 @@ def load_or_sample(cfg: Config, games: list[Game], evals1: dict[str, dict], resa
     return samples
 
 
+def throughput(cfg: Config, measured: list[RunStats]) -> float | None:
+    """Nodes per second over this run's searches, else the figure saved by the last run that searched."""
+    path = cfg.data_dir / "calibration_throughput.json"
+    if measured:
+        nps = sum(s.nodes for s in measured) / sum(s.seconds for s in measured)
+        path.write_text(json.dumps({"nodes_per_second": nps, "workers": cfg.engine.workers}))
+        return nps
+    return json.loads(path.read_text())["nodes_per_second"] if path.exists() else None
+
+
 def run(
     cfg: Config,
     conn: sqlite3.Connection,
@@ -141,13 +151,16 @@ def run(
     ref = db.load_evals(conn, engine, reference.key, set(keys))
 
     measured = [s for _, _, s in runs if s.analysed] + ([ref_stats] if ref_stats.analysed else [])
-    nps = sum(s.nodes for s in measured) / sum(s.seconds for s in measured) if measured else None
+    nps = throughput(cfg, measured)
     n1, n2 = full_year_counts
 
-    table = Table(title=f"Agreement with Stockfish at {reference.nodes:,} nodes ({len(samples)} moves)")
-    for col in ("pass", "nodes", "MultiPV", "best move %", "label %", "≥5 drop %", "one clear best %",
-                "material along line %", "Win% error mean / p90", "full year (h)"):
-        table.add_column(col, justify="right")
+    # Compact enough for an 80-column terminal; docs/calibration.md explains the columns.
+    table = Table(
+        title=f"% agreement with {reference.nodes:,} nodes ({len(samples)} moves)",
+        box=None, collapse_padding=True, pad_edge=False, header_style="bold underline",
+    )
+    for col in ("pass", "nodes", "pv", "best", "label", "≥5", "clear", "mat", "Win% err", "hours"):
+        table.add_column(col, justify="left" if col == "pass" else "right")
     rows = []
     for kind, settings, _ in runs:
         m = metrics(cfg, samples, db.load_evals(conn, engine, settings.key, set(keys)), ref)
@@ -155,13 +168,13 @@ def run(
         hours = count * settings.nodes / nps / 3600 if nps else float("nan")
         rows.append((kind, settings, m, hours))
         table.add_row(
-            kind, f"{settings.nodes:,}", str(settings.multipv), f"{m['best_move']:.1f}", f"{m['label']:.1f}",
+            kind[-1], f"{settings.nodes:,}", str(settings.multipv), f"{m['best_move']:.1f}", f"{m['label']:.1f}",
             f"{m['record']:.1f}", f"{m['gap_class']:.1f}", f"{m['material_class']:.1f}",
-            f"{m['win_err_mean']:.2f} / {m['win_err_p90']:.2f}", f"{hours:.1f}",
+            f"{m['win_err_mean']:.2f}/{m['win_err_p90']:.2f}", f"{hours:.1f}",
         )
     console.print(table)
     if nps:
-        console.print(f"measured throughput: {nps / 1e6:.2f}M nodes/s with {cfg.engine.workers} workers")
+        console.print(f"throughput: {nps / 1e6:.2f}M nodes/s with {cfg.engine.workers} workers (hours = full year)")
     write_report(cfg, rows, len(samples), reference, nps, full_year_counts)
 
 
