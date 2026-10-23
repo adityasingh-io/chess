@@ -1,0 +1,218 @@
+{
+  "engine": "Stockfish 19",
+  "note": "Recorded Stockfish output copied from data/coach.sqlite by scripts/record_fixtures.py. Scores are White's view.",
+  "positions": {
+    "mate_for_side_to_move": {
+      "key": "1N6/pp3Q2/3kp3/3p1nP1/3P1P2/P4KP1/P2q4/1R6 w - -",
+      "settings": "nodes=500000;multipv=2;hash=128;threads=1",
+      "result": {
+        "lines": [
+          {
+            "cp": null,
+            "mate": 1,
+            "pv": [
+              "f7d7"
+            ],
+            "depth": 245,
+            "seldepth": 2,
+            "nodes": 24148
+          },
+          {
+            "cp": null,
+            "mate": 2,
+            "pv": [
+              "b1b6",
+              "a7b6",
+              "f7d7"
+            ],
+            "depth": 245,
+            "seldepth": 4,
+            "nodes": 24148
+          }
+        ]
+      }
+    },
+    "mated_side_to_move": {
+      "key": "1N6/ppk2Q2/4p3/3p1nP1/3P1P2/P4KP1/P2q4/1R6 b - -",
+      "settings": "nodes=500000;multipv=2;hash=128;threads=1",
+      "result": {
+        "lines": [
+          {
+            "cp": null,
+            "mate": 3,
+            "pv": [
+              "f5e7",
+              "f7e7",
+              "c7c8",
+              "e7d7",
+              "c8b8",
+              "d7b7"
+            ],
+            "depth": 245,
+            "seldepth": 7,
+            "nodes": 317791
+          },
+          {
+            "cp": null,
+            "mate": 2,
+            "pv": [
+              "c7c8",
+              "f7d7",
+              "c8b8",
+              "d7b7"
+            ],
+            "depth": 245,
+            "seldepth": 5,
+            "nodes": 317791
+          }
+        ]
+      }
+    },
+    "one_clear_best_pass2": {
+      "key": "1r2k3/pp3pQ1/2p1p3/3p2P1/3P1PN1/P1q3P1/P4K2/1R6 b - -",
+      "settings": "nodes=4000000;multipv=3;hash=256;threads=1",
+      "result": {
+        "lines": [
+          {
+            "cp": 0,
+            "mate": null,
+            "pv": [
+              "c3c2",
+              "f2g1",
+              "c2b1",
+              "g1h2",
+              "b8d8",
+              "g4e5",
+              "b1f5",
+              "h2g1",
+              "f5b1",
+              "g1f2",
+              "b1c2",
+              "f2f1",
+              "c2b1"
+            ],
+            "depth": 20,
+            "seldepth": 32,
+            "nodes": 4000254
+          },
+          {
+            "cp": 609,
+            "mate": null,
+            "pv": [
+              "c3d2",
+              "f2g1"
+            ],
+            "depth": 20,
+            "seldepth": 10,
+            "nodes": 4000254
+          },
+          {
+            "cp": 706,
+            "mate": null,
+            "pv": [
+              "c6c5",
+              "g4f6",
+              "e8e7",
+              "f6d5",
+              "e6d5",
+              "g7e5",
+              "e7d7",
+              "e5d5",
+              "d7c8",
+              "d5c5",
+              "c3c5",
+              "d4c5",
+              "c8d7",
+              "a3a4",
+              "d7c6",
+              "f2f3",
+              "b8d8"
+            ],
+            "depth": 20,
+            "seldepth": 24,
+            "nodes": 4000254
+          }
+        ]
+      }
+    },
+    "close_pass2": {
+      "key": "1r1qk2r/p4ppp/3bpn2/3p4/3P4/2P1PN2/P4PPP/R1BQ1RK1 w k -",
+      "settings": "nodes=4000000;multipv=3;hash=256;threads=1",
+      "result": {
+        "lines": [
+          {
+            "cp": 85,
+            "mate": null,
+            "pv": [
+              "f3e5",
+              "d8c7"
+            ],
+            "depth": 23,
+            "seldepth": 36,
+            "nodes": 4000571
+          },
+          {
+            "cp": 65,
+            "mate": null,
+            "pv": [
+              "c3c4",
+              "d5c4",
+              "d1a4",
+              "d8d7",
+              "a4c4",
+              "e8g8",
+              "c1d2",
+              "f8c8",
+              "c4a6",
+              "b8b6",
+              "a6d3",
+              "d7a4",
+              "h2h3",
+              "d6f8",
+              "f1b1",
+              "f6d5",
+              "b1b3",
+              "h7h6",
+              "h3h4",
+              "f8d6",
+              "e3e4",
+              "d5f4",
+              "d2f4",
+              "d6f4",
+              "g2g3",
+              "f4d6"
+            ],
+            "depth": 22,
+            "seldepth": 36,
+            "nodes": 4000571
+          },
+          {
+            "cp": 42,
+            "mate": null,
+            "pv": [
+              "f3d2",
+              "d8c7",
+              "d1a4",
+              "c7d7",
+              "a4d7",
+              "e8d7",
+              "c3c4",
+              "h8c8",
+              "c4c5",
+              "d6c7",
+              "c1a3",
+              "h7h5",
+              "f2f3",
+              "b8b5",
+              "f1b1",
+              "b5a5"
+            ],
+            "depth": 22,
+            "seldepth": 33,
+            "nodes": 4000571
+          }
+        ]
+      }
+    }
+  }
+}

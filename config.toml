@@ -1,0 +1,47 @@
+# Chess coach settings. Every tunable number lives here; secrets live in .env.
+# Win% values are from the player's point of view unless a comment says otherwise.
+
+[player]
+username = "r00k4ndr0ll"
+since = "2026-01-01"            # only games that started on or after this date
+time_classes = ["rapid"]
+rating_goal = 1000
+goal_date = "2026-12-31"
+
+[engine]
+version = "Stockfish 19"        # the pipeline refuses to analyse with any other binary
+workers = 10                    # parallel engines, one search thread each
+
+# Pass 1: every position of every game. Labels, accuracy and Win% drops come from here.
+[engine.pass1]
+nodes = 500_000
+multipv = 2
+hash_mb = 128
+
+# Pass 2: deeper look at candidate positions. Lines, mistake types and puzzles come from here.
+[engine.pass2]
+nodes = 4_000_000
+multipv = 3
+hash_mb = 256
+
+[engine.pass2.triggers]
+min_drop = 5.0                  # my moves that drop my Win% by at least this much
+min_gap = 20.0                  # my-turn positions where best minus second-best is at least this
+follow_min_drop = 15.0          # also follow the best line of drops this big (possible missed wins)
+line_my_moves = 3               # follow candidate lines for up to this many of my moves (6 plies)
+
+[engine.lines]
+pv_plies = 10                   # how much of Stockfish's line to use and show
+
+[analysis.garbage_time]
+below = 10.0                    # ignore my move if my Win% before it was below this,
+above = 90.0                    # or above this
+still_above = 60.0              # and still above this after it
+
+[calibration]
+moves = 100                     # my moves sampled (each gives a before and an after position)
+pass1_budgets = [250_000, 500_000, 1_000_000, 2_000_000, 4_000_000]
+pass2_budgets = [2_000_000, 4_000_000, 8_000_000, 16_000_000]
+reference_nodes = 64_000_000
+reference_hash_mb = 256         # 10 workers x 256 MB keeps memory near 3 GB
+seed = 2026
