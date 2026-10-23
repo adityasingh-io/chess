@@ -8,10 +8,11 @@ Stockfish thinking for longer.
 
 from __future__ import annotations
 
+import json
 import random
 import sqlite3
 import statistics
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date
 
 import chess
@@ -103,11 +104,28 @@ def metrics(cfg: Config, samples: list[Sample], res: dict[str, dict], ref: dict[
     }
 
 
-def run(cfg: Config, conn: sqlite3.Connection, games: list[Game], console: Console, full_year_counts: tuple[int, int]) -> None:
+def load_or_sample(cfg: Config, games: list[Game], evals1: dict[str, dict], resample: bool) -> list[Sample]:
+    """The study's moves are drawn once and saved, so a resumed run uses the same positions."""
+    path = cfg.data_dir / "calibration_sample.json"
+    if path.exists() and not resample:
+        return [Sample(**s) for s in json.loads(path.read_text())]
+    samples = sample_moves(cfg, games, evals1)
+    path.write_text(json.dumps([asdict(s) for s in samples], indent=1))
+    return samples
+
+
+def run(
+    cfg: Config,
+    conn: sqlite3.Connection,
+    games: list[Game],
+    console: Console,
+    full_year_counts: tuple[int, int],
+    resample: bool = False,
+) -> None:
     engine = check_engine(cfg.secrets.stockfish_path, cfg.engine.version)
     common = dict(engine_path=cfg.secrets.stockfish_path, engine=engine, workers=cfg.engine.workers, console=console)
     evals1 = db.load_evals(conn, engine, cfg.engine.pass1.key)
-    samples = sample_moves(cfg, games, evals1)
+    samples = load_or_sample(cfg, games, evals1, resample)
     keys = list(dict.fromkeys(k for s in samples for k in (s.before, s.after)))
     console.print(f"calibration: {len(samples)} moves, {len(keys)} positions")
 

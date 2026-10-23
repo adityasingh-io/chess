@@ -106,8 +106,8 @@ def accuracy(last: Last = 20, reviewed: Reviewed = 0) -> None:
 
 
 @app.command()
-def calibrate(last: Last = 20, reviewed: Reviewed = 0) -> None:
-    """Engine budget study on positions from the selected (already analysed) games."""
+def calibrate(last: Last = 20, reviewed: Reviewed = 0, resample: bool = False) -> None:
+    """Engine budget study. The sampled moves are saved on first run and reused when resuming."""
     from coach import calibrate as calib
     from coach.engine import check_engine
 
@@ -120,7 +120,7 @@ def calibrate(last: Last = 20, reviewed: Reviewed = 0) -> None:
     n2_sel = len(db.cached_keys(conn, engine, cfg.engine.pass2.key))
     n2_all = round(n1_all * n2_sel / n1_sel) if n1_sel else 0
     console.print(f"full year: {len(all_games)} games, {n1_all:,} pass-1 positions, ~{n2_all:,} pass-2 positions")
-    calib.run(cfg, conn, games, console, (n1_all, n2_all))
+    calib.run(cfg, conn, games, console, (n1_all, n2_all), resample=resample)
 
 
 def main() -> None:
