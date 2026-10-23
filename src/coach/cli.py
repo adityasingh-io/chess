@@ -74,14 +74,21 @@ def accuracy(last: Last = 20, reviewed: Reviewed = 0) -> None:
     evals = db.load_evals(conn, engine, cfg.engine.pass1.key)
     games = load_games(conn, select_game_ids(conn, last, reviewed))
 
-    table = Table(title=f"Accuracy, {cfg.engine.version} at {cfg.engine.pass1.nodes:,} nodes")
-    for col in ("date", "me", "opponent", "result", "plies", "mine", "chess.com", "diff", "opp", "opp chess.com"):
-        table.add_column(col, justify="right" if col not in ("date", "me", "opponent", "result") else "left")
+    # Compact enough for an 80-column terminal.
+    table = Table(
+        title=f"Accuracy, {cfg.engine.version} at {cfg.engine.pass1.nodes:,} nodes",
+        box=None, collapse_padding=True, pad_edge=False, header_style="bold underline",
+    )
+    table.add_column("date")
+    table.add_column("me")
+    table.add_column("opponent", max_width=16, no_wrap=True, overflow="ellipsis")
+    for col in ("elo", "res", "plies", "mine", "c.com", "diff", "opp", "opp c.com"):
+        table.add_column(col, justify="left" if col == "res" else "right")
     diffs, opp_diffs = [], []
     for g in games:
         acc = accuracy_of(g, evals)
         r = g.row
-        when = datetime.fromtimestamp(r["start_ts"], UTC).strftime("%Y-%m-%d")
+        when = datetime.fromtimestamp(r["start_ts"], UTC).strftime("%m-%d")
         opp_color = "black" if g.i_am_white else "white"
         ours = acc[r["my_color"]] if acc else None
         theirs = acc[opp_color] if acc else None
@@ -91,8 +98,8 @@ def accuracy(last: Last = 20, reviewed: Reviewed = 0) -> None:
             diffs.append(diff)
             opp_diffs.append(theirs - cc_opp)
         table.add_row(
-            when, r["my_color"], f"{r['opp_username']} ({r['opp_rating']})", r["result"], str(r["ply_count"]),
-            _fmt(ours) if acc else "not analysed", _fmt(cc), "—" if diff is None else f"{diff:+.1f}",
+            when, r["my_color"][0].upper(), r["opp_username"], str(r["opp_rating"]), r["result"], str(r["ply_count"]),
+            _fmt(ours) if acc else "—", _fmt(cc), "—" if diff is None else f"{diff:+.1f}",
             _fmt(theirs), _fmt(cc_opp),
         )
     console.print(table)
