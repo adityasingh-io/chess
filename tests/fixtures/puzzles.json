@@ -1,0 +1,2928 @@
+{
+"note": "Lichess puzzle database (CC0), https://database.lichess.org/ \u2014 copied by scripts/record_puzzles.py. FEN is before the opponent's move; Moves starts with it.",
+"puzzles": [
+{
+"PuzzleId": "001XA",
+"FEN": "1qr2rk1/pb2bppp/8/8/2p1N3/P1Bn2P1/2Q2PBP/1R3RK1 b - - 3 23",
+"Moves": "b8c7 b1b7 c7b7 e4f6 e7f6 g2b7",
+"Rating": "1687",
+"Themes": [
+"crushing",
+"discoveredAttack",
+"long",
+"master",
+"middlegame",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "002KJ",
+"FEN": "r3kb1r/ppq2ppp/4pn2/2Ppn3/1P4bP/2P2N2/P3BPP1/RNBQ1RK1 b kq - 2 10",
+"Moves": "f8e7 f3e5 c7e5 e2g4",
+"Rating": "1569",
+"Themes": [
+"crushing",
+"discoveredAttack",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "003cs",
+"FEN": "2r1kbnr/pp4pp/4p3/3pP1N1/3q4/1P2B3/P3Q1PP/nN3RK1 b k - 1 16",
+"Moves": "d4e5 f1f8 e8f8 e3c5 c8c5 e2e5 c5c1 g1f2",
+"Rating": "2119",
+"Themes": [
+"advantage",
+"attraction",
+"discoveredAttack",
+"exposedKing",
+"middlegame",
+"sacrifice",
+"veryLong"
+]
+},
+{
+"PuzzleId": "003wQ",
+"FEN": "2r2rk1/6pp/3Q1q2/8/3N1B2/6P1/PP1K3P/R4b2 w - - 0 24",
+"Moves": "a1f1 f6d6 f4d6 f8f1",
+"Rating": "1814",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"middlegame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "004RF",
+"FEN": "5rk1/5ppp/1p6/1qp2P1Q/3p3P/6R1/6PK/8 b - - 0 30",
+"Moves": "c5c4 g3g7 g8g7 f5f6 g7f6 h5b5",
+"Rating": "1727",
+"Themes": [
+"attraction",
+"crushing",
+"discoveredAttack",
+"endgame",
+"long",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "006fF",
+"FEN": "r1b4r/pp1k2pp/2nb2q1/1B1p2B1/3p3Q/8/PPP2PPP/3RR1K1 b - - 5 17",
+"Moves": "h7h6 h4g4 d7c7 g5d8 h8d8 g4g6",
+"Rating": "1702",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"exposedKing",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "00798",
+"FEN": "6K1/4k3/4P3/6pp/6rP/4R1P1/8/8 w - - 0 60",
+"Moves": "g8g7 g5h4 g7h6 h4g3",
+"Rating": "1895",
+"Themes": [
+"crushing",
+"discoveredAttack",
+"endgame",
+"rookEndgame",
+"short"
+]
+},
+{
+"PuzzleId": "008Y3",
+"FEN": "r5k1/1p1rqpp1/p3pnp1/2PN4/8/1Q5P/PP3PP1/3RR1K1 b - - 0 24",
+"Moves": "e7c5 d5f6 g7f6 d1d7",
+"Rating": "1054",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"kingsideAttack",
+"master",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "009FS",
+"FEN": "r2qr1k1/p5bp/1pp1b1p1/8/2QN1p2/2P1n2P/PP3PP1/R1B1RNK1 w - - 1 18",
+"Moves": "d4e6 e3c4 e6d8 e8e1",
+"Rating": "1712",
+"Themes": [
+"crushing",
+"discoveredAttack",
+"opening",
+"short"
+]
+},
+{
+"PuzzleId": "009zS",
+"FEN": "r3r1k1/1p3p1p/p1p3p1/8/6bP/Q3b3/PP2B1P1/R3K2R w KQ - 2 20",
+"Moves": "g2g3 g4e2 e1e2 e3c5 e2f3 c5a3",
+"Rating": "1434",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"discoveredCheck",
+"exposedKing",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "00AFG",
+"FEN": "r4rk1/2q2ppp/p3bp2/2P2N1Q/Ppp5/8/1PP2PPP/R2R2K1 b - - 6 21",
+"Moves": "c7c5 f5h6 g7h6 h5c5",
+"Rating": "1486",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "00AdI",
+"FEN": "3r4/4kp1p/1PQ1p1p1/p3b3/1p2P2P/1P6/6PK/8 w - - 1 36",
+"Moves": "h2h3 d8d3 g2g3 d3g3 h3h2 g3c3",
+"Rating": "1263",
+"Themes": [
+"crushing",
+"discoveredAttack",
+"discoveredCheck",
+"endgame",
+"long",
+"master"
+]
+},
+{
+"PuzzleId": "00Bul",
+"FEN": "rnbqk2r/pp3ppp/5n2/3pN3/2B5/2P5/P1PPQPPP/R1B1K2R b KQkq - 1 8",
+"Moves": "d5c4 e5c6 c8e6 c6d8",
+"Rating": "1295",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"discoveredCheck",
+"opening",
+"short"
+]
+},
+{
+"PuzzleId": "00DEc",
+"FEN": "8/p5pk/1p3b1p/3r3P/6P1/3nBN2/P4PK1/4R3 w - - 3 30",
+"Moves": "e1d1 d3f4 e3f4 d5d1",
+"Rating": "1091",
+"Themes": [
+"crushing",
+"discoveredAttack",
+"endgame",
+"short"
+]
+},
+{
+"PuzzleId": "00Dke",
+"FEN": "5bk1/2Q2p1p/5qp1/p7/P1Bp4/1Pr4P/5PP1/3R2K1 b - - 5 27",
+"Moves": "c3c2 c4f7 g8g7 c7c2",
+"Rating": "1498",
+"Themes": [
+"crushing",
+"discoveredAttack",
+"endgame",
+"master",
+"short"
+]
+},
+{
+"PuzzleId": "00E29",
+"FEN": "r1bq1rk1/4bppp/p1n5/3P4/Pp6/3B1N2/1B3PPP/R2Q1RK1 b - - 0 17",
+"Moves": "d8d5 d3h7 g8h7 d1d5",
+"Rating": "969",
+"Themes": [
+"crushing",
+"discoveredAttack",
+"kingsideAttack",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "00EXS",
+"FEN": "r3r1k1/p2Q1p1p/1p2p1p1/8/1P1P4/P3P3/1B2Nb1q/2KR1R2 w - - 0 19",
+"Moves": "f1h1 f2e3 c1b1 h2e2",
+"Rating": "1548",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "00GBX",
+"FEN": "r6k/pp2n1pp/2nN4/4p1Br/1PB5/2P4b/P3Nb1P/R2R3K b - - 1 22",
+"Moves": "h5g5 d6f7 h8g8 f7g5",
+"Rating": "864",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"discoveredCheck",
+"fork",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "00Gt0",
+"FEN": "R7/4k3/5p2/3p2p1/4b2p/2K1P2P/5PP1/8 w - - 2 47",
+"Moves": "f2f3 d5d4 c3d4 e4a8",
+"Rating": "1052",
+"Themes": [
+"crushing",
+"discoveredAttack",
+"endgame",
+"master",
+"short"
+]
+},
+{
+"PuzzleId": "00IYg",
+"FEN": "r1b2r2/pp2npp1/1qn1p1k1/3pP1N1/3P3P/P7/1P1Q1PP1/RN2K2R b KQ - 0 13",
+"Moves": "f7f6 h4h5 g6h6 g5e6 h6h7 e6f8",
+"Rating": "1720",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"discoveredCheck",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "00Kia",
+"FEN": "5r1k/4n1pp/1p6/pP5Q/P2pB2K/6P1/2P4P/4q3 b - - 4 37",
+"Moves": "g7g6 h5e5 h8g8 e4d5 e7d5 e5e1",
+"Rating": "1679",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"endgame",
+"fork",
+"long"
+]
+},
+{
+"PuzzleId": "00Lt1",
+"FEN": "r4k2/pp3p2/2pNR2p/5Qp1/1P3n2/3P4/P1PK1qPP/8 w - - 6 31",
+"Moves": "d2c3 f4d5 c3b3 f2f5 d6f5 f7e6",
+"Rating": "1597",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"endgame",
+"long"
+]
+},
+{
+"PuzzleId": "00MQl",
+"FEN": "r1b2k1r/pp3ppp/2p5/2bp4/3N1Pnq/1B2B3/PPP3PP/RN1QR2K w - - 4 15",
+"Moves": "d4f3 c5e3 f3h4 g4f2 h1g1 f2d1",
+"Rating": "1734",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"fork",
+"long",
+"opening",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "00MZC",
+"FEN": "5r1k/p5p1/1pb4p/3pR3/1Q6/P1P4P/1P3qP1/R5K1 w - - 0 24",
+"Moves": "g1h1 d5d4 e5e2 c6g2",
+"Rating": "1872",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"endgame",
+"short"
+]
+},
+{
+"PuzzleId": "00O37",
+"FEN": "r1q1r1k1/1p3pp1/n1p4p/p1bpp2P/P3P3/2P2P2/1P1QBP2/R1BK3R b - - 3 23",
+"Moves": "c5f2 e2a6 b7a6 d2f2",
+"Rating": "1300",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "00P81",
+"FEN": "6k1/5p2/4p2p/3pPP2/1R5P/7r/2B5/2b2K2 b - - 0 46",
+"Moves": "h3c3 b4b8 g8h7 f5e6 c3c2 e6e7",
+"Rating": "2122",
+"Themes": [
+"advancedPawn",
+"crushing",
+"discoveredAttack",
+"discoveredCheck",
+"endgame",
+"long",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "00Pms",
+"FEN": "r1b1kr2/p1p2pQp/1p2pP2/8/8/1P4P1/P2KNP1P/R1B4q b q - 0 17",
+"Moves": "c8a6 g7f8 e8f8 c1a3 f8e8 a1h1",
+"Rating": "2127",
+"Themes": [
+"advantage",
+"attraction",
+"discoveredAttack",
+"long",
+"middlegame",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "00R2A",
+"FEN": "2kr1b1R/p5p1/8/3P1p2/8/4B3/PPPK1P2/8 w - - 1 25",
+"Moves": "c2c4 f8b4 d2d3 d8h8",
+"Rating": "856",
+"Themes": [
+"crushing",
+"discoveredAttack",
+"endgame",
+"short"
+]
+},
+{
+"PuzzleId": "00RtC",
+"FEN": "r4k2/ppp3p1/3p3r/2q5/2NnP3/2Q2PBp/PP3R1P/5RK1 w - - 4 25",
+"Moves": "b2b4 d4e2 g1h1 c5f2 c3g7 f8g7",
+"Rating": "1948",
+"Themes": [
+"advantage",
+"deflection",
+"discoveredAttack",
+"long",
+"middlegame",
+"pin"
+]
+},
+{
+"PuzzleId": "00SlL",
+"FEN": "r5k1/2p1qp1p/2b1p1pQ/pp5P/3P2P1/3P1r2/PP2N3/2KR3R b - - 0 23",
+"Moves": "f3d3 d1d3 c6h1 h5g6 f7g6 h6h1",
+"Rating": "2330",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "00T4i",
+"FEN": "2r4k/q2b1Q1p/2p2P2/1p2p3/4P3/p2P3R/4N1rK/R7 w - - 0 38",
+"Moves": "h2g2 d7h3 g2h3 a7f7",
+"Rating": "1544",
+"Themes": [
+"crushing",
+"discoveredAttack",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "00UHZ",
+"FEN": "3n2k1/6p1/pp3p1p/8/2r1NR1P/6P1/1PP5/1K6 b - - 1 32",
+"Moves": "d8e6 e4f6 g7f6 f4c4",
+"Rating": "1071",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"endgame",
+"short"
+]
+},
+{
+"PuzzleId": "00Uo9",
+"FEN": "4Q3/5ppk/2p2b1p/1pq1pP2/2r1B3/5P1P/6P1/5R1K b - - 3 33",
+"Moves": "c5e7 e8e7 f6e7 f5f6 c4e4 f6e7",
+"Rating": "1198",
+"Themes": [
+"advancedPawn",
+"crushing",
+"discoveredAttack",
+"discoveredCheck",
+"endgame",
+"long"
+]
+},
+{
+"PuzzleId": "00VDN",
+"FEN": "3r4/3r2k1/p7/3p2p1/3R2Pp/1P2PK2/P2R4/8 w - - 0 38",
+"Moves": "e3e4 d5e4 f3e3 d7d4",
+"Rating": "1541",
+"Themes": [
+"crushing",
+"discoveredAttack",
+"endgame",
+"master",
+"rookEndgame",
+"short"
+]
+},
+{
+"PuzzleId": "00Voj",
+"FEN": "r1bk1b1r/2q5/p1n1p1Bp/1p1pP3/3p4/P3B3/1PP2QPP/R4RK1 b - - 1 17",
+"Moves": "d4e3 f2f6 d8d7 f6h8 c8b7 f1f8 a8f8 h8f8",
+"Rating": "2166",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"fork",
+"middlegame",
+"veryLong"
+]
+},
+{
+"PuzzleId": "00XQ8",
+"FEN": "k4r2/pp6/2p3Q1/3p2P1/4r2P/8/PPP2q2/2KR3R w - - 1 30",
+"Moves": "h1f1 f2e3 c1b1 f8f1 g6g8 e4e8",
+"Rating": "1514",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"endgame",
+"long"
+]
+},
+{
+"PuzzleId": "00Y6y",
+"FEN": "5k2/5pp1/8/1p2N3/1P6/7P/3nR1P1/2r3K1 w - - 1 48",
+"Moves": "g1h2 d2f1 h2g1 f1g3 g1f2 g3e2",
+"Rating": "1193",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"discoveredCheck",
+"endgame",
+"long"
+]
+},
+{
+"PuzzleId": "00ZEW",
+"FEN": "r1b5/pppqNkp1/3p3p/6rn/1PP2p1N/P5P1/4Q2P/4RRK1 b - - 3 22",
+"Moves": "g5e5 e2h5 e5h5 f1f4 f7e8 e7g6",
+"Rating": "2206",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"discoveredCheck",
+"long",
+"middlegame",
+"pin",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "00dqP",
+"FEN": "r1b2rk1/5p1p/p3pP2/1p1p4/5q1n/1P5P/P1P1QPB1/1K1R2R1 b - - 2 21",
+"Moves": "f4f6 g2d5 h4g6 d5a8",
+"Rating": "1797",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"discoveredCheck",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "00e63",
+"FEN": "r4r1k/pp4pp/1qpp1b2/4p3/N3P3/3Q4/PPP2PPP/3RR1K1 b - - 3 16",
+"Moves": "b6d4 d3b3 b7b5 d1d4",
+"Rating": "1755",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"middlegame",
+"short",
+"trappedPiece"
+]
+},
+{
+"PuzzleId": "00GiQ",
+"FEN": "5r2/1p3p1k/6pp/p1qp1P2/7Q/5N2/6PP/5N1K b - - 4 31",
+"Moves": "b7b5 f3g5 h7g7 f5f6 g7f6 g5e4",
+"Rating": "1830",
+"Themes": [
+"attraction",
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"endgame",
+"long",
+"pin"
+]
+},
+{
+"PuzzleId": "00KNK",
+"FEN": "r3r1k1/p1p4p/3b4/4p1qN/8/1P1b1Q2/P2P1PP1/B5KR b - - 2 22",
+"Moves": "e5e4 h5f6 g8f8 f6h7 f8e7 a1f6 g5f6 f3f6",
+"Rating": "2022",
+"Themes": [
+"advantage",
+"deflection",
+"discoveredCheck",
+"doubleCheck",
+"fork",
+"middlegame",
+"veryLong"
+]
+},
+{
+"PuzzleId": "01A5W",
+"FEN": "4r1k1/pp3p2/3p1Ppq/5P2/4r3/6RP/PP3Q2/6RK b - - 2 39",
+"Moves": "e4e2 g3g6 f7g6 f6f7 g8f7 f5g6 f7e7 f2e2",
+"Rating": "2453",
+"Themes": [
+"advancedPawn",
+"attraction",
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"endgame",
+"interference",
+"intermezzo",
+"sacrifice",
+"veryLong"
+]
+},
+{
+"PuzzleId": "01VBW",
+"FEN": "2b1rr1k/3q2pB/p1p2b2/PpPp4/1P1P1Np1/8/2Q2P1P/R4RK1 b - - 2 21",
+"Moves": "f6d4 f4g6 h8h7 g6f8 h7g8 f8d7",
+"Rating": "1155",
+"Themes": [
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"fork",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "01Z8E",
+"FEN": "8/8/5p2/4bPpP/3pp1B1/2knQ2K/P7/8 w - - 0 49",
+"Moves": "e3g1 d3f4 h3g3 f4e2 g3g2 e2g1",
+"Rating": "1091",
+"Themes": [
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"endgame",
+"exposedKing",
+"long",
+"master"
+]
+},
+{
+"PuzzleId": "01aXt",
+"FEN": "2rqr3/7k/1pb1p1pp/p2pPp2/2pP1B1P/P1P2NQ1/1P1R1PP1/6K1 b - - 0 38",
+"Moves": "h7g7 h4h5 g6g5 f3g5 e8g8 g5e6",
+"Rating": "1975",
+"Themes": [
+"advantage",
+"discoveredCheck",
+"doubleCheck",
+"long",
+"middlegame",
+"pin"
+]
+},
+{
+"PuzzleId": "02RYC",
+"FEN": "r4rk1/1p3pp1/p3bn1p/2q1p3/3nP3/P1BB2QP/1PP3PN/R4RK1 w - - 2 19",
+"Moves": "f1f6 d4e2 g1f1 e2g3",
+"Rating": "1061",
+"Themes": [
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"kingsideAttack",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "02bLn",
+"FEN": "r4rk1/ppp5/2b2pN1/3q2p1/3PnBQ1/2P5/PP4P1/R3R1K1 b - - 1 20",
+"Moves": "g5f4 g6e7 g8f7 e7d5",
+"Rating": "1119",
+"Themes": [
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"fork",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "038rm",
+"FEN": "7r/p6p/1b3Q1p/8/2qn1Nk1/8/PP3P2/R4RK1 w - - 0 27",
+"Moves": "f2f3 d4f3 g1h1 c4f4 f6f4 g4f4",
+"Rating": "1343",
+"Themes": [
+"advantage",
+"discoveredAttack",
+"discoveredCheck",
+"doubleCheck",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "03M4g",
+"FEN": "r1b2rk1/1p5N/1q2p1p1/n2pPn2/5P2/1PPBb3/1BQN2P1/2KR3R w - - 1 19",
+"Moves": "d3f5 a5b3 c1b1 a8a1 b2a1 b3d2",
+"Rating": "2117",
+"Themes": [
+"advantage",
+"discoveredCheck",
+"doubleCheck",
+"exposedKing",
+"long",
+"middlegame",
+"queensideAttack"
+]
+},
+{
+"PuzzleId": "03Zog",
+"FEN": "6k1/3r1pbp/p2pb1pB/2p5/4P3/q1N2P2/3Q2P1/2KR1B1R w - - 0 26",
+"Moves": "c1c2 a3b3 c2d3 e6c4 d3e3 g7c3 f1c4 c3d2",
+"Rating": "2608",
+"Themes": [
+"advantage",
+"deflection",
+"discoveredCheck",
+"doubleCheck",
+"exposedKing",
+"middlegame",
+"veryLong"
+]
+},
+{
+"PuzzleId": "04BBn",
+"FEN": "r5r1/1p1k1p2/p3b2q/3Bb3/8/P2Q3P/1P3PP1/R4RK1 b - - 0 24",
+"Moves": "h6h3 d5e6 d7e6 d3h3",
+"Rating": "1448",
+"Themes": [
+"attraction",
+"crushing",
+"doubleCheck",
+"intermezzo",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "04Xrh",
+"FEN": "r2qk1nr/p4p1b/2n1P1pp/1p1p4/2pP1NQ1/P1P3P1/1P1B1P1P/R3R2K b kq - 0 17",
+"Moves": "g8f6 e6f7 e8f7 g4e6 f7g7 e6c6",
+"Rating": "1472",
+"Themes": [
+"advancedPawn",
+"attackingF2F7",
+"attraction",
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"fork",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "04dHh",
+"FEN": "r4k2/pb2Rpp1/q2B1n1p/1p6/8/2PB4/P1Q2PPP/6K1 b - - 6 24",
+"Moves": "b7d5 e7e8 f8e8 c2e2 f6e4 d3b5",
+"Rating": "2457",
+"Themes": [
+"attraction",
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"long",
+"middlegame",
+"pin",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "05k0N",
+"FEN": "4k2r/p1p2ppp/2q2n2/8/4PB1b/2NP1P1b/PPP4P/R2Q2KR w k - 3 14",
+"Moves": "d1d2 f6h5 f4g3 c6g6 d2f2 h5g3 h2g3 h4g3 h1h3 g3f2",
+"Rating": "2325",
+"Themes": [
+"advantage",
+"clearance",
+"discoveredCheck",
+"doubleCheck",
+"kingsideAttack",
+"middlegame",
+"pin",
+"veryLong"
+]
+},
+{
+"PuzzleId": "05zrE",
+"FEN": "2r1r3/1p1q1pk1/p4n2/P2ppbN1/2n5/B1P1P2B/1P2Q3/R4KR1 b - - 1 31",
+"Moves": "c4a3 g5e6 g7h8 h3f5",
+"Rating": "1678",
+"Themes": [
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"interference",
+"master",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "066ld",
+"FEN": "7r/6p1/3p4/4p1P1/R1Nnk3/2r5/5P1p/R6K b - - 1 45",
+"Moves": "d4f5 c4d6 e4f3 d6f5",
+"Rating": "1252",
+"Themes": [
+"advantage",
+"deflection",
+"discoveredCheck",
+"doubleCheck",
+"endgame",
+"short"
+]
+},
+{
+"PuzzleId": "06BuX",
+"FEN": "3rr3/5ppp/1pQ1kn1q/3p4/3PP3/2K2P2/PPP4P/4R2R b - - 0 21",
+"Moves": "d8d6 e4d5 e6f5 c6d6 e8e1 h1e1",
+"Rating": "1279",
+"Themes": [
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "06VoP",
+"FEN": "2r2rk1/5pp1/p1qp3p/4pP1N/1p6/1P4PK/PP5P/R2Q4 b - - 4 31",
+"Moves": "f8d8 d1g4 g7g6 f5g6 d6d5 g6f7",
+"Rating": "1788",
+"Themes": [
+"advancedPawn",
+"advantage",
+"discoveredCheck",
+"doubleCheck",
+"endgame",
+"kingsideAttack",
+"long"
+]
+},
+{
+"PuzzleId": "07ECu",
+"FEN": "r3k2r/ppp2pp1/3p1nqp/4p3/2B1P1b1/3PBN2/PPP1QP1K/R5R1 w kq - 10 17",
+"Moves": "h2g2 g4f3 g2f3 g6h5 f3g3 h5e2",
+"Rating": "1391",
+"Themes": [
+"attraction",
+"crushing",
+"deflection",
+"discoveredCheck",
+"doubleCheck",
+"long",
+"middlegame",
+"skewer"
+]
+},
+{
+"PuzzleId": "07GeY",
+"FEN": "2r1r1k1/3p1p2/2qBp2Q/pp2P2P/3P2P1/2Pb4/8/2R3K1 b - - 0 39",
+"Moves": "d3h7 h6g5 h7g6 h5g6 c6f3 g6f7",
+"Rating": "1288",
+"Themes": [
+"advancedPawn",
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "08ars",
+"FEN": "r3r1k1/5p2/pq1b3Q/1pn1P1N1/P1p5/7P/1P3PP1/n3R1K1 b - - 2 28",
+"Moves": "a8a7 h6h7 g8f8 h7h8 f8e7 e5d6",
+"Rating": "1993",
+"Themes": [
+"advantage",
+"discoveredCheck",
+"doubleCheck",
+"kingsideAttack",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "09dS7",
+"FEN": "8/2pk1p1p/4p1p1/3P4/2P2q2/3Q4/4B2r/3KB3 b - - 1 39",
+"Moves": "h2h1 d5e6 d7e6 d3d5 e6e7 d5h1",
+"Rating": "1428",
+"Themes": [
+"advantage",
+"attraction",
+"discoveredCheck",
+"doubleCheck",
+"endgame",
+"fork",
+"long"
+]
+},
+{
+"PuzzleId": "09dtC",
+"FEN": "r7/pp4k1/3p2p1/2pPp1q1/2P2n1Q/P5P1/1P3PK1/R4R2 w - - 3 30",
+"Moves": "g2f3 e5e4 f3e3 f4g2",
+"Rating": "1587",
+"Themes": [
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"endgame",
+"short"
+]
+},
+{
+"PuzzleId": "09tHX",
+"FEN": "5k2/1q2pp1p/3p2p1/1p2n3/8/6Q1/PPrN1PpP/R3R1K1 w - - 2 24",
+"Moves": "d2b3 e5f3 g1g2 f3e1",
+"Rating": "1099",
+"Themes": [
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"fork",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "0AFRX",
+"FEN": "3rrq1k/2p3pB/pbn2p1p/1p1bP3/1P1p2PN/P2Q2NP/2P4K/R4R2 b - - 7 26",
+"Moves": "d5c4 h4g6 h8h7 g6f8",
+"Rating": "1008",
+"Themes": [
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"fork",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "0B4Lr",
+"FEN": "4qrk1/pb2RNbp/1p2Q1p1/7n/1Pr2P2/2P5/P5PP/2B2RK1 b - - 2 25",
+"Moves": "e8e7 f7h6 g8h8 e6e7",
+"Rating": "1619",
+"Themes": [
+"advantage",
+"discoveredCheck",
+"doubleCheck",
+"intermezzo",
+"kingsideAttack",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "0BaPz",
+"FEN": "r1bq1k1r/pppp2p1/1bn2P1p/6N1/3P4/5Q2/PP3PPP/RNB2RK1 b - - 0 12",
+"Moves": "h6g5 c1g5 d8e8 f6g7 f8g7 g5f6",
+"Rating": "2092",
+"Themes": [
+"advancedPawn",
+"advantage",
+"attraction",
+"discoveredCheck",
+"doubleCheck",
+"long",
+"opening"
+]
+},
+{
+"PuzzleId": "0BmTF",
+"FEN": "5rk1/3p3p/2pP2B1/1r6/p2q1B1P/Pb4Q1/1P5K/2R5 b - - 0 42",
+"Moves": "d4f4 g6f7 g8f7 g3f4",
+"Rating": "1961",
+"Themes": [
+"attraction",
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"interference",
+"intermezzo",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "0Bwhr",
+"FEN": "7k/1p3p1p/p2bp3/2qp1p1Q/3n1P2/1P1R2NP/P5P1/6K1 w - - 2 26",
+"Moves": "h5f7 d4e2 g1f1 e2g3 d3g3 c5c1",
+"Rating": "2498",
+"Themes": [
+"crushing",
+"doubleCheck",
+"endgame",
+"long"
+]
+},
+{
+"PuzzleId": "0C2fK",
+"FEN": "1r2k3/2q2pbQ/p2pp1r1/8/3N4/3R4/PPP2PPP/1K5R w - - 1 20",
+"Moves": "d4e6 b8b2 b1a1 b2a2 a1a2 c7c2",
+"Rating": "2220",
+"Themes": [
+"attraction",
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"long",
+"master",
+"middlegame",
+"queensideAttack",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "0CFSa",
+"FEN": "r1q1r1k1/ppp3p1/5p1p/3RR3/2Q3P1/1PP4P/1PP5/6K1 b - - 0 21",
+"Moves": "e8e5 d5d8 g8h7 c4g8 h7g6 d8c8 a8c8 g8c8",
+"Rating": "2091",
+"Themes": [
+"crushing",
+"discoveredCheck",
+"doubleCheck",
+"endgame",
+"veryLong"
+]
+},
+{
+"PuzzleId": "000Pw",
+"FEN": "6k1/5p1p/4p3/4q3/3nN3/2Q3P1/PP3P1P/6K1 w - - 2 37",
+"Moves": "e4d2 d4e2 g1f1 e2c3",
+"Rating": "1530",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"short"
+]
+},
+{
+"PuzzleId": "000rO",
+"FEN": "3R4/8/K7/pB2b3/1p6/1P2k3/3p4/8 w - - 4 58",
+"Moves": "a6a5 e5c7 a5b4 c7d8",
+"Rating": "1110",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"master",
+"short"
+]
+},
+{
+"PuzzleId": "0017R",
+"FEN": "r2qk2r/pp2ppbp/1n1p2p1/3Pn3/2P5/2NBBP1P/PP3P2/R2QK2R b KQkq - 0 12",
+"Moves": "e5c4 d3c4 b6c4 d1a4 d8d7 a4c4",
+"Rating": "1655",
+"Themes": [
+"advantage",
+"fork",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "001wr",
+"FEN": "r4rk1/p3ppbp/Pp1q1np1/3PpbB1/2B5/2N5/1PPQ1PPP/3RR1K1 w - - 4 18",
+"Moves": "f2f3 d6c5 g1h1 c5c4",
+"Rating": "989",
+"Themes": [
+"advantage",
+"fork",
+"master",
+"masterVsMaster",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "002GQ",
+"FEN": "5rk1/5ppp/4p3/4N3/8/1Pn5/5PPP/5RK1 w - - 0 28",
+"Moves": "f1c1 c3e2 g1f1 e2c1",
+"Rating": "653",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"short"
+]
+},
+{
+"PuzzleId": "002IE",
+"FEN": "r3brk1/5pp1/p1nqpn1p/P2pN3/2pP4/2P1PN2/5PPP/RB1QK2R b KQ - 4 16",
+"Moves": "c6e5 d4e5 d6e7 e5f6",
+"Rating": "1229",
+"Themes": [
+"advantage",
+"fork",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "002Tf",
+"FEN": "r3kbnr/ppp1qppp/2n5/3pP3/5B2/4PQ2/PPP2PPP/RN2KB1R w KQkq - 1 7",
+"Moves": "f1b5 e7b4 b1c3 b4b2",
+"Rating": "1561",
+"Themes": [
+"advantage",
+"fork",
+"opening",
+"short"
+]
+},
+{
+"PuzzleId": "003Jb",
+"FEN": "6k1/3bqr1p/2rpp1pR/p7/Pp1QP3/1B3P2/1PP3P1/2KR4 w - - 6 22",
+"Moves": "d4a7 e7g5 c1b1 g5h6",
+"Rating": "993",
+"Themes": [
+"advantage",
+"fork",
+"master",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "003jH",
+"FEN": "rn3rk1/p5pp/3N4/4np1q/5Q2/1P3K2/PB1P2P1/2R4R w - - 0 25",
+"Moves": "f3f2 e5d3 f2e3 d3f4 h1h5 f4h5",
+"Rating": "1089",
+"Themes": [
+"crushing",
+"fork",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "003jb",
+"FEN": "r3kb1r/p4ppp/b1p1p3/3q4/3Q4/4BN2/PPP2PPP/R3K2R b KQkq - 0 11",
+"Moves": "c6c5 d4a4 a6b5 a4b5",
+"Rating": "962",
+"Themes": [
+"crushing",
+"fork",
+"master",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "003jv",
+"FEN": "1R6/1p2k2p/p2n2p1/4K3/8/6P1/P6P/8 w - - 10 37",
+"Moves": "b8h8 d6f7 e5e4 f7h8",
+"Rating": "1006",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"short"
+]
+},
+{
+"PuzzleId": "003mh",
+"FEN": "r4k1r/1pp2p2/p2p3p/3N4/3P2q1/8/PPP5/1K2Q1NR b - - 1 23",
+"Moves": "a8e8 e1e8 f8e8 d5f6 e8e7 f6g4",
+"Rating": "1325",
+"Themes": [
+"advantage",
+"attraction",
+"fork",
+"long",
+"middlegame",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "003o0",
+"FEN": "r1bqk2r/pp1nbppp/3p4/1B1p4/3P1B2/8/PPP2PPP/R2QK1NR w KQkq - 2 9",
+"Moves": "g1f3 d8a5 d1d2 a5b5",
+"Rating": "1001",
+"Themes": [
+"advantage",
+"fork",
+"master",
+"opening",
+"short"
+]
+},
+{
+"PuzzleId": "003r5",
+"FEN": "r2qr1k1/ppp2ppp/4b3/3P4/1nP2Q2/2N2N1P/PP3KP1/R4R2 w - - 1 15",
+"Moves": "d5e6 b4d3 f2g1 d3f4",
+"Rating": "1130",
+"Themes": [
+"crushing",
+"fork",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "0047P",
+"FEN": "8/1N3k2/6p1/8/2P3P1/pr6/R5K1/8 w - - 1 56",
+"Moves": "g2f1 b3b1 f1e2 b1b2 e2d1 b2a2",
+"Rating": "1766",
+"Themes": [
+"crushing",
+"endgame",
+"exposedKing",
+"fork",
+"long",
+"master"
+]
+},
+{
+"PuzzleId": "004nd",
+"FEN": "3q2k1/2r5/pp3p1Q/2b1n3/P3N3/2P5/1P4PP/R6K b - - 0 24",
+"Moves": "c7d7 e4f6 d8f6 h6f6",
+"Rating": "898",
+"Themes": [
+"crushing",
+"fork",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "0050w",
+"FEN": "5rk1/1p2p1rp/p2p4/2pPb2R/2P1P3/1P1BKP1R/8/8 b - - 4 30",
+"Moves": "g7g3 h3g3 e5g3 h5g5 g8f7 g5g3",
+"Rating": "1131",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"long"
+]
+},
+{
+"PuzzleId": "005HG",
+"FEN": "r2q1rk1/p1p2pp1/3bbn1p/4N3/2Q5/1P4P1/PB1PPP1P/RN2K2R w KQ - 1 12",
+"Moves": "c4c2 d6e5 b2e5 d8d5 f2f3 d5e5",
+"Rating": "1788",
+"Themes": [
+"advantage",
+"clearance",
+"fork",
+"long",
+"opening"
+]
+},
+{
+"PuzzleId": "005do",
+"FEN": "7r/pp1k4/4p1b1/3pP1Np/3P1P1K/8/P7/2R5 b - - 7 42",
+"Moves": "h8f8 c1c7 d7c7 g5e6 c7b6 e6f8",
+"Rating": "1433",
+"Themes": [
+"attraction",
+"crushing",
+"deflection",
+"endgame",
+"fork",
+"long",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "006om",
+"FEN": "1r3k2/5p1p/2p1pp2/P2n4/2r1N3/P4PK1/2R2P1P/2R5 b - - 9 29",
+"Moves": "c4a4 e4c5 a4a5 c5d7 f8g7 d7b8",
+"Rating": "1921",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"long",
+"master"
+]
+},
+{
+"PuzzleId": "006wz",
+"FEN": "2r5/4ppkp/5bp1/1p6/1P6/P3B3/2r2PPP/1R1R2K1 b - - 2 22",
+"Moves": "f6b2 b1b2 c2b2 e3d4 f7f6 d4b2",
+"Rating": "1426",
+"Themes": [
+"attraction",
+"crushing",
+"endgame",
+"fork",
+"long",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "00761",
+"FEN": "3r2k1/1b3pbR/p2P2P1/3p2N1/2p5/2P2N2/PP6/2K5 b - - 0 28",
+"Moves": "f7g6 h7g7 g8g7 g5e6 g7g8 e6d8",
+"Rating": "1357",
+"Themes": [
+"attraction",
+"crushing",
+"endgame",
+"exposedKing",
+"fork",
+"long",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "008D5",
+"FEN": "r1bqk2r/pp3ppp/4p2n/3pP3/1b1P1P2/2N5/PP4PP/R1BQKB1R b KQkq - 2 9",
+"Moves": "h6f5 d1a4 c8d7 a4b4",
+"Rating": "1421",
+"Themes": [
+"advantage",
+"fork",
+"master",
+"opening",
+"short"
+]
+},
+{
+"PuzzleId": "008P4",
+"FEN": "8/4k3/1p1p4/rP2p1p1/P2nP1P1/3BK3/8/R7 w - - 0 35",
+"Moves": "e3d2 d4b3 d2c3 b3a1",
+"Rating": "703",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"short"
+]
+},
+{
+"PuzzleId": "008lc",
+"FEN": "7k/pb1qn2n/1p2R2Q/2p2p2/2Pp4/3B4/PP3PrP/4RK2 b - - 1 27",
+"Moves": "g2g7 h6g7 h8g7 e6e7 d7e7 e1e7",
+"Rating": "1974",
+"Themes": [
+"attraction",
+"crushing",
+"exposedKing",
+"fork",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "009tE",
+"FEN": "6k1/6pp/p1N2p2/1pP2bP1/5P2/8/PPP5/3K4 b - - 1 28",
+"Moves": "f6g5 c6e7 g8f7 e7f5",
+"Rating": "624",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"short"
+]
+},
+{
+"PuzzleId": "00Aas",
+"FEN": "3r1rk1/1p2q1pp/5p2/8/1P1n4/6Q1/PPbB1PPP/R2B1RK1 w - - 9 20",
+"Moves": "d1c2 d4e2 g1h1 e2g3 f2g3 d8d2",
+"Rating": "1111",
+"Themes": [
+"crushing",
+"fork",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "00BJm",
+"FEN": "r2q1rk1/1Q2bppp/p1N1p3/1p6/2pP1n2/2P5/PP3PPP/R4RK1 b - - 1 18",
+"Moves": "d8d5 c6e7 g8h8 e7d5",
+"Rating": "1088",
+"Themes": [
+"advantage",
+"fork",
+"hangingPiece",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "00BNd",
+"FEN": "1rr3k1/3bppbp/3p1np1/1B1N4/P2BP3/5P2/P2R2PP/R5K1 b - - 0 21",
+"Moves": "d7b5 d5e7 g8f8 e7c8",
+"Rating": "1026",
+"Themes": [
+"advantage",
+"fork",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "00Bn4",
+"FEN": "1k6/pp6/4nNp1/P6p/3pr3/7P/3R1PPK/8 b - - 0 40",
+"Moves": "e4e5 f6d7 b8c7 d7e5",
+"Rating": "689",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"short"
+]
+},
+{
+"PuzzleId": "00BnG",
+"FEN": "4Q3/ppkr1pp1/2p3n1/2P4p/1P1P4/4K3/P5P1/8 w - - 2 33",
+"Moves": "d4d5 d7e7 e8e7 g6e7",
+"Rating": "1426",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"short"
+]
+},
+{
+"PuzzleId": "00DPI",
+"FEN": "3r2k1/1B3p1p/6p1/3N4/3p2P1/6r1/5KP1/3R4 b - - 5 35",
+"Moves": "g3g4 d5f6 g8g7 f6g4",
+"Rating": "953",
+"Themes": [
+"advantage",
+"endgame",
+"fork",
+"short"
+]
+},
+{
+"PuzzleId": "00EBZ",
+"FEN": "3rr1k1/p4pp1/1pp4p/3pPQ2/1P3P2/2P3qP/P2R2P1/5RK1 w - - 1 24",
+"Moves": "f1f3 g3e1 g1h2 e1d2",
+"Rating": "818",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"short"
+]
+},
+{
+"PuzzleId": "00Ea3",
+"FEN": "3r4/p5k1/1p1qprnp/1Q1pN1p1/3P1pP1/1PP5/P5PP/4RRK1 b - - 3 29",
+"Moves": "g6e5 d4e5 d6c5 b5c5 b6c5 e5f6",
+"Rating": "1316",
+"Themes": [
+"crushing",
+"fork",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "00Evs",
+"FEN": "5qk1/pQ3pp1/7p/b2N1b2/P3r3/5K2/7P/R4B2 b - - 1 24",
+"Moves": "g7g5 d5f6 g8h8 f6e4",
+"Rating": "1058",
+"Themes": [
+"advantage",
+"fork",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "00Feu",
+"FEN": "4R1k1/p4r1p/1pp2rp1/8/5B1q/4QP1P/P1P2PK1/8 b - - 2 28",
+"Moves": "f7f8 f4g5 h4g5 e3g5",
+"Rating": "2011",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"short"
+]
+},
+{
+"PuzzleId": "00Gvp",
+"FEN": "8/2kn1p2/8/3P4/R7/2P1N3/1r2K3/8 w - - 13 70",
+"Moves": "e2d3 d7c5 d3d4 c5a4",
+"Rating": "877",
+"Themes": [
+"advantage",
+"endgame",
+"fork",
+"short"
+]
+},
+{
+"PuzzleId": "00Gz6",
+"FEN": "r7/p3qkp1/1p4p1/3Nn3/Q7/4PP2/PP3K2/6R1 b - - 0 25",
+"Moves": "e7c5 a4f4 f7e6 f4e4 a8f8 g1g6",
+"Rating": "2253",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"long",
+"pin"
+]
+},
+{
+"PuzzleId": "00H2I",
+"FEN": "4rrk1/ppp2pp1/7p/3n4/3P3q/1P2p2P/P5P1/R1BQRBK1 w - - 2 23",
+"Moves": "c1b2 h4f2 g1h2 f2b2",
+"Rating": "2052",
+"Themes": [
+"crushing",
+"fork",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "0018S",
+"FEN": "2kr3r/pp3p2/4p2p/1N1p2p1/3Q4/1P1P4/2q2PPP/5RK1 b - - 1 20",
+"Moves": "b7b6 d4a1 a7a5 f1c1",
+"Rating": "2608",
+"Themes": [
+"advantage",
+"endgame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "001Hi",
+"FEN": "6k1/pp1r1pp1/1qp1p2p/4P2P/5Q2/1P4R1/P1Pr1PP1/R5K1 b - - 4 23",
+"Moves": "b6d4 f4f6 d4f2 f6f2 d2f2 g1f2",
+"Rating": "2391",
+"Themes": [
+"advantage",
+"endgame",
+"long",
+"pin"
+]
+},
+{
+"PuzzleId": "001kG",
+"FEN": "rnbq3r/1p2bkpp/p4n2/8/2pNP3/2N5/PPP3PP/R1BQ1RK1 b - - 1 11",
+"Moves": "e7c5 d1h5 f7g8 h5c5",
+"Rating": "1974",
+"Themes": [
+"advantage",
+"opening",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "002e8",
+"FEN": "r3nrk1/1b3pp1/4pb2/p3q3/1p1N4/3B2R1/PPPQN2P/1K4R1 b - - 1 23",
+"Moves": "a8d8 d2h6 g7g6 g3h3",
+"Rating": "2554",
+"Themes": [
+"crushing",
+"defensiveMove",
+"master",
+"middlegame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "002rd",
+"FEN": "r6k/q1pb1p1p/1b3Pr1/p1ppP2Q/3P2p1/4B3/PP2NRPP/3R2K1 b - - 1 25",
+"Moves": "d7e6 e2f4 c5d4 f4g6 f7g6 h5h6",
+"Rating": "1795",
+"Themes": [
+"crushing",
+"kingsideAttack",
+"long",
+"middlegame",
+"pin"
+]
+},
+{
+"PuzzleId": "003Ec",
+"FEN": "3r4/p4R2/1pb2Pp1/n1p1Q1kp/8/P2q4/1P4PP/6RK b - - 2 32",
+"Moves": "d3f5 e5e3 f5f4 h2h4 g5f5 e3h3",
+"Rating": "2245",
+"Themes": [
+"crushing",
+"long",
+"middlegame",
+"pin"
+]
+},
+{
+"PuzzleId": "003S3",
+"FEN": "r4k1r/pNqnppb1/6pn/2p3Np/7P/2P2Q2/PP3PP1/R1B1K2R b KQ - 2 15",
+"Moves": "a8b8 g5e6 f8g8 e6c7",
+"Rating": "1336",
+"Themes": [
+"advantage",
+"middlegame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "003nQ",
+"FEN": "6rk/pp6/2n5/3ppn1p/3p4/2P2P1q/PP3QNB/R4R1K w - - 2 29",
+"Moves": "f1g1 f5g3 f2g3 g8g3",
+"Rating": "1286",
+"Themes": [
+"crushing",
+"kingsideAttack",
+"master",
+"middlegame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "004Op",
+"FEN": "2kr2r1/1bp4n/1pq1p2p/p1P5/1P3B2/P6P/5RP1/RB2Q1K1 w - - 3 26",
+"Moves": "e1f1 d8d1 f1d1 g8g2 g1f1 g2g1 f1e2 g1d1",
+"Rating": "2280",
+"Themes": [
+"crushing",
+"deflection",
+"kingsideAttack",
+"middlegame",
+"pin",
+"sacrifice",
+"skewer",
+"veryLong"
+]
+},
+{
+"PuzzleId": "004zh",
+"FEN": "4b1k1/4Pr2/3R2pp/1ppBP1q1/8/PP4P1/2P4P/3R3K b - - 2 38",
+"Moves": "g5h5 d1f1 g8g7 d5f7 e8f7 d6d8 h5e5 f1f7 g7f7 e7e8q e5e8 d8e8",
+"Rating": "2624",
+"Themes": [
+"advancedPawn",
+"attraction",
+"crushing",
+"endgame",
+"exposedKing",
+"intermezzo",
+"pin",
+"promotion",
+"quietMove",
+"veryLong"
+]
+},
+{
+"PuzzleId": "006NL",
+"FEN": "1r6/k2qn1b1/p1b1p1p1/2PpPpN1/2nN1P1P/p4B2/1PP2Q2/1K1R3R w - - 0 32",
+"Moves": "d4c6 e7c6 b2b3 a3a2 b1a1 c4e5 f4e5 g7e5 a1a2 b8b5",
+"Rating": "2545",
+"Themes": [
+"advancedPawn",
+"advantage",
+"middlegame",
+"pin",
+"veryLong"
+]
+},
+{
+"PuzzleId": "006XF",
+"FEN": "r5kr/pp1qb1p1/2p4p/3pPb1Q/3P4/2P1B3/PP4PP/R4RK1 b - - 1 17",
+"Moves": "f5e4 h5f7 g8h7 f1f6 e7f6 f7d7",
+"Rating": "2372",
+"Themes": [
+"advantage",
+"long",
+"middlegame",
+"pin"
+]
+},
+{
+"PuzzleId": "00734",
+"FEN": "rn3bk1/2rqp2p/2p3p1/3p1p2/3P1P1B/pP1BP3/P1Q2PRP/1KR5 b - - 0 26",
+"Moves": "b8a6 d3f5 e7e6 f5g6",
+"Rating": "1692",
+"Themes": [
+"crushing",
+"middlegame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "008LT",
+"FEN": "r4rk1/6p1/b3p1nN/p1pp4/1p3P1q/3P1Q1B/PPP2PK1/R6R b - - 0 26",
+"Moves": "g8h8 h6f7 f8f7 h3e6",
+"Rating": "2209",
+"Themes": [
+"crushing",
+"kingsideAttack",
+"middlegame",
+"pin",
+"sacrifice",
+"short"
+]
+},
+{
+"PuzzleId": "00C8e",
+"FEN": "8/5p1k/5Ppb/2p3P1/1p6/8/KB5Q/3q4 b - - 4 58",
+"Moves": "d1a4 a2b1 a4d1 b2c1",
+"Rating": "1559",
+"Themes": [
+"endgame",
+"equality",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "00Dt6",
+"FEN": "5rk1/p4p1p/4p1p1/5nq1/8/5QPP/5PK1/2RR4 w - - 6 35",
+"Moves": "c1b1 f5h4 g2f1 h4f3",
+"Rating": "1204",
+"Themes": [
+"crushing",
+"endgame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "00EJb",
+"FEN": "6k1/5pp1/2R1p2p/8/P1B5/1P4P1/1q3Q1P/3r2K1 w - - 1 35",
+"Moves": "g1g2 d1d2 c6c8 g8h7 c4d3 f7f5 c8c2 d2f2",
+"Rating": "2288",
+"Themes": [
+"advantage",
+"endgame",
+"pin",
+"veryLong"
+]
+},
+{
+"PuzzleId": "00F5G",
+"FEN": "2rqrbk1/pp3ppp/4n3/3p1N2/3NnBQ1/2P4P/PP3PP1/R4RK1 b - - 14 22",
+"Moves": "e6f4 f5h6 g8h8 h6f7",
+"Rating": "1522",
+"Themes": [
+"crushing",
+"deflection",
+"kingsideAttack",
+"middlegame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "00H5n",
+"FEN": "8/5Rpk/3p3p/p1qPp3/P3n3/5N1P/1Q3PPK/2r5 b - - 0 35",
+"Moves": "e4f2 b2b7 c1h1 h2g3 f2e4 g3g4 e4f6 f7f6 c5b4 b7b4",
+"Rating": "2503",
+"Themes": [
+"advantage",
+"endgame",
+"pin",
+"quietMove",
+"veryLong"
+]
+},
+{
+"PuzzleId": "00JFF",
+"FEN": "4r1k1/ppqb3p/6B1/3pb2Q/8/2P5/PP1B2PP/5RK1 b - - 0 20",
+"Moves": "h7g6 h5g6 e5g7 f1f7 c7c5 g1h1 c5f8 f7f8",
+"Rating": "2017",
+"Themes": [
+"crushing",
+"middlegame",
+"pin",
+"veryLong"
+]
+},
+{
+"PuzzleId": "00KNB",
+"FEN": "2rr2k1/5p2/4p2p/4N1pQ/1p3P2/4P3/np3P1P/2q2BRK b - - 1 32",
+"Moves": "c8c7 h5h6 b2b1q h6g5",
+"Rating": "2499",
+"Themes": [
+"crushing",
+"kingsideAttack",
+"master",
+"middlegame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "00Knu",
+"FEN": "r2q1rk1/p3bpp1/2pp1nb1/4p1Q1/8/1B3N1P/PPP3P1/R1B2RK1 b - - 0 18",
+"Moves": "f6e4 g5g6 d8b6 g1h2",
+"Rating": "1847",
+"Themes": [
+"advantage",
+"defensiveMove",
+"opening",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "00LNH",
+"FEN": "1k2r3/pp2r2p/2pqbpp1/3n4/2BP1p2/5N1P/PPQB1PP1/1K1RR3 w - - 2 22",
+"Moves": "c4b3 e6f5 c2f5 g6f5",
+"Rating": "1593",
+"Themes": [
+"advantage",
+"middlegame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "00M1q",
+"FEN": "2r3k1/2r1q1p1/p3p1Q1/1p1p4/nP1P4/2P4R/P4PPP/2R3K1 b - - 0 30",
+"Moves": "e7f6 g6h7 g8f7 h3f3 f6f3 g2f3",
+"Rating": "1434",
+"Themes": [
+"advantage",
+"long",
+"middlegame",
+"pin"
+]
+},
+{
+"PuzzleId": "00OKo",
+"FEN": "r3r1k1/pbq5/1p2pp1p/2p1N3/2PP2Q1/1P1B4/P5PP/R5K1 b - - 1 24",
+"Moves": "g8f8 a1f1 c7g7 f1f6 g7f6 e5d7",
+"Rating": "2331",
+"Themes": [
+"advantage",
+"exposedKing",
+"long",
+"middlegame",
+"pin",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "00Tdk",
+"FEN": "r6r/4kppp/2pNpnq1/p1P1n3/8/B3P3/PP2QPPP/3R1RK1 w - - 7 20",
+"Moves": "e2d2 e5f3 g1h1 f3d2",
+"Rating": "1041",
+"Themes": [
+"crushing",
+"middlegame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "00W5B",
+"FEN": "1r4k1/p5pp/5p2/2Rb4/1P4P1/P2r4/3P3P/3B1RK1 b - - 3 34",
+"Moves": "d3d2 c5d5 d2d5 d1b3 g8f8 b3d5",
+"Rating": "1402",
+"Themes": [
+"advantage",
+"attraction",
+"endgame",
+"long",
+"pin",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "00WG3",
+"FEN": "8/pk1r1Rp1/1p2p2p/4P1bP/3rN3/8/PP6/1K3R2 b - - 4 33",
+"Moves": "d4d1 f1d1 d7f7 e4d6 b7c7 d6f7",
+"Rating": "1044",
+"Themes": [
+"crushing",
+"endgame",
+"fork",
+"long",
+"pin"
+]
+},
+{
+"PuzzleId": "00XL2",
+"FEN": "2kr3r/ppp3pp/6q1/3Pnp2/1PP1p3/7P/P2QNPP1/R4RK1 w - - 1 17",
+"Moves": "d2d4 e5f3 g1h1 f3d4",
+"Rating": "998",
+"Themes": [
+"crushing",
+"middlegame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "00XXM",
+"FEN": "3r1br1/Qpqk1p2/p1p1p2p/3nP3/8/2P1NP1N/PP6/1K1R3R b - - 3 25",
+"Moves": "f8e7 c3c4 b7b6 a7c7 d7c7 c4d5",
+"Rating": "1735",
+"Themes": [
+"advantage",
+"long",
+"middlegame",
+"pin"
+]
+},
+{
+"PuzzleId": "00XZR",
+"FEN": "8/2p5/p1n5/1pP1p2k/1P1p4/P2P3P/5P2/R4KRq b - - 9 34",
+"Moves": "h1h3 f1e2 e5e4 g1h1 e4d3 e2d2",
+"Rating": "1641",
+"Themes": [
+"crushing",
+"defensiveMove",
+"endgame",
+"long",
+"pin"
+]
+},
+{
+"PuzzleId": "00Yqw",
+"FEN": "1Qbk1b1r/4rpp1/p1BP3p/8/3q4/6P1/1PP3PP/1K5R b - - 0 33",
+"Moves": "e7d7 c6d7 d4c5 d7c8",
+"Rating": "1880",
+"Themes": [
+"crushing",
+"middlegame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "00ZSd",
+"FEN": "2R5/5pk1/pb4p1/1p1q4/3P1P1p/P3r2P/1PQ3P1/3R2K1 w - - 6 45",
+"Moves": "g1h1 e3h3 h1g1 b6d4 d1d4 d5d4",
+"Rating": "1290",
+"Themes": [
+"crushing",
+"endgame",
+"long",
+"pin"
+]
+},
+{
+"PuzzleId": "00ZeT",
+"FEN": "1Q1k4/4r3/2q4p/2p1pp1P/2Bb4/1P6/P6K/4R3 b - - 4 43",
+"Moves": "d8d7 c4b5 c6b5 b8b5",
+"Rating": "1385",
+"Themes": [
+"crushing",
+"endgame",
+"pin",
+"short"
+]
+},
+{
+"PuzzleId": "00aG8",
+"FEN": "1r3k2/p4ppp/2rN4/8/P2P4/8/2P2PPP/3Q2K1 w - - 3 23",
+"Moves": "d6f5 c6b6 g1f1 b6b1 d1b1 b8b1",
+"Rating": "1656",
+"Themes": [
+"advantage",
+"endgame",
+"long",
+"pin",
+"quietMove"
+]
+},
+{
+"PuzzleId": "000qP",
+"FEN": "8/7R/8/5p2/4bk1P/8/2r2K2/6R1 w - - 7 51",
+"Moves": "f2f1 f4f3 f1e1 c2c1 e1d2 c1g1",
+"Rating": "2167",
+"Themes": [
+"crushing",
+"endgame",
+"exposedKing",
+"long",
+"skewer"
+]
+},
+{
+"PuzzleId": "001m3",
+"FEN": "7r/6k1/2b1pp2/8/P1N3p1/5nP1/4RP2/Q4K2 w - - 2 38",
+"Moves": "e2e6 h8h1 f1e2 h1a1",
+"Rating": "1455",
+"Themes": [
+"advantage",
+"endgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "001xl",
+"FEN": "8/4R1k1/p5pp/3B4/5q2/8/5P1P/6K1 b - - 5 40",
+"Moves": "g7f6 e7f7 f6e5 f7f4",
+"Rating": "1299",
+"Themes": [
+"advantage",
+"endgame",
+"master",
+"masterVsMaster",
+"short",
+"skewer",
+"superGM"
+]
+},
+{
+"PuzzleId": "0039T",
+"FEN": "1r5r/p3kp2/4p2p/4P3/3R1Pp1/6P1/P1P4P/4K2R w K - 1 25",
+"Moves": "d4a4 b8b1 e1f2 b1h1 a4a7 e7f8",
+"Rating": "1121",
+"Themes": [
+"crushing",
+"defensiveMove",
+"endgame",
+"long",
+"rookEndgame",
+"skewer"
+]
+},
+{
+"PuzzleId": "003eP",
+"FEN": "8/r1b1q2k/2p3p1/2Pp4/1P2p1n1/2B1P3/NQ6/2K4R b - - 1 36",
+"Moves": "h7g8 h1h8 g8f7 h8h7 f7e8 h7e7",
+"Rating": "1156",
+"Themes": [
+"crushing",
+"exposedKing",
+"long",
+"middlegame",
+"skewer"
+]
+},
+{
+"PuzzleId": "004mT",
+"FEN": "5Q2/8/1b1kp1p1/5p2/3p4/5qPK/7P/8 b - - 1 51",
+"Moves": "d6c6 f8a8 c6d6 a8f3",
+"Rating": "1361",
+"Themes": [
+"advantage",
+"endgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "006OI",
+"FEN": "8/p7/5k2/P5R1/6KP/8/8/5r2 w - - 5 53",
+"Moves": "g5g8 f1g1 g4f4 g1g8",
+"Rating": "843",
+"Themes": [
+"crushing",
+"endgame",
+"rookEndgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "006yP",
+"FEN": "6R1/8/Kpk1p3/1p1pP3/6P1/PPP1r3/8/8 b - - 3 40",
+"Moves": "e3c3 g8c8 c6d7 c8c3",
+"Rating": "819",
+"Themes": [
+"crushing",
+"endgame",
+"master",
+"rookEndgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "007tv",
+"FEN": "r3k1nr/1pp2ppp/1pnp2q1/4p1B1/2B1P3/3P1Q1P/PPP2PP1/R4RK1 b kq - 0 11",
+"Moves": "g6g5 f3f7 e8d8 f7f8 d8d7 f8a8",
+"Rating": "1108",
+"Themes": [
+"advantage",
+"attackingF2F7",
+"long",
+"middlegame",
+"skewer"
+]
+},
+{
+"PuzzleId": "008EC",
+"FEN": "6k1/4rpp1/p6p/7P/q1pP1R2/2Pb2Q1/P4RP1/6K1 w - - 9 31",
+"Moves": "f4f7 e7f7 g3b8 g8h7 f2f7 a4d1 g1f2 d1f1 f2g3 f1f7",
+"Rating": "2344",
+"Themes": [
+"advantage",
+"endgame",
+"skewer",
+"veryLong"
+]
+},
+{
+"PuzzleId": "00AB1",
+"FEN": "8/7Q/3p1kp1/1p6/2b5/2P4P/5PPK/4q3 b - - 8 36",
+"Moves": "e1c3 h7h8 f6e6 h8c3",
+"Rating": "1107",
+"Themes": [
+"crushing",
+"endgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00DZe",
+"FEN": "8/5k2/7p/p1P1bPpP/Pp2P3/1P1pBK2/8/8 w - - 1 47",
+"Moves": "e3f2 g5g4 f3e3 e5d4 e3d3 d4f2",
+"Rating": "2318",
+"Themes": [
+"bishopEndgame",
+"crushing",
+"deflection",
+"endgame",
+"long",
+"master",
+"skewer"
+]
+},
+{
+"PuzzleId": "00EoE",
+"FEN": "r1b1k3/ppr4p/5p2/5p2/8/2P3P1/P4PP1/4RK1R b q - 1 23",
+"Moves": "e8f7 h1h7 f7g6 h7c7",
+"Rating": "974",
+"Themes": [
+"crushing",
+"endgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00F1l",
+"FEN": "8/2k1b3/5p2/RBpK1Pp1/Pp1p2P1/3P4/2r5/8 b - - 2 45",
+"Moves": "b4b3 a5a7 c7b8 a7e7",
+"Rating": "836",
+"Themes": [
+"crushing",
+"endgame",
+"master",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00H87",
+"FEN": "6k1/2q1pp2/p5pB/2p4n/3pP1Q1/P2P3P/1r4P1/5RK1 b - - 1 30",
+"Moves": "c7g3 g4c8 g8h7 f1f7 h5g7 f7g7 h7h6 c8h8 h6g5 g7g6 g5g6 h8g8 g6f6 g8g3",
+"Rating": "1912",
+"Themes": [
+"attraction",
+"crushing",
+"deflection",
+"endgame",
+"sacrifice",
+"skewer",
+"veryLong"
+]
+},
+{
+"PuzzleId": "00ICz",
+"FEN": "2k2rr1/1p1q3p/1p2p3/1NbpQ3/P1p2P2/6P1/6KP/R4R2 b - - 0 31",
+"Moves": "f8f5 b5a7 c8d8 e5b8 d8e7 b8g8",
+"Rating": "1205",
+"Themes": [
+"crushing",
+"long",
+"middlegame",
+"skewer"
+]
+},
+{
+"PuzzleId": "00KMV",
+"FEN": "1r3k2/1p1q1p2/p2p1np1/2pP2bp/2P1P1n1/1PQ3P1/P3N1K1/3N1R1R b - - 11 28",
+"Moves": "f6e4 c3h8 f8e7 h8b8",
+"Rating": "943",
+"Themes": [
+"crushing",
+"middlegame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00KOz",
+"FEN": "8/r4k2/7R/5PK1/1n6/8/8/8 b - - 3 56",
+"Moves": "b4d5 h6h7 f7f8 h7a7",
+"Rating": "960",
+"Themes": [
+"crushing",
+"endgame",
+"master",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00OLF",
+"FEN": "k1r5/n1p3p1/Q2pN3/P2Pp2p/q3Pp1P/2RK4/5PP1/8 w - - 4 36",
+"Moves": "e6c7 c8c7 c3c7 a4d1 d3c3 d1c1 c3b3 c1c7",
+"Rating": "2005",
+"Themes": [
+"crushing",
+"endgame",
+"sacrifice",
+"skewer",
+"veryLong"
+]
+},
+{
+"PuzzleId": "00PrK",
+"FEN": "r7/7R/P3k3/4p2p/3b2p1/3K4/8/5R2 b - - 7 55",
+"Moves": "a8a6 h7h6 e6d5 h6a6",
+"Rating": "968",
+"Themes": [
+"crushing",
+"endgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00Q4v",
+"FEN": "8/2p1b3/q1Pp2k1/3Pp3/4Pr2/1Q3PK1/3N2P1/7R w - - 1 47",
+"Moves": "h1e1 e7h4 g3h2 h4e1",
+"Rating": "1228",
+"Themes": [
+"crushing",
+"endgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00TiV",
+"FEN": "8/1kp5/4n3/3pN3/r2P3R/2K4P/8/8 w - - 5 48",
+"Moves": "e5f3 a4a3 c3c2 a3f3",
+"Rating": "1135",
+"Themes": [
+"crushing",
+"endgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00WJN",
+"FEN": "5Q2/7K/8/8/4p2P/3kq3/8/8 b - - 1 53",
+"Moves": "e3g3 f8a3 d3d2 a3g3",
+"Rating": "1324",
+"Themes": [
+"crushing",
+"endgame",
+"queenEndgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00WZO",
+"FEN": "8/1R2B3/5p2/1k2bP1p/p6r/5K2/8/8 b - - 7 45",
+"Moves": "b5c4 b7b4 c4d5 b4h4",
+"Rating": "1108",
+"Themes": [
+"crushing",
+"endgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00bQA",
+"FEN": "r7/6k1/2b1R1n1/1p3nR1/1P1p3p/3P1PpP/2N3P1/6K1 b - - 0 40",
+"Moves": "f5e7 e6e7 g7f6 g5g6 f6e7 g6c6 e7d7 c6c5",
+"Rating": "2225",
+"Themes": [
+"crushing",
+"exposedKing",
+"master",
+"middlegame",
+"pin",
+"skewer",
+"veryLong"
+]
+},
+{
+"PuzzleId": "00baa",
+"FEN": "1r1qr1k1/p1p2ppp/1p1b1n2/8/3Q4/1PN3P1/PBP1PPKP/R3R3 w - - 1 15",
+"Moves": "c3d5 d6e5 d5f6 d8f6 d4c4 e5b2",
+"Rating": "2001",
+"Themes": [
+"advantage",
+"long",
+"middlegame",
+"skewer"
+]
+},
+{
+"PuzzleId": "00coU",
+"FEN": "6k1/R7/5K2/1r6/5r2/p4N2/8/5R2 w - - 3 50",
+"Moves": "f6e7 f4f7 e7d6 f7a7",
+"Rating": "1526",
+"Themes": [
+"crushing",
+"endgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00h95",
+"FEN": "7k/Q1p3p1/5p1p/3q4/3Pr3/4P3/P4P1P/1R4K1 w - - 2 26",
+"Moves": "a7c5 e4g4 g1f1 d5h1 f1e2 h1b1",
+"Rating": "1696",
+"Themes": [
+"crushing",
+"endgame",
+"long",
+"skewer"
+]
+},
+{
+"PuzzleId": "00l0K",
+"FEN": "2b5/2p2p2/k7/1qQ1P3/1p6/1N3P2/1PP5/2K5 w - - 3 38",
+"Moves": "c5c7 b5f1 c1d2 f1f2 d2d3 c8f5 d3c4 f2c2 c4b4 c2c7",
+"Rating": "1654",
+"Themes": [
+"crushing",
+"deflection",
+"endgame",
+"skewer",
+"veryLong"
+]
+},
+{
+"PuzzleId": "00lap",
+"FEN": "8/8/2k3P1/R7/P2p2rp/3K4/8/8 b - - 0 45",
+"Moves": "g4g6 a5a6 c6d7 a6g6",
+"Rating": "945",
+"Themes": [
+"crushing",
+"endgame",
+"master",
+"rookEndgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00nl3",
+"FEN": "6R1/1p4p1/p1k4p/3p4/PP2p1P1/2b1P3/6K1/8 b - - 2 37",
+"Moves": "b7b5 g8c8 c6b7 c8c3",
+"Rating": "820",
+"Themes": [
+"advantage",
+"endgame",
+"master",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00sXv",
+"FEN": "8/r4pp1/2k1p2p/8/p2PP3/2K2PP1/6P1/1R6 w - - 1 35",
+"Moves": "c3b4 a7b7 b4a4 b7b1",
+"Rating": "1121",
+"Themes": [
+"crushing",
+"endgame",
+"rookEndgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "00z9K",
+"FEN": "4B3/1b5p/p5k1/3p3R/6P1/1P6/KPrn1r2/7R b - - 2 34",
+"Moves": "g6g7 h5h7 g7f8 h7b7",
+"Rating": "2209",
+"Themes": [
+"advantage",
+"master",
+"middlegame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "0100g",
+"FEN": "8/8/5k2/R7/2P1K2r/8/P7/8 w - - 1 43",
+"Moves": "e4d5 h4h5 d5d6 h5a5",
+"Rating": "873",
+"Themes": [
+"crushing",
+"endgame",
+"rookEndgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "0109Y",
+"FEN": "r3r2Q/p3kpn1/5q2/3p4/1p5P/3B1PR1/PPP2nP1/1K2R3 b - - 6 27",
+"Moves": "e7d7 d3b5 d7d6 b5e8 a8e8 e1e8",
+"Rating": "2050",
+"Themes": [
+"advantage",
+"long",
+"middlegame",
+"skewer"
+]
+},
+{
+"PuzzleId": "010Sa",
+"FEN": "3r2k1/pb2q3/4p3/2p2p1Q/3p4/3R3R/PPP2PrP/5K2 b - - 1 26",
+"Moves": "g2g7 d3g3 e7f6 g3g7 g8g7 h5h7 g7f8 h7b7",
+"Rating": "2672",
+"Themes": [
+"advantage",
+"attraction",
+"exposedKing",
+"middlegame",
+"skewer",
+"veryLong"
+]
+},
+{
+"PuzzleId": "0112g",
+"FEN": "7R/8/8/8/3k4/4p3/r7/4K3 b - - 1 57",
+"Moves": "a2a4 h8h4 d4c3 h4a4",
+"Rating": "1061",
+"Themes": [
+"crushing",
+"endgame",
+"rookEndgame",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "01243",
+"FEN": "r7/pp1Qp1B1/8/3kb3/4q3/8/PP3PP1/5K2 b - - 4 34",
+"Moves": "e5d6 d7b7 d5e6 b7e4",
+"Rating": "1561",
+"Themes": [
+"crushing",
+"deflection",
+"endgame",
+"fork",
+"master",
+"short",
+"skewer"
+]
+},
+{
+"PuzzleId": "012ee",
+"FEN": "rb4k1/2q3pp/P3pp2/3pN3/1Q1P4/4P3/2P2PPP/R5K1 w - - 2 26",
+"Moves": "e5d3 c7h2 g1f1 h2h1 f1e2 h1a1",
+"Rating": "1090",
+"Themes": [
+"advantage",
+"endgame",
+"kingsideAttack",
+"long",
+"skewer"
+]
+},
+{
+"PuzzleId": "00008",
+"FEN": "r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2R1/PqP2bPP/7K b - - 0 24",
+"Moves": "f2g3 e6e7 b2b1 b3c1 b1c1 h6c1",
+"Rating": "1811",
+"Themes": [
+"crushing",
+"hangingPiece",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "0000D",
+"FEN": "5rk1/1p3ppp/pq3b2/8/8/1P1Q1N2/P4PPP/3R2K1 w - - 2 27",
+"Moves": "d3d6 f8d8 d6d8 f6d8",
+"Rating": "1529",
+"Themes": [
+"advantage",
+"endgame",
+"short"
+]
+},
+{
+"PuzzleId": "0008Q",
+"FEN": "8/4R3/1p2P3/p4r2/P6p/1P3Pk1/4K3/8 w - - 1 64",
+"Moves": "e7f7 f5e5 e2f1 e5e6",
+"Rating": "1383",
+"Themes": [
+"advantage",
+"endgame",
+"rookEndgame",
+"short"
+]
+},
+{
+"PuzzleId": "0009B",
+"FEN": "r2qr1k1/b1p2ppp/pp4n1/P1P1p3/4P1n1/B2P2Pb/3NBP1P/RN1QR1K1 b - - 1 16",
+"Moves": "b6c5 e2g4 h3g4 d1g4",
+"Rating": "1084",
+"Themes": [
+"advantage",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "000Sa",
+"FEN": "2Q2bk1/5p1p/p5p1/2p3P1/2r1B3/7P/qPQ2P2/2K4R b - - 0 32",
+"Moves": "c4c2 e4c2 a2a1 c2b1",
+"Rating": "1476",
+"Themes": [
+"advantage",
+"endgame",
+"short"
+]
+},
+{
+"PuzzleId": "000VW",
+"FEN": "r4r2/1p3pkp/p5p1/3R1N1Q/3P4/8/P1q2P2/3R2K1 b - - 3 25",
+"Moves": "g6f5 d5c5 c2e4 h5g5 g7h8 g5f6",
+"Rating": "2873",
+"Themes": [
+"crushing",
+"endgame",
+"long"
+]
+},
+{
+"PuzzleId": "000Vc",
+"FEN": "8/8/4k1p1/2KpP2p/5PP1/8/8/8 w - - 0 53",
+"Moves": "g4h5 g6h5 f4f5 e6e5 f5f6 e5f6",
+"Rating": "1569",
+"Themes": [
+"crushing",
+"endgame",
+"long",
+"pawnEndgame"
+]
+},
+{
+"PuzzleId": "000aY",
+"FEN": "r4rk1/pp3ppp/2n1b3/q1pp2B1/8/P1Q2NP1/1PP1PP1P/2KR3R w - - 0 15",
+"Moves": "g5e7 a5c3 b2c3 c6e7",
+"Rating": "1412",
+"Themes": [
+"advantage",
+"master",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "000c8",
+"FEN": "6k1/Bp3pp1/p3p3/3pPn1p/N4P1q/P2Q1R1P/1P4PK/2r5 w - - 0 28",
+"Moves": "a4c5 h4e1 f3f1 e1f1 d3f1 c1f1",
+"Rating": "1478",
+"Themes": [
+"crushing",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "000h0",
+"FEN": "5rk1/p5p1/3bpr1p/1Pp4q/3pR3/1P1Q1N2/P4PPP/4R1K1 w - - 4 22",
+"Moves": "e4e6 f6f3 g2f3 h5h2 g1f1 h2h3 f1e2 h3e6",
+"Rating": "2048",
+"Themes": [
+"advantage",
+"interference",
+"kingsideAttack",
+"middlegame",
+"veryLong"
+]
+},
+{
+"PuzzleId": "000jr",
+"FEN": "5k2/1p4pp/p5n1/5Q2/3BpP2/1P2PP1K/P1q4P/7r b - - 1 33",
+"Moves": "f8g8 f5d5 g8f8 d4c5 c2c5 d5c5",
+"Rating": "2152",
+"Themes": [
+"crushing",
+"endgame",
+"long"
+]
+},
+{
+"PuzzleId": "000lC",
+"FEN": "3r3r/pQNk1ppp/1qnb1n2/1B6/8/8/PPP3PP/3R1R1K w - - 5 19",
+"Moves": "d1d6 d7d6 b7b6 a7b6",
+"Rating": "1356",
+"Themes": [
+"advantage",
+"hangingPiece",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "000mr",
+"FEN": "5r1k/5rp1/p7/1b2B2p/1P1P1Pq1/2R1Q3/P3p1P1/2R3K1 w - - 0 41",
+"Moves": "e3g3 f7f4 e5f4 f8f4",
+"Rating": "1943",
+"Themes": [
+"crushing",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "000o3",
+"FEN": "8/2p1k3/6p1/1p1P1p2/1P3P2/3K2Pp/7P/8 b - - 1 43",
+"Moves": "e7d6 d3d4 g6g5 f4g5",
+"Rating": "959",
+"Themes": [
+"crushing",
+"endgame",
+"pawnEndgame",
+"short",
+"zugzwang"
+]
+},
+{
+"PuzzleId": "00143",
+"FEN": "r2q1rk1/5ppp/1np5/p1b5/2p1B3/P7/1P3PPP/R1BQ1RK1 b - - 1 17",
+"Moves": "d8f6 d1h5 h7h6 h5c5",
+"Rating": "1797",
+"Themes": [
+"advantage",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "0018P",
+"FEN": "5R2/1p6/p1p5/2P1rk2/2K3p1/2P1p1P1/1P5P/8 b - - 1 44",
+"Moves": "f5e6 f8e8 e6f5 e8e5 f5e5 c4d3 e5d5 d3e3 a6a5 e3f4 d5c4 f4g4",
+"Rating": "1903",
+"Themes": [
+"crushing",
+"endgame",
+"exposedKing",
+"rookEndgame",
+"veryLong"
+]
+},
+{
+"PuzzleId": "001Fg",
+"FEN": "2R2r1k/pQ4pp/5rp1/3B4/q2n4/7P/P4PP1/5RK1 w - - 3 30",
+"Moves": "c8c7 d4e2 g1h2 a4f4 h2h1 e2g3 f2g3 f4f1",
+"Rating": "1256",
+"Themes": [
+"advantage",
+"middlegame",
+"veryLong"
+]
+},
+{
+"PuzzleId": "001Oo",
+"FEN": "6k1/4p1bp/6p1/1p1pP3/1PpPp3/2P1P3/Q2B1KPP/3q4 b - - 2 23",
+"Moves": "d1a4 a2a4 b5a4 b4b5 g8f7 b5b6",
+"Rating": "2078",
+"Themes": [
+"crushing",
+"endgame",
+"long",
+"quietMove"
+]
+},
+{
+"PuzzleId": "001aK",
+"FEN": "6k1/5p2/4p3/P1B5/2P4P/4Pnp1/Rb1rN3/5K2 b - - 1 33",
+"Moves": "d2e2 f1e2 g3g2 e3e4 f3d4 e2f2",
+"Rating": "2056",
+"Themes": [
+"crushing",
+"endgame",
+"hangingPiece",
+"long",
+"quietMove"
+]
+},
+{
+"PuzzleId": "001h8",
+"FEN": "2r3k1/2r4p/4p1p1/1p1q1pP1/p1bP1P1Q/P6R/5B2/2R3K1 b - - 5 34",
+"Moves": "c4e2 h4h7 c7h7 c1c8 g8g7 c8c7",
+"Rating": "1749",
+"Themes": [
+"crushing",
+"deflection",
+"kingsideAttack",
+"long",
+"middlegame",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "001u3",
+"FEN": "2r3k1/p1q2pp1/Q3p2p/b1Np4/2nP1P2/4P1P1/5K1P/2B1N3 b - - 3 33",
+"Moves": "c7b6 a6c8 g8h7 c8b7",
+"Rating": "2190",
+"Themes": [
+"advantage",
+"hangingPiece",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "001uD",
+"FEN": "6k1/1p3pp1/1p5p/2r1p3/2n5/r3PN2/2RnNPPP/2R3K1 b - - 1 32",
+"Moves": "f7f6 f3d2 c4d2 c2d2 c5c1 e2c1",
+"Rating": "1890",
+"Themes": [
+"advantage",
+"long",
+"middlegame"
+]
+},
+{
+"PuzzleId": "001xO",
+"FEN": "k1r1b3/p1r1nppp/1p1qpn2/2Np4/1P1P4/PQRBPN2/5PPP/2R3K1 w - - 0 19",
+"Moves": "d3a6 b6c5 a6c8 c5c4",
+"Rating": "1780",
+"Themes": [
+"crushing",
+"master",
+"masterVsMaster",
+"middlegame",
+"sacrifice",
+"short"
+]
+},
+{
+"PuzzleId": "002Ds",
+"FEN": "8/1pp5/p2p4/P2Pk2p/1PP1p2P/2n1K2P/3N4/8 b - - 0 45",
+"Moves": "b7b6 b4b5 c3d1 e3e2 a6b5 a5a6",
+"Rating": "1992",
+"Themes": [
+"crushing",
+"endgame",
+"knightEndgame",
+"long"
+]
+},
+{
+"PuzzleId": "002Hv",
+"FEN": "8/8/8/3N2p1/5b2/3p3P/5kP1/3K4 w - - 16 56",
+"Moves": "d5f4 g5f4 h3h4 f2g2 h4h5 f4f3 d1d2 f3f2",
+"Rating": "1621",
+"Themes": [
+"advancedPawn",
+"crushing",
+"endgame",
+"veryLong"
+]
+},
+{
+"PuzzleId": "002LF",
+"FEN": "7r/p2q1pk1/1pp3p1/8/6P1/4Q3/PP1R1P1r/5KN1 b - - 0 38",
+"Moves": "d7g4 e3e5 f7f6 e5c7 g7h6 c7h2",
+"Rating": "2185",
+"Themes": [
+"advantage",
+"endgame",
+"interference",
+"long"
+]
+},
+{
+"PuzzleId": "002LW",
+"FEN": "3r1rk1/1b1n1pp1/3p4/p4PPQ/4P3/3q1BN1/8/2R2RK1 b - - 1 28",
+"Moves": "d7e5 f5f6 e5f3 f1f3",
+"Rating": "2464",
+"Themes": [
+"advantage",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "002O7",
+"FEN": "r3qrk1/2p2pp1/p2bpn1p/2ppNb2/3P1P2/1PP1P1B1/P2N2PP/R2Q1RK1 b - - 0 14",
+"Moves": "f5g4 e5g4 f6g4 d1g4",
+"Rating": "1008",
+"Themes": [
+"crushing",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "002Ua",
+"FEN": "r4rk1/pp3ppp/3p1q2/P1P1p3/2B5/2B2n2/2P2P1P/R2Q1RK1 w - - 0 16",
+"Moves": "g1h1 f6f4 d1f3 f4f3",
+"Rating": "1666",
+"Themes": [
+"crushing",
+"kingsideAttack",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "002Uy",
+"FEN": "8/8/1p6/k7/P1R5/1K5r/8/8 w - - 26 64",
+"Moves": "c4c3 h3c3 b3c3 a5a4 c3b2 a4b4",
+"Rating": "1565",
+"Themes": [
+"crushing",
+"defensiveMove",
+"endgame",
+"long",
+"rookEndgame"
+]
+},
+{
+"PuzzleId": "002VP",
+"FEN": "8/6p1/2B1bn2/6k1/3B4/6K1/4P3/8 b - - 4 44",
+"Moves": "e6d5 d4f6 g5f5 c6d5",
+"Rating": "1466",
+"Themes": [
+"crushing",
+"endgame",
+"short"
+]
+},
+{
+"PuzzleId": "002bK",
+"FEN": "8/7p/2b1k3/p2p1pPB/1n1P3P/N1p1P3/4K3/8 b - - 1 42",
+"Moves": "c6b5 a3b5 c3c2 e2d2",
+"Rating": "1100",
+"Themes": [
+"advantage",
+"endgame",
+"hangingPiece",
+"short"
+]
+},
+{
+"PuzzleId": "002e5",
+"FEN": "r2q4/pp1n1kbp/3P2b1/6N1/6Q1/P3P3/6P1/4K2R b K - 1 21",
+"Moves": "f7g8 g4c4 g8h8 h1h7 g6h7 g5f7",
+"Rating": "2632",
+"Themes": [
+"crushing",
+"long",
+"middlegame",
+"sacrifice"
+]
+},
+{
+"PuzzleId": "002mG",
+"FEN": "5r1k/B1p3pp/2Qb1p2/3Pq3/P6P/8/2P3K1/3R1R2 w - - 1 36",
+"Moves": "g2f2 f8e8 c6e8 e5e8",
+"Rating": "2377",
+"Themes": [
+"advantage",
+"middlegame",
+"quietMove",
+"short"
+]
+},
+{
+"PuzzleId": "002uV",
+"FEN": "r2r2k1/1p2qppp/2n1p3/5n2/p2P4/P2Q1N2/BP3PPP/2R1R1K1 w - - 4 20",
+"Moves": "d3f5 e6f5 e1e7 c6e7",
+"Rating": "1498",
+"Themes": [
+"advantage",
+"middlegame",
+"short"
+]
+},
+{
+"PuzzleId": "002xh",
+"FEN": "2nk4/8/2PBp1n1/1pK1P1p1/1P4P1/8/8/8 b - - 2 42",
+"Moves": "g6h4 c5b5 h4g2 b5a6 g2e3 a6b7",
+"Rating": "2065",
+"Themes": [
+"crushing",
+"endgame",
+"long"
+]
+},
+{
+"PuzzleId": "00347",
+"FEN": "8/2p5/8/2pPk2p/8/4K2P/6P1/8 w - - 1 42",
+"Moves": "e3d3 h5h4 d3c4 e5d6",
+"Rating": "2264",
+"Themes": [
+"crushing",
+"endgame",
+"pawnEndgame",
+"quietMove",
+"short"
+]
+},
+{
+"PuzzleId": "003IM",
+"FEN": "8/5kp1/p3pb2/8/6Pp/1P4qP/P2RQ3/7K w - - 2 34",
+"Moves": "e2g2 g3e1 g2g1 e1d2",
+"Rating": "1096",
+"Themes": [
+"crushing",
+"deflection",
+"endgame",
+"master",
+"short"
+]
+},
+{
+"PuzzleId": "003UW",
+"FEN": "8/6pk/7p/2p5/2qp4/5PP1/P3QK1P/8 b - - 1 40",
+"Moves": "c4d5 e2e4 d5e4 f3e4",
+"Rating": "1473",
+"Themes": [
+"advantage",
+"endgame",
+"queenEndgame",
+"short"
+]
+},
+{
+"PuzzleId": "003aS",
+"FEN": "8/8/5k1p/6p1/1R4PP/1p2KP2/8/1r6 w - - 0 43",
+"Moves": "h4h5 b3b2 b4b6 f6e5 f3f4 g5f4",
+"Rating": "2086",
+"Themes": [
+"advancedPawn",
+"crushing",
+"defensiveMove",
+"endgame",
+"long",
+"rookEndgame"
+]
+}
+]
+}

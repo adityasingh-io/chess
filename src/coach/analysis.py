@@ -62,11 +62,14 @@ def load_games(conn: sqlite3.Connection, ids: list[str]) -> list[Game]:
 
 
 def evaluation(key: str, evals: dict[str, dict]) -> dict | None:
-    """Stockfish's result for a position, or the rules outcome if the game is over there."""
+    """Stockfish's result for a position, or the rules outcome if the game is over there.
+
+    Game-over positions never go to the engine, so a cached result means the game isn't over.
+    """
+    if key in evals:
+        return evals[key]
     outcome = terminal_outcome(board_from_key(key))
-    if outcome is not None:
-        return {"terminal": outcome}
-    return evals.get(key)
+    return {"terminal": outcome} if outcome is not None else None
 
 
 def needs_engine(key: str) -> bool:

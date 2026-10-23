@@ -74,6 +74,27 @@ this file wins.
     top move on my turns and the most common reply at my level on theirs), never written from memory.
 12. Explorer stats are fetched by the pipeline and exported only for positions in my tree; the frontend
     never holds the token.
+13. Exchanges: if the opponent just captured and my move or Stockfish's best move captures back on that
+    square, net material is counted from before their capture. Recapturing isn't "winning" material, and
+    recapturing wrongly can still lose it.
+14. Hung piece and tactic also need my move's line to end at least 2 worse than Stockfish's best line from
+    the same position (a move isn't "hanging" material the best move would lose too). Missed win needs the
+    best line to end at least +2 better than mine.
+15. Records are my moves with drop ≥ 5 outside garbage time, except moves labelled Best. Book moves can be
+    records.
+16. Sub-type precedence: double check, fork, pin, skewer, discovered attack, else other. A motif counts
+    only if the rest of Stockfish's line captures a targeted piece (a pin also counts when a capture lands
+    on a square the pinned piece covers). Mating puzzles are left out of `tagger-check`.
+17. The loss turning point must be a record. The thrown-win move is my largest drop after Win% first
+    reaches 80.
+18. Time trouble uses the clock after the move. "After a win / loss" in insights means the previous game
+    ended within 30 minutes.
+19. Top leaks rank primary types and sub-types by total Win% lost; flags describe context and aren't
+    ranked.
+20. The exported opening tree keeps positions reached in at least `tree_min_games` (2) games.
+21. Exports are reproducible: `as_of` is the newest game's end time, and a file is rewritten only when its
+    content changes.
+22. `tagger-check` measures the first 20,000 puzzles of the Lichess puzzle stream (cached locally).
 
 ## Phases
 

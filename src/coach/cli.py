@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+from collections import Counter
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -56,12 +58,28 @@ def analyze(last: Last = None, reviewed: Reviewed = 0, pass1_only: bool = False)
 
 @app.command()
 def update(last: Last = None, reviewed: Reviewed = 0) -> None:
-    """Fetch, parse and analyse, touching only what's new."""
+    """Fetch, parse, analyse, fetch explorer stats and export, touching only what's new."""
+    from coach.build import fetch_explorer, run_build
+
     cfg, conn = _setup()
-    fetch_archives(cfg, conn, console)
-    parse_all(cfg, conn, console)
+    timings: dict[str, float] = {}
+
+    def step(name: str, fn, *args):
+        started = time.perf_counter()
+        out = fn(*args)
+        timings[name] = time.perf_counter() - started
+        return out
+
+    step("fetch", fetch_archives, cfg, conn, console)
+    step("parse", parse_all, cfg, conn, console)
     games = load_games(conn, select_game_ids(conn, last, reviewed))
-    run_analysis(cfg, conn, games, console)
+    step("analyse", run_analysis, cfg, conn, games, console)
+    if cfg.secrets.lichess_token:
+        step("explorer", fetch_explorer, cfg, conn, console)
+    else:
+        console.print("LICHESS_TOKEN not set: skipping explorer stats")
+    result = step("build", run_build, cfg, conn, console)
+    print_acceptance(cfg, result, timings)
 
 
 @app.command()
@@ -124,6 +142,124 @@ def calibrate(last: Last = 20, reviewed: Reviewed = 0, resample: bool = False) -
     n_games, n1, n2 = full_year_counts(cfg, conn, engine)
     console.print(f"full year: {n_games} games, {n1:,} pass-1 positions, ~{n2:,} pass-2 positions")
     calib.run(cfg, conn, games, console, (n1, n2), resample=resample)
+
+
+@app.command()
+def build() -> None:
+    """Build the analysis model and write the JSON export from cached results (never runs the engine)."""
+    from coach.build import run_build
+
+    cfg, conn = _setup()
+    result = run_build(cfg, conn, console)
+    print_acceptance(cfg, result, {"build": result.seconds})
+
+
+@app.command("explorer")
+def explorer_cmd() -> None:
+    """Fetch Lichess explorer stats for my opening positions (one request at a time, cached)."""
+    from coach.build import fetch_explorer
+
+    cfg, conn = _setup()
+    fetch_explorer(cfg, conn, console)
+
+
+@app.command()
+def review(n: int = 20, type: Annotated[str | None, typer.Option(help="A primary type, sub-type or flag, e.g. fork.")] = None,
+           seed: Annotated[int | None, typer.Option(help="Seed for a repeatable sample.")] = None) -> None:
+    """Print random mistake records: position, my move, Stockfish's lines with material, type and rule."""
+    from coach import review as rv
+    from coach.build import load_inputs
+
+    cfg, conn = _setup()
+    _, models, _, _ = load_inputs(cfg, conn)
+    records = [r for m in models for r in m.records]
+    picked = rv.pick(records, n, type, seed)
+    if not picked:
+        console.print(f"no records{f' tagged {type}' if type else ''} yet ({len(models)} games analysed)")
+    for i, r in enumerate(picked, 1):
+        rv.show(console, r, i)
+
+
+@app.command("tagger-check")
+def tagger_check(sample: Annotated[int | None, typer.Option(help="Puzzles to read (default from config).")] = None) -> None:
+    """Run the sub-type tagger on Lichess puzzles and report agreement with their theme tags."""
+    from coach import puzzledb
+    from coach.taggercheck import agreement
+
+    cfg, _ = _setup()
+    rows = puzzledb.sample(cfg, sample)
+    stats, used = agreement(rows)
+    table = Table(title=f"Tagger vs Lichess themes ({used:,} of {len(rows):,} puzzles, mates left out)",
+                  box=None, collapse_padding=True, pad_edge=False, header_style="bold underline")
+    for col in ("theme", "tagged", "found", "recall %", "precision %", "sub-type %"):
+        table.add_column(col, justify="left" if col == "theme" else "right")
+    for s in stats:
+        table.add_row(s.theme, str(s.tagged), str(s.detected), f"{s.recall:.1f}", f"{s.precision:.1f}",
+                      f"{s.subtype_agreement:.1f}")
+    console.print(table)
+    console.print("recall: Lichess-tagged puzzles we tag too; precision: our tags that Lichess agrees with; "
+                  "sub-type: puzzles with only that theme where our single sub-type matches.")
+
+
+def print_acceptance(cfg: Config, result, timings: dict[str, float]) -> None:
+    """The Phase 2 summary: why I lost, top leaks, openings, endgames and the runtime."""
+    from coach.reports import leaks, top_leaks
+
+    models = result.models
+    files = result.built.files
+    console.print(f"[bold]{len(models)} of {result.games} games analysed[/] "
+                  f"({sum(len(m.records) for m in models)} mistake records); export: {result.written} files written, "
+                  f"{result.unchanged} unchanged")
+    if result.explorer_missing:
+        console.print(f"explorer stats missing for {result.explorer_missing} positions (run `coach explorer`)")
+
+    losses = files["losses.json"]
+    causes = sorted(losses.causes.items(), key=lambda kv: -kv[1])
+    covered = sum(losses.causes.values())
+    table = Table(title=f"Why I lost: {covered} of {losses.total} losses have one cause", box=None,
+                  collapse_padding=True, pad_edge=False, header_style="bold underline")
+    for col in ("cause", "losses", "%", "last 30 days"):
+        table.add_column(col, justify="left" if col == "cause" else "right")
+    for cause, count in causes:
+        table.add_row(cause, str(count), f"{100 * count / losses.total:.0f}", str(losses.causes_30_days.get(cause, 0)))
+    console.print(table)
+
+    table = Table(title="Top leaks (Win% lost)", box=None, collapse_padding=True, pad_edge=False, header_style="bold underline")
+    for col in ("leak", "records", "per game", "last 20", "prev 20", "Win% lost"):
+        table.add_column(col, justify="left" if col == "leak" else "right")
+    for l in top_leaks(cfg, leaks(cfg, models), 6):
+        table.add_row(l.tag, str(l.count), f"{l.per_game:.2f}", _fmt2(l.recent), _fmt2(l.previous), f"{l.win_lost:.0f}")
+    console.print(table)
+    flags = {l.tag: l for l in leaks(cfg, models) if l.kind == "flag"}
+    console.print("flags: " + ", ".join(f"{t} {l.count}" for t, l in flags.items()))
+
+    for colour in ("white", "black"):
+        report = files[f"openings/{colour}.json"]
+        table = Table(title=f"Openings as {colour}: {report.games} games, score {_fmt(report.score)}%", box=None,
+                      collapse_padding=True, pad_edge=False, header_style="bold underline")
+        for col in ("family", "games", "score", "vs rest", "Win% at 12"):
+            table.add_column(col, justify="left" if col == "family" else "right", max_width=28 if col == "family" else None)
+        for f in report.families[:5]:
+            table.add_row(f.family, str(f.games), _fmt(f.score), _signed(f.score_vs_rest), _fmt(f.win_after_opening))
+        console.print(table)
+        console.print(f"  leak positions: {len(report.leaks)}, surprises: {len(report.surprises)}")
+
+    ends = files["endgames.json"]
+    outcomes = Counter()
+    for counts in ends.table.values():
+        outcomes.update(counts)
+    console.print(f"[bold]Endgames[/]: {ends.games} games; " + ", ".join(f"{k} {v}" for k, v in outcomes.most_common())
+                  + "; by type: " + ", ".join(f"{t} {sum(c.values())}" for t, c in sorted(ends.table.items())))
+    console.print(f"[bold]Winning games not won[/]: {len(losses.thrown)}")
+    console.print("[bold]Runtime[/]: " + ", ".join(f"{k} {v:.1f}s" for k, v in timings.items()))
+
+
+def _fmt2(value: float | None) -> str:
+    return "—" if value is None else f"{value:.2f}"
+
+
+def _signed(value: float | None) -> str:
+    return "—" if value is None else f"{value:+.1f}"
 
 
 def main() -> None:

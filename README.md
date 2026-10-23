@@ -19,15 +19,20 @@ uv sync
 ## Pipeline
 
 ```bash
-uv run coach update                  # fetch, parse, analyse only what's new
+uv run coach update                  # fetch, parse, analyse, explorer, export: only what's new
 uv run coach update --last 20        # limit analysis to the 20 most recent games
 uv run coach accuracy --last 20      # my accuracy (Lichess formula) next to chess.com's
 uv run coach calibrate               # engine budget study, writes docs/calibration.md
+uv run coach review --n 20           # random mistake records with Stockfish's lines and the rule
+uv run coach review --type fork      # only one type, sub-type or flag
+uv run coach tagger-check            # sub-type tagger vs Lichess puzzle themes
 ```
 
-Individual steps: `coach fetch`, `coach parse`, `coach analyze`. Analysis is cached in
-`data/coach.sqlite` per (position, engine version, settings), so it can be stopped and resumed at any
-time.
+Individual steps: `coach fetch`, `coach parse`, `coach analyze`, `coach explorer` (needs
+`LICHESS_TOKEN`), `coach build` (model and JSON export from cached results; never runs the engine).
+Analysis is cached in `data/coach.sqlite` per (position, engine version, settings), so it can be stopped
+and resumed at any time. Exports go to `web/public/data/`, with their JSON Schema in
+`web/schema/export.schema.json`.
 
 All tunable numbers live in [config.toml](config.toml). Secrets live in `.env`, which is gitignored.
 

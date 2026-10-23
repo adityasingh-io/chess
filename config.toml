@@ -24,6 +24,9 @@ nodes = 16_000_000               # chosen by the 2026-10-24 study, docs/calibrat
 multipv = 3
 hash_mb = 256
 
+# These also define the analysis model, so pass 2 always covers what it needs: a mistake record is
+# a drop of min_drop+, "clearly best" means a gap of min_gap+, "missed a win" needs a drop of
+# follow_min_drop+, and the human-findable filter allows line_my_moves of my moves.
 [engine.pass2.triggers]
 min_drop = 5.0                  # my moves that drop my Win% by at least this much
 min_gap = 20.0                  # my-turn positions where best minus second-best is at least this
@@ -37,6 +40,71 @@ pv_plies = 10                   # how much of Stockfish's line to use and show
 below = 10.0                    # ignore my move if my Win% before it was below this,
 above = 90.0                    # or above this
 still_above = 60.0              # and still above this after it
+
+[analysis.labels]               # by the mover's Win% drop; Book and Best come first
+excellent = 2.0                 # drop below this is Excellent
+good = 5.0                      # below this, Good
+inaccuracy = 10.0               # below this, Inaccuracy
+mistake = 15.0                  # below this, Mistake; this or more is a Blunder
+
+[analysis.phases]
+opening_moves = 12              # moves 1-12 are the opening, plus later moves still in book
+endgame_non_pawn = 13           # the endgame starts when each side has at most this much non-pawn material
+
+[analysis.types]
+material_loss = -2              # hung a piece / walked into a tactic: net material this or worse
+material_win = 2                # missed a win / free material: net material this or better
+missed_mate_max = 3             # missed mate: Stockfish had mate in this many or fewer
+
+[analysis.flags]
+threw_win_before = 80.0         # threw away a win: Win% before at least this
+threw_win_after = 60.0          # and after below this
+fast_percentile = 25            # fast blunder: think time below this percentile of mine for the time control
+fast_min_moves = 20             # needs at least this many of my timed moves in that time control
+time_trouble = 0.10             # clock below this share of the starting time
+after_loss_minutes = 30         # game started within this many minutes of a loss ending
+
+[analysis.losses]
+playable = 40.0                 # lost on time / gave up with my Win% at least this
+turning_from = 40.0             # turning point: my first move from at least this
+turning_to = 25.0               # to this or below
+winning = 80.0                  # winning games not won: my Win% reached this
+
+[analysis.openings]
+leak_drop = 10.0                # leak position: my move there loses this much Win% on average,
+leak_score_gap = 15.0           # or my score from it is this many points below my same-colour average,
+leak_min_games = 5              # over at least this many games
+surprise_share = 10.0           # surprise: players at my level choose the opponent's move under this %
+surprise_min_games = 20         # and the explorer has at least this many games there
+tree_min_games = 2              # explorer stats for tree positions I reached in at least this many games
+
+[analysis.endgames]
+winning = 70.0                  # my Win% at the start: at least this is winning,
+losing = 30.0                   # at most this is losing, in between is balanced
+
+[analysis.insights]
+recent_games = 20               # trends compare the last N games with the N before
+rating_band = 100               # opponent rating bands
+think_buckets = [2, 5, 10, 20, 40]   # think-time bucket edges, seconds
+length_buckets = [40, 60, 80, 100]   # game length bucket edges, plies
+
+[explorer]                      # Lichess opening explorer (token from .env, no scopes)
+url = "https://explorer.lichess.org/lichess"
+speeds = ["rapid"]
+ratings = [1000, 1200]          # buckets for players at my level; see rating_map
+moves = 12
+
+[rating_map]                    # chess.com rapid -> Lichess rapid (lucb3, "Converting Chess.com to Lichess ratings")
+chesscom = [600, 700, 800, 1000, 1100]
+lichess = [980, 1070, 1165, 1350, 1440]
+
+[export]
+dir = "web/public/data"
+timezone = "Asia/Kolkata"       # for hour-of-day insights
+
+[tagger_check]
+puzzle_url = "https://database.lichess.org/lichess_db_puzzle.csv.zst"
+sample = 20_000                 # puzzles read from the start of the file (it's in random id order)
 
 [calibration]
 moves = 100                     # my moves sampled (each gives a before and an after position)

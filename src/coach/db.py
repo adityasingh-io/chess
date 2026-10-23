@@ -68,6 +68,15 @@ CREATE TABLE IF NOT EXISTS evals (
     created_at  INTEGER NOT NULL,
     PRIMARY KEY (key, engine, settings)
 );
+
+-- Lichess opening explorer responses, one row per (position, query settings).
+CREATE TABLE IF NOT EXISTS explorer (
+    key         TEXT NOT NULL,
+    params      TEXT NOT NULL,              -- e.g. 'speeds=rapid;ratings=1000,1200;moves=12'
+    result      TEXT NOT NULL,              -- JSON response with topGames/recentGames dropped
+    fetched_at  INTEGER NOT NULL,
+    PRIMARY KEY (key, params)
+);
 """
 
 

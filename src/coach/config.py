@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from datetime import date
 from pathlib import Path
 
@@ -62,6 +62,109 @@ class GarbageTime:
 
 
 @dataclass(frozen=True)
+class Labels:
+    excellent: float
+    good: float
+    inaccuracy: float
+    mistake: float
+
+
+@dataclass(frozen=True)
+class Phases:
+    opening_moves: int
+    endgame_non_pawn: int
+
+
+@dataclass(frozen=True)
+class Types:
+    material_loss: int
+    material_win: int
+    missed_mate_max: int
+
+
+@dataclass(frozen=True)
+class Flags:
+    threw_win_before: float
+    threw_win_after: float
+    fast_percentile: float
+    fast_min_moves: int
+    time_trouble: float
+    after_loss_minutes: float
+
+
+@dataclass(frozen=True)
+class Losses:
+    playable: float
+    turning_from: float
+    turning_to: float
+    winning: float
+
+
+@dataclass(frozen=True)
+class Openings:
+    leak_drop: float
+    leak_score_gap: float
+    leak_min_games: int
+    surprise_share: float
+    surprise_min_games: int
+    tree_min_games: int
+
+
+@dataclass(frozen=True)
+class Endgames:
+    winning: float
+    losing: float
+
+
+@dataclass(frozen=True)
+class Insights:
+    recent_games: int
+    rating_band: int
+    think_buckets: tuple[float, ...]
+    length_buckets: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class Analysis:
+    """Every threshold of the analysis model (BRIEF.md, Analysis model)."""
+
+    labels: Labels
+    phases: Phases
+    types: Types
+    flags: Flags
+    losses: Losses
+    openings: Openings
+    endgames: Endgames
+    insights: Insights
+
+
+@dataclass(frozen=True)
+class Explorer:
+    url: str
+    speeds: tuple[str, ...]
+    ratings: tuple[int, ...]
+    moves: int
+
+
+@dataclass(frozen=True)
+class RatingMap:
+    chesscom: tuple[int, ...]
+    lichess: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class Export:
+    dir: str
+    timezone: str
+
+
+@dataclass(frozen=True)
+class TaggerCheck:
+    puzzle_url: str
+    sample: int
+
+
+@dataclass(frozen=True)
 class Calibration:
     moves: int
     pass1_budgets: list[int]
@@ -96,6 +199,11 @@ class Config:
     player: Player
     engine: EngineConfig
     garbage_time: GarbageTime
+    analysis: Analysis
+    explorer: Explorer
+    rating_map: RatingMap
+    export: Export
+    tagger_check: TaggerCheck
     calibration: Calibration
     secrets: Secrets
 
@@ -115,6 +223,10 @@ class Config:
     def docs_dir(self) -> Path:
         return self.root / "docs"
 
+    @property
+    def export_dir(self) -> Path:
+        return self.root / self.export.dir
+
 
 def _search(section: dict, threads: int = 1) -> SearchSettings:
     return SearchSettings(
@@ -123,6 +235,11 @@ def _search(section: dict, threads: int = 1) -> SearchSettings:
         hash_mb=int(section["hash_mb"]),
         threads=threads,
     )
+
+
+def _section(cls: type, section: dict):
+    """A dataclass from a TOML table with the same field names; lists become tuples."""
+    return cls(**{f.name: tuple(v) if isinstance(v := section[f.name], list) else v for f in fields(cls)})
 
 
 def load_config(root: Path | None = None) -> Config:
@@ -137,7 +254,8 @@ def load_config(root: Path | None = None) -> Config:
     player = raw["player"]
     engine = raw["engine"]
     triggers = engine["pass2"]["triggers"]
-    garbage = raw["analysis"]["garbage_time"]
+    analysis = raw["analysis"]
+    garbage = analysis["garbage_time"]
     calib = raw["calibration"]
     return Config(
         root=root,
@@ -166,6 +284,20 @@ def load_config(root: Path | None = None) -> Config:
             above=float(garbage["above"]),
             still_above=float(garbage["still_above"]),
         ),
+        analysis=Analysis(
+            labels=_section(Labels, analysis["labels"]),
+            phases=_section(Phases, analysis["phases"]),
+            types=_section(Types, analysis["types"]),
+            flags=_section(Flags, analysis["flags"]),
+            losses=_section(Losses, analysis["losses"]),
+            openings=_section(Openings, analysis["openings"]),
+            endgames=_section(Endgames, analysis["endgames"]),
+            insights=_section(Insights, analysis["insights"]),
+        ),
+        explorer=_section(Explorer, raw["explorer"]),
+        rating_map=_section(RatingMap, raw["rating_map"]),
+        export=_section(Export, raw["export"]),
+        tagger_check=_section(TaggerCheck, raw["tagger_check"]),
         calibration=Calibration(
             moves=int(calib["moves"]),
             pass1_budgets=[int(n) for n in calib["pass1_budgets"]],
