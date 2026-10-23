@@ -183,19 +183,49 @@ def run_analysis(cfg: Config, conn: sqlite3.Connection, games: list[Game], conso
 
     frontier = line_candidates(cfg, games, evals1, evals2)
     for level in range(1, cfg.engine.triggers.line_my_moves):
-        nxt = []
-        for key, white in frontier:
-            result = evals2.get(key)
-            if result and (pos := next_line_position(key, result, white, cfg.engine.triggers.min_gap)):
-                nxt.append((pos, white))
-        if not nxt:
+        frontier = advance_lines(frontier, evals2, cfg.engine.triggers.min_gap)
+        if not frontier:
             break
         stats["pass2"].append(
-            analyse_positions(conn, [k for k, _ in nxt], cfg.engine.pass2, label=f"pass 2 lines ({level})", **common)
+            analyse_positions(conn, [k for k, _ in frontier], cfg.engine.pass2, label=f"pass 2 lines ({level})", **common)
         )
         evals2 = db.load_evals(conn, engine, cfg.engine.pass2.key)
-        frontier = nxt
     return stats
+
+
+def advance_lines(frontier: list[tuple[str, bool]], evals2: dict[str, dict], min_gap: float) -> list[tuple[str, bool]]:
+    """Each line position two plies further on, where its pass-2 result says the line continues."""
+    out = []
+    for key, white in frontier:
+        result = evals2.get(key)
+        if result and (pos := next_line_position(key, result, white, min_gap)):
+            out.append((pos, white))
+    return out
+
+
+def planned_pass2_keys(cfg: Config, games: list[Game], evals1: dict[str, dict], evals2: dict[str, dict]) -> set[str]:
+    """The pass-2 positions run_analysis asks for, worked out from cached results only."""
+    keys = set(pass2_initial_keys(cfg, games, evals1))
+    frontier = line_candidates(cfg, games, evals1, evals2)
+    for _ in range(1, cfg.engine.triggers.line_my_moves):
+        frontier = advance_lines(frontier, evals2, cfg.engine.triggers.min_gap)
+        keys |= {k for k, _ in frontier}
+    return keys
+
+
+def full_year_counts(cfg: Config, conn: sqlite3.Connection, engine: str) -> tuple[int, int, int]:
+    """(games, pass-1 positions, estimated pass-2 positions) for every parsed game.
+
+    The pass-2 share is measured on the games already fully analysed in pass 1.
+    """
+    games = load_games(conn, select_game_ids(conn))
+    evals1 = db.load_evals(conn, engine, cfg.engine.pass1.key)
+    evals2 = db.load_evals(conn, engine, cfg.engine.pass2.key)
+    n1 = len({k for g in games for k in g.position_keys() if needs_engine(k)})
+    analysed = [g for g in games if white_win_pcts(g, evals1) is not None]
+    n1_done = len({k for g in analysed for k in g.position_keys() if needs_engine(k)})
+    n2_done = len(planned_pass2_keys(cfg, analysed, evals1, evals2))
+    return len(games), n1, round(n1 * n2_done / n1_done) if n1_done else 0
 
 
 def white_win_pcts(game: Game, evals: dict[str, dict]) -> list[float] | None:

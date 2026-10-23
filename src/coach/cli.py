@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.table import Table
 
 from coach import db
-from coach.analysis import accuracy_of, load_games, needs_engine, run_analysis, select_game_ids
+from coach.analysis import accuracy_of, full_year_counts, load_games, run_analysis, select_game_ids
 from coach.chesscom import fetch as fetch_archives
 from coach.config import Config, load_config
 from coach.parse import parse_all
@@ -120,14 +120,10 @@ def calibrate(last: Last = 20, reviewed: Reviewed = 0, resample: bool = False) -
 
     cfg, conn = _setup()
     engine = check_engine(cfg.secrets.stockfish_path, cfg.engine.version)
-    games = load_games(conn, select_game_ids(conn, last, reviewed))
-    all_games = load_games(conn, select_game_ids(conn))
-    n1_all = len({k for g in all_games for k in g.position_keys() if needs_engine(k)})
-    n1_sel = len({k for g in games for k in g.position_keys() if needs_engine(k)})
-    n2_sel = len(db.cached_keys(conn, engine, cfg.engine.pass2.key))
-    n2_all = round(n1_all * n2_sel / n1_sel) if n1_sel else 0
-    console.print(f"full year: {len(all_games)} games, {n1_all:,} pass-1 positions, ~{n2_all:,} pass-2 positions")
-    calib.run(cfg, conn, games, console, (n1_all, n2_all), resample=resample)
+    games = load_games(conn, select_game_ids(conn, last, reviewed))  # only used when drawing a new sample
+    n_games, n1, n2 = full_year_counts(cfg, conn, engine)
+    console.print(f"full year: {n_games} games, {n1:,} pass-1 positions, ~{n2:,} pass-2 positions")
+    calib.run(cfg, conn, games, console, (n1, n2), resample=resample)
 
 
 def main() -> None:
