@@ -65,6 +65,36 @@
    "title": "Alternative",
    "type": "object"
   },
+  "Bots": {
+   "additionalProperties": false,
+   "description": "Play on in Compare: who can answer my moves. Maia-2 only picks the bot's moves; it never scores or labels.",
+   "properties": {
+    "maia": {
+     "items": {
+      "$ref": "#/$defs/MaiaLevel"
+     },
+     "title": "Maia",
+     "type": "array"
+    },
+    "me_lichess": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Me Lichess"
+    }
+   },
+   "required": [
+    "maia",
+    "me_lichess"
+   ],
+   "title": "Bots",
+   "type": "object"
+  },
   "EndgameGame": {
    "additionalProperties": false,
    "properties": {
@@ -1520,6 +1550,25 @@
    "title": "Losses",
    "type": "object"
   },
+  "MaiaLevel": {
+   "additionalProperties": false,
+   "properties": {
+    "chesscom": {
+     "title": "Chesscom",
+     "type": "integer"
+    },
+    "lichess": {
+     "title": "Lichess",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "chesscom",
+    "lichess"
+   ],
+   "title": "MaiaLevel",
+   "type": "object"
+  },
   "MistakesIndex": {
    "additionalProperties": false,
    "properties": {
@@ -2605,6 +2654,9 @@
     },
     "engine": {
      "$ref": "#/$defs/EngineInfo"
+    },
+    "bots": {
+     "$ref": "#/$defs/Bots"
     }
    },
    "required": [
@@ -2621,7 +2673,8 @@
     "why_i_lost_30_days",
     "top_leaks",
     "thrown",
-    "engine"
+    "engine",
+    "bots"
    ],
    "title": "Summary",
    "type": "object"

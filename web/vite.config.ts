@@ -9,7 +9,8 @@ function serviceWorker(): Plugin {
     name: "coach-service-worker",
     apply: "build",
     generateBundle(_options, bundle) {
-      const files = Object.keys(bundle).filter((f) => !f.endsWith(".map"))
+      // Maia-2's WebAssembly runtime (14 MB) is fetched when a Maia bot is first used, not at install.
+      const files = Object.keys(bundle).filter((f) => !f.endsWith(".map") && !/ort-wasm.*\.wasm$/.test(f))
         .concat(["favicon.svg", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"]);
       const build = Date.now().toString(36);
       const source = readFileSync(new URL("./sw/sw.template.js", import.meta.url), "utf8")
@@ -64,6 +65,9 @@ export default defineConfig({
   // Supabase URL and publishable key) to the bundle; the pipeline's secrets never reach it.
   envDir: "..",
   server: { headers: isolation },
+  // onnxruntime-web (Maia-2) finds its .wasm next to its own module, which pre-bundling would move.
+  optimizeDeps: { exclude: ["onnxruntime-web"] },
+  worker: { format: "es" },
   preview: { headers: isolation },
   test: {
     environment: "jsdom",

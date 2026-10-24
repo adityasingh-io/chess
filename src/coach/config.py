@@ -151,6 +151,22 @@ class RatingMap:
     chesscom: tuple[int, ...]
     lichess: tuple[int, ...]
 
+    def lichess_of(self, chesscom: float) -> int:
+        """A chess.com rapid rating on Lichess's rapid scale: straight lines between the map's points, held at its
+        ends."""
+        xs, ys = self.chesscom, self.lichess
+        if chesscom <= xs[0]:
+            return ys[0]
+        for (x0, y0), (x1, y1) in zip(zip(xs, ys), zip(xs[1:], ys[1:])):
+            if chesscom <= x1:
+                return round(y0 + (y1 - y0) * (chesscom - x0) / (x1 - x0))
+        return ys[-1]
+
+
+@dataclass(frozen=True)
+class Bots:
+    maia_chesscom: tuple[int, ...]
+
 
 @dataclass(frozen=True)
 class Export:
@@ -232,6 +248,7 @@ class Config:
     analysis: Analysis
     explorer: Explorer
     rating_map: RatingMap
+    bots: Bots
     export: Export
     tagger_check: TaggerCheck
     puzzles: Puzzles
@@ -330,6 +347,7 @@ def load_config(root: Path | None = None) -> Config:
         ),
         explorer=_section(Explorer, raw["explorer"]),
         rating_map=_section(RatingMap, raw["rating_map"]),
+        bots=_section(Bots, raw["bots"]),
         export=_section(Export, raw["export"]),
         tagger_check=_section(TaggerCheck, raw["tagger_check"]),
         puzzles=_section(Puzzles, raw["puzzles"]),

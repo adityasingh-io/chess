@@ -29,6 +29,24 @@ cp: (number | null)
 mate: (number | null)
 }
 /**
+ * Play on in Compare: who can answer my moves. Maia-2 only picks the bot's moves; it never scores or labels.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "Bots".
+ */
+export interface Bots {
+maia: MaiaLevel[]
+me_lichess: (number | null)
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "MaiaLevel".
+ */
+export interface MaiaLevel {
+chesscom: number
+lichess: number
+}
+/**
  * This interface was referenced by `Export`'s JSON-Schema
  * via the `definition` "EndgameGame".
  */
@@ -628,6 +646,7 @@ why_i_lost_30_days: {
 top_leaks: TopLeak[]
 thrown: number
 engine: EngineInfo
+bots: Bots
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema

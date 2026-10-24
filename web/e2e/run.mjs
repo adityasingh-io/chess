@@ -2,7 +2,7 @@
 // console errors, no sideways scroll), the numbers on screen match the exports, a 250-ply game steps
 // smoothly, the arrow buttons step the game, a comparison and Explore, Explore gets live lines from the
 // in-browser engine, hovering a move in an explanation shows it on the board, Threat gets the other side's
-// move from the live engine, a drill session from a leak works on a phone (Phase 5), and the training pages
+// move from the live engine, Play on gets answers from Maia-2 and Stockfish on the Compare boards, a drill session from a leak works on a phone (Phase 5), and the training pages
 // open offline once the service worker is in.
 //
 // Uses the installed Google Chrome through playwright-core. Builds and serves the production bundle
@@ -257,6 +257,31 @@ try {
   check("compare: Next opens the next mistake before its move", /mistake 2 of/.test(head) && /before the move/.test(head), head);
   await page.keyboard.press("Escape");
   check("compare: Esc goes back to the game", !(await page.$(".cmp")) && !!(await page.$(".v-board .board")), "");
+
+  // Play on: a move on a Compare board is answered by the chosen bot, Maia-2 on one board and Stockfish on the other.
+  await page.goto(`${base}/games/${LONG_GAME}?ply=${rec.ply}&compare=1`);
+  await page.waitForSelector(".cmp-side .board");
+  const first = new Chess(rec.fen).moves({ verbose: true })[0];
+  const playOn = async (key, bot) => {
+    await page.click(`.playon-head .seg button:text-is("${bot}")`);
+    await page.click(`[id="game-${LONG_GAME}-${key}-square-${first.from}"]`);
+    await page.click(`[id="game-${LONG_GAME}-${key}-square-${first.to}"]`);
+    const reply = await page.waitForSelector(`.cmp-${key} .chips.played-on button.bot`, { timeout: 90_000 });
+    return { text: await reply.textContent(), title: await reply.getAttribute("title") };
+  };
+  const maiaStart = Date.now();
+  const maia = await playOn("you", "~800");
+  check("play on: Maia ~800 answers a move on a Compare board", /^Maia ~800: \d+% of its choices here$/.test(maia.title),
+    `${first.san}, then ${maia.text} [${maia.title}] after ${Date.now() - maiaStart} ms (model download included)`);
+  const sf = await playOn("best", "Stockfish");
+  check("play on: Stockfish answers on the other board", sf.title === "Stockfish", `${first.san}, then ${sf.text}`);
+  const best = await page.waitForFunction(() => {
+    const t = document.querySelector(".playon p")?.textContent ?? "";
+    return t.includes("Stockfish's best here") && t;
+  }, null, { timeout: 30_000 }).then((h) => h.jsonValue()).catch(() => "");
+  check("play on: the board played on last shows Stockfish's live best move", !!best, best);
+  await page.keyboard.press("Escape");
+  check("play on: Esc goes back to the stored lines", !(await page.$(".chips.played-on")) && !!(await page.$(".cmp")), "");
 
   // A leak's position card steps its line with ▶.
   await page.goto(`${base}/leaks/hung_piece`);

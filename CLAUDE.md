@@ -15,6 +15,9 @@ they differ).
 - Explanations are templates filled from stored data.
 - One engine, one configuration (`config.toml`); the Stockfish version is recorded with every cached
   result. Browser (WASM) evals are labelled live and never written back.
+- One exception (agreed 2026-10-24): Maia-2 (human move prediction, MIT) may pick a bot's moves in Play on.
+  It never scores, labels, explains or suggests a move, its picks are never stored, and Stockfish still
+  scores every position shown.
 
 ## How to work
 

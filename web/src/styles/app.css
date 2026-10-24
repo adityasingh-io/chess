@@ -172,8 +172,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .board { position: relative; width: 100%; max-width: 100%; border-radius: var(--radius-sm); overflow: hidden; isolation: isolate; }  /* its arrows (z-index 20) stay under the bars */
 .board.interactive { touch-action: none; }
 /* Settings → Square names: each square's name in its corner, above the pieces and arrows, taking no clicks. */
-.square-names { position: absolute; inset: 0; z-index: 25; display: grid; grid-template: repeat(8, 1fr) / repeat(8, 1fr); pointer-events: none; }
-.square-names span { font-family: var(--font-num); font-weight: 700; font-size: clamp(9px, 2.9cqw, 15px); line-height: 1; padding: 3px 0 0 3px; }
+.square-names { position: absolute; inset: 0; z-index: 25; display: grid; grid-template: repeat(8, 1fr) / repeat(8, 1fr); pointer-events: none; container-type: inline-size; }
+/* Sized by the board's own width (the overlay is the container), about a fifth of a square. */
+.square-names span { font-family: var(--font-num); font-weight: 650; font-size: clamp(8px, 2.6cqw, 12px); line-height: 1; padding: 2px 0 0 2px; }
 .square-names .l { color: var(--coord-l); }
 .square-names .d { color: var(--coord-d); }
 /* A move or square named in an explanation: hover (or tap) it to see it on the board. */
@@ -310,6 +311,18 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .cmp-you .cmp-cap { border-top-color: var(--you); }
 .cmp-cap .label { flex-basis: 100%; }
 .cmp-you .chips button[aria-pressed="true"] { background: var(--you); border-color: var(--you); }
+/* Play on: a board's own moves after its line, the bot's in the live colour; the board played on last is outlined. */
+.cmp-side.playing .board-row { outline: 2px solid var(--live); outline-offset: 3px; border-radius: 4px; }
+.chips.played-on button.bot { border-color: var(--live); }
+.chips.played-on button[aria-pressed="true"] { background: var(--live); border-color: var(--live); color: var(--bg); }
+.chips.played-on button.redo { opacity: .5; border-style: dashed; }
+.chips.played-on small { font-size: .72rem; opacity: .8; }
+.playon { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
+.playon p { margin: 0; }
+.playon-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.playon-head .label { flex-basis: 100%; margin: 0; }
+.playon-head .seg button { padding: 5px 10px; font-size: .84rem; }
+.playon-head .btn { padding: 5px 10px; font-size: .84rem; }
 @container (min-width: 560px) { .cmp-pick { display: none; } }
 @container (max-width: 559px) {
   .cmp-boards { grid-template-columns: minmax(0, 1fr); }

@@ -394,6 +394,17 @@ class TopLeak(Model):
     win_lost: float
 
 
+class MaiaLevel(Model):
+    chesscom: int              # the chess.com rapid rating the bot plays like
+    lichess: int               # the same rating on Lichess's rapid scale (rating_map), which Maia-2 takes
+
+
+class Bots(Model):
+    """Play on in Compare: who can answer my moves. Maia-2 only picks the bot's moves; it never scores or labels."""
+    maia: list[MaiaLevel]
+    me_lichess: int | None     # my rating on Lichess's scale: the opponent rating Maia-2 is given
+
+
 class Summary(Model):
     as_of: int
     username: str
@@ -409,6 +420,7 @@ class Summary(Model):
     top_leaks: list[TopLeak]
     thrown: int
     engine: EngineInfo
+    bots: Bots
 
 
 class Puzzle(Model):

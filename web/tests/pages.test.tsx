@@ -189,6 +189,34 @@ test("insights show the exported group scores, leak rates and time losses", asyn
   expect(screen.getByText(`${losses.count} games in all`)).toBeTruthy();
 }, 20_000);
 
+test("Play on: a move on a Compare board plays on from its line, and Esc goes back to the lines", async () => {
+  localStorage.clear();
+  localStorage.setItem("coach-bot", "off");   // nobody answers: no engine runs in jsdom
+  const engines = globalThis.Worker;
+  globalThis.Worker = class { onmessage = null; onerror = null; postMessage() {} terminate() {} } as unknown as typeof Worker;
+  try {
+    const id = "164948678288";
+    const g = data<Game>(`games/${id}.json`);
+    const r = g.records[0];
+    await open(`/games/${id}?ply=${r.ply}&compare=1`);
+    await screen.findByRole("group", { name: "Stockfish's best line" }, SLOW);
+    expect(screen.getByRole("group", { name: "Who answers your moves" })).toBeTruthy();
+    const before = replay(g.initial_fen, g.moves.slice(0, r.ply - 1).map((m) => m.uci)).at(-1)!;
+    const mv = new Chess(before).moves({ verbose: true })[0];
+    const board = `game-${id}-best`;
+    await act(async () => { fireEvent.click(document.getElementById(`${board}-square-${mv.from}`)!); });
+    await act(async () => { fireEvent.click(document.getElementById(`${board}-square-${mv.to}`)!); });
+    const played = screen.getByRole("group", { name: "Played on from here" });
+    expect(within(played).getByRole("button", { pressed: true }).textContent).toBe(numberedLine(before, [mv.san])[0]);
+    expect(document.getElementById(`${board}-square-${mv.to}`)!.querySelector("[data-piece]")).not.toBeNull();
+    await act(async () => { fireEvent.keyDown(window, { key: "Escape" }); });
+    expect(screen.queryByRole("group", { name: "Played on from here" })).toBeNull();
+    expect(document.querySelector(".cmp")).not.toBeNull();
+  } finally {
+    globalThis.Worker = engines;
+  }
+}, 20_000);
+
 // Phase 5: drills. Moves are played by tapping squares, as on a phone.
 const tap = async (boardId: string, square: string) => {
   await act(async () => { fireEvent.click(document.getElementById(`${boardId}-square-${square}`)!); });

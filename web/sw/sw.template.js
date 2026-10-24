@@ -1,7 +1,7 @@
 // Offline support (written into dist/sw.js at build, with the build's file list). The app shell and every
 // built file are cached at install, along with the data the dashboard and training pages need; other data
-// files are fetched network-first and kept, so a game or page opened once works offline. Engine files are
-// cached on first use. Responses are stored whole, headers included.
+// files are fetched network-first and kept, so a game or page opened once works offline. Engine files, and
+// Maia-2's model and runtime, are cached on first use. Responses are stored whole, headers included.
 //
 // Every response it serves also gets the cross-origin isolation headers the multi-threaded engine needs.
 // GitHub Pages can't send headers, so there the engine runs single-threaded on the first visit and
@@ -76,7 +76,7 @@ self.addEventListener("fetch", (event) => {
     response = fetch(request).catch(async () => (await match(at("./"))) ?? Response.error());
   } else if (path.startsWith("data/")) {
     response = networkFirst(request, at(path.split("?")[0]));
-  } else if (path.startsWith("assets/") || path.startsWith("engine/") || FILES.includes(path)) {
+  } else if (path.startsWith("assets/") || path.startsWith("engine/") || path.startsWith("maia/") || FILES.includes(path)) {
     response = cacheFirst(request);
   } else {
     response = fetch(request);

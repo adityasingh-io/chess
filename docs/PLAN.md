@@ -33,6 +33,12 @@ this file wins.
   `explorer.lichess.ovh`). Buckets per the docs: `0` = 0–999, `1000` = 1000–1199, …, `2500`+. OAuth2 with
   no scopes, so a token with no scopes ticked. Confirmed against the live API on 2026-10-24: it takes a
   burst of about 30 requests, then answers 429 and we wait a minute, so about 25 positions a minute.
+- **Maia-2 picks the human-like bots' moves in Play on** (decided 2026-10-24; an exception to "one engine"):
+  Stockfish's rating setting starts at 1320 and is measured against engines, so it can't play like an
+  800. Maia-2 (CSSLab, MIT licence), trained on Lichess rapid games, predicts the move a player of a given
+  rating makes. It only chooses the bot's move; it never scores, labels, explains or suggests a move, and
+  nothing it picks is stored. Its rapid model is committed as ONNX (float16 weights, 42 MB) and runs in
+  the browser with onnxruntime-web (MIT); `scripts/maia/` remakes and checks it.
 - **AI notes use short-lived Anthropic credentials, never a stored API key** (decided 2026-10-24; replaces
   the brief's `ANTHROPIC_API_KEY`). On the Mac: an `ant auth login` profile, which the SDK reads and
   refreshes by itself. In the nightly Action: Workload Identity Federation, which exchanges GitHub's OIDC
@@ -204,6 +210,17 @@ this file wins.
   - *Coordinates* (`/coordinates`, under More and in Settings): the page names a square and I tap it, as
     many as I can in 30 seconds, as White or Black, with or without pieces. The best per side stays on the
     device.
+  - *Square names* are sized from the board's own width (about a fifth of a square), not the page's.
+- **Play on** (added 2026-10-24): on either Compare board, a move plays on from wherever that board is
+  (before the move or any step of its line), and the chosen bot answers: Stockfish at full strength (as in
+  Play it out), or Maia-2 like chess.com ~600, ~800 or ~1000 rapid players (`[bots]` in `config.toml`,
+  converted to Lichess ratings with `rating_map` and exported in `summary.json`; my own rating, converted,
+  is the opponent rating Maia-2 is given). Maia-2 plays its most likely move, shown with its share. Each
+  board keeps its own moves; the board played on last is scored live by the in-browser Stockfish (eval
+  bar, best-move arrow and "Stockfish's best here"), labelled live and never saved. ◀ ▶ step those moves,
+  Esc or "Back to the lines" returns to the stored lines. "Nobody" lets me play both sides. The model
+  (42 MB) and its runtime (14 MB) download the first time a Maia bot answers and stay cached, not at
+  install.
 - **Exports are committed.** The `.gitignore` rule `data/` also matched `web/public/data`, so Phase 2's
   exports never reached git. It is now `/data/`.
 

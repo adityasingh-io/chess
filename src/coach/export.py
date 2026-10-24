@@ -235,6 +235,8 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
                                  previous=None if l.previous is None else round(l.previous, 3), win_lost=r1(l.win_lost))
                        for l in top_leaks(cfg, all_leaks)],
             thrown=len(thrown), engine=engine,
+            bots=S.Bots(maia=[S.MaiaLevel(chesscom=c, lichess=cfg.rating_map.lichess_of(c)) for c in cfg.bots.maia_chesscom],
+                        me_lichess=cfg.rating_map.lichess_of(rated[-1].row["my_rating"]) if rated else None),
         ),
         "games/index.json": S.GamesIndex(as_of=stamp, games=[game_summary(m, per_game[m.id]) for m in reversed(ordered)]),
         "mistakes/index.json": S.MistakesIndex(as_of=stamp, records=record_index),

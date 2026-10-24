@@ -124,6 +124,9 @@ max_tokens = 4000               # includes thinking; a reply cut short keeps the
 chesscom = [600, 700, 800, 1000, 1100]
 lichess = [980, 1070, 1165, 1350, 1440]
 
+[bots]                          # Play on (Compare): Maia-2 answers like Lichess rapid players at these chess.com rapid
+maia_chesscom = [600, 800, 1000]  # ratings, converted with rating_map; Stockfish at full strength is the other bot
+
 [export]
 dir = "web/public/data"
 timezone = "Asia/Kolkata"       # for hour-of-day insights

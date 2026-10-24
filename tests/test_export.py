@@ -35,3 +35,9 @@ def test_explanations_use_stored_moves(recorded):
         assert rec.explanation.startswith(rec.san) or rec.best_san and rec.best_san in rec.explanation
         if rec.best_san:
             assert rec.best_line_san == "" or rec.best_san in rec.best_line_san
+
+
+def test_chesscom_ratings_on_lichess_scale():
+    from coach.config import RatingMap
+    m = RatingMap(chesscom=(600, 700, 800, 1000, 1100), lichess=(980, 1070, 1165, 1350, 1440))
+    assert [m.lichess_of(r) for r in (500, 600, 654, 800, 900, 1100, 1300)] == [980, 980, 1029, 1165, 1258, 1440, 1440]
