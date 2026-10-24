@@ -7,6 +7,7 @@ facts used (check, capture, game over) are rules-level measurements from python-
 from __future__ import annotations
 
 import sqlite3
+import zlib
 from dataclasses import dataclass
 
 import chess
@@ -50,6 +51,16 @@ def select_game_ids(conn: sqlite3.Connection, last: int | None = None, reviewed:
         )
         ids += [r["id"] for r in rows]
     return list(dict.fromkeys(ids))
+
+
+def shard_ids(ids: list[str], shard: str | None) -> list[str]:
+    """The share "i/n" (1-based) of `ids`, split by a stable hash of the game id so shares stay even."""
+    if shard is None:
+        return ids
+    index, count = (int(part) for part in shard.split("/"))
+    if not 1 <= index <= count:
+        raise SystemExit(f"--shard {shard}: expected i/n with 1 ≤ i ≤ n")
+    return [game_id for game_id in ids if zlib.crc32(game_id.encode()) % count == index - 1]
 
 
 def load_games(conn: sqlite3.Connection, ids: list[str]) -> list[Game]:

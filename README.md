@@ -28,7 +28,8 @@ uv run coach review --type fork      # only one type, sub-type or flag
 uv run coach tagger-check            # sub-type tagger vs Lichess puzzle themes
 ```
 
-Individual steps: `coach fetch`, `coach parse`, `coach analyze`, `coach explorer` (needs
+Individual steps: `coach fetch`, `coach parse`, `coach analyze` (`--shard 2/3` takes one share of the
+games, to split a long run across machines), `coach explorer` (needs
 `LICHESS_TOKEN`), `coach build` (model and JSON export from cached results; never runs the engine).
 Analysis is cached in `data/coach.sqlite` per (position, engine version, settings), so it can be stopped
 and resumed at any time. Exports go to `web/public/data/`, with their JSON Schema in

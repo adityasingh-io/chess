@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.table import Table
 
 from coach import db
-from coach.analysis import accuracy_of, full_year_counts, load_games, run_analysis, select_game_ids
+from coach.analysis import accuracy_of, full_year_counts, load_games, run_analysis, select_game_ids, shard_ids
 from coach.chesscom import fetch as fetch_archives
 from coach.config import Config, load_config
 from coach.parse import parse_all
@@ -22,6 +22,7 @@ console = Console()
 
 Last = Annotated[int | None, typer.Option(help="Only the N most recent games (default: all).")]
 Reviewed = Annotated[int, typer.Option(help="Also the N most recent games chess.com reviewed.")]
+Shard = Annotated[str | None, typer.Option(help="Only share i/n of the selected games, e.g. 2/3, to split a run across machines.")]
 
 
 def _fmt(value: float | None) -> str:
@@ -48,10 +49,10 @@ def parse() -> None:
 
 
 @app.command()
-def analyze(last: Last = None, reviewed: Reviewed = 0, pass1_only: bool = False) -> None:
+def analyze(last: Last = None, reviewed: Reviewed = 0, pass1_only: bool = False, shard: Shard = None) -> None:
     """Run Stockfish pass 1 (and pass 2) on the selected games. Resumable."""
     cfg, conn = _setup()
-    games = load_games(conn, select_game_ids(conn, last, reviewed))
+    games = load_games(conn, shard_ids(select_game_ids(conn, last, reviewed), shard))
     console.print(f"{len(games)} games selected")
     run_analysis(cfg, conn, games, console, deep=not pass1_only)
 
