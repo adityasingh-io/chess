@@ -1,0 +1,13 @@
+# The "Fetch new games" Worker (update.ts). Deploy from web/worker with `npx wrangler@4.152.0 deploy`;
+# the GitHub token is a secret: `npx wrangler@4.152.0 secret put GITHUB_TOKEN` (docs/DEPLOY.md).
+name = "chess-update"
+main = "update.ts"
+compatibility_date = "2026-08-01"
+
+[vars]
+REPO = "adityasingh-io/chess"
+WORKFLOW = "nightly.yml"
+PLAYER = "r00k4ndr0ll"
+TIME_CLASSES = "rapid"
+SITE = "https://adityasingh.io/chess/"
+ORIGINS = "https://adityasingh.io,http://localhost:5173,http://localhost:4173"

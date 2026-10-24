@@ -56,7 +56,28 @@ async function plainServer() {
   await new Promise((ok) => server.listen(0, ok));
   return { server, url: `http://localhost:${server.address().port}` };
 }
-const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail });
+
+// The site as GitHub Pages serves it: built under /chess/, no special headers, and any path that isn't a
+// file answered with 404.html and a 404 status.
+async function pagesServer() {
+  const dist = join(root, "dist-pages");
+  execFileSync("npx", ["vite", "build", "--outDir", "dist-pages", "--emptyOutDir"], { cwd: root, stdio: "ignore",
+    env: { ...process.env, COACH_GITHUB_PAGES_BASE: "/chess/" } });
+  const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json",
+                  ".wasm": "application/wasm", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
+  const server = createServer((req, res) => {
+    const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
+    if (path === "/chess") { res.writeHead(301, { Location: "/chess/" }); res.end(); return; }
+    let file = path.startsWith("/chess/") ? join(dist, path.slice("/chess/".length) || "index.html") : null;
+    if (file?.endsWith("/")) file = join(file, "index.html");
+    const found = file && file.startsWith(dist) && existsSync(file) && !file.endsWith("/");
+    res.writeHead(found ? 200 : 404, { "Content-Type": found ? types[extname(file)] ?? "application/octet-stream" : "text/html" });
+    res.end(readFileSync(found ? file : join(dist, "404.html")));
+  });
+  await new Promise((ok) => server.listen(0, ok));
+  return { server, url: `http://localhost:${server.address().port}` };
+}
+const check =(name, ok, detail = "") => results.push({ name, ok: !!ok, detail });
 
 // Board positions as piece codes by square ("e2": "wP"): expected ones from chess.js, shown ones read from
 // react-chessboard's DOM (squares carry data-square, pieces data-piece).
@@ -360,9 +381,11 @@ try {
     await cctx.close();
   }
 
-  // Explore from the start by tapping squares, on a host without COOP/COEP (the single-threaded engine).
+  // Explore from the start by tapping squares, on a host without COOP/COEP and before the service worker
+  // adds them (blocked here), so the single-threaded engine.
   const plain = await plainServer();
-  const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, colorScheme: "dark" });
+  const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, colorScheme: "dark",
+                                          serviceWorkers: "block" });
   const phone = await ctx2.newPage();
   // Compare on a phone: one board at a time, with a switch.
   await phone.goto(`${plain.url}/games/${LONG_GAME}?ply=${rec.ply}&compare=1`);
@@ -400,6 +423,33 @@ try {
   check("explore: ◀ takes 1. e4 back and ▶ plays it again", backOk && redo === "1. e4" && fwdOk, `back ${backOk}, redo "${redo}", forward ${fwdOk}`);
   await ctx2.close();
   plain.server.close();
+
+  // GitHub Pages: a deep link under /chess/ opens the app, and once the service worker controls the page
+  // it is cross-origin isolated, so the live engine runs multi-threaded.
+  if (!process.argv.includes("--dev")) {
+    const pages = await pagesServer();
+    const gctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, colorScheme: "dark" });
+    const gp = await gctx.newPage();
+    const errs = [];
+    gp.on("pageerror", (e) => errs.push(String(e)));
+    await gp.goto(`${pages.url}/chess/games/${LONG_GAME}?ply=0`);
+    const deep = await gp.waitForSelector(".moves .mv", { timeout: 15000 }).then(() => true, () => false);
+    check("github pages: a deep link under /chess/ opens the game", deep, "");
+    const controlled = await gp.waitForFunction(() => !!navigator.serviceWorker?.controller, null, { timeout: 15000 }).then(() => true, () => false);
+    await gp.reload();
+    await gp.waitForSelector(".moves .mv");
+    const iso = await gp.evaluate(() => crossOriginIsolated);
+    await gp.click("button.live");
+    await gp.click(`[id="game-${LONG_GAME}-square-e2"]`);
+    await gp.click(`[id="game-${LONG_GAME}-square-e4"]`);
+    const lines = await gp.waitForSelector(".live-line", { timeout: 30000 }).then(() => true, () => false);
+    const engine = (await gp.textContent(".live-panel .card-head"))?.trim();
+    check("github pages: under the service worker the page is cross-origin isolated and the engine multi-threaded",
+      controlled && iso && lines && /\d+ threads/.test(engine ?? ""), `${engine} · controlled=${controlled} · crossOriginIsolated=${iso}`);
+    check("github pages: no page errors", errs.length === 0, errs.slice(0, 2).join(" | "));
+    await gctx.close();
+    pages.server.close();
+  }
 } finally {
   await browser.close();
   server?.kill();

@@ -1,5 +1,6 @@
-# Every night: new chess.com games through Stockfish and into the exported JSON, committed so the host
-# redeploys. Needs the shared cache (`coach cache push` from the Mac once), so it only analyses new games.
+# Every night, and from the app's "Fetch new games" button: new chess.com games through Stockfish and into
+# the exported JSON, committed and published to GitHub Pages. Needs the shared cache (`coach cache push`
+# from the Mac once), so it only analyses new games.
 # README.md, "Nightly update", lists the secrets and variables.
 name: Nightly update
 
@@ -20,6 +21,8 @@ jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    outputs:
+      committed: ${{ steps.commit.outputs.committed }}
     env:
       CHESSCOM_CONTACT_EMAIL: ${{ secrets.CHESSCOM_CONTACT_EMAIL }}
       LICHESS_TOKEN: ${{ secrets.LICHESS_TOKEN }}
@@ -62,6 +65,7 @@ jobs:
         run: uv run coach cache push
 
       - name: Commit the new data
+        id: commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -72,4 +76,15 @@ jobs:
             git commit -m "Nightly data update"
             git pull --rebase origin main   # in case main moved during the run
             git push
+            echo "committed=true" >> "$GITHUB_OUTPUT"
           fi
+
+  # The data commit was pushed with the workflow's token, which starts no other workflow, so publish here.
+  pages:
+    needs: update
+    if: needs.update.outputs.committed == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml

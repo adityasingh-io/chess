@@ -460,3 +460,7 @@ label.btn { position: relative; }
 button.row { background: none; border: 0; border-top: 1px solid var(--line); color: inherit; font: inherit; text-align: left; cursor: pointer; width: 100%; }
 .rows button.row:first-child { border-top: 0; }
 .playout-moves { margin: 0; line-height: 1.6; word-spacing: 2px; }
+
+/* "Fetch new games" on the Games page */
+.update .card-head { align-items: center; }
+.update p { margin: 0; }

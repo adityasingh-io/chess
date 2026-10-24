@@ -1,7 +1,11 @@
 // Offline support (written into dist/sw.js at build, with the build's file list). The app shell and every
 // built file are cached at install, along with the data the dashboard and training pages need; other data
 // files are fetched network-first and kept, so a game or page opened once works offline. Engine files are
-// cached on first use. Responses are stored whole, headers included (the shell keeps its COOP/COEP headers).
+// cached on first use. Responses are stored whole, headers included.
+//
+// Every response it serves also gets the cross-origin isolation headers the multi-threaded engine needs.
+// GitHub Pages can't send headers, so there the engine runs single-threaded on the first visit and
+// multi-threaded once this worker controls the page; hosts that send the headers get the same values.
 const BUILD = self.__BUILD__;
 const FILES = self.__FILES__;
 const DATA = ["summary.json", "insights.json", "losses.json", "games/index.json", "leaks.json", "puzzles/index.json", "puzzles/mine.json", "puzzles/lichess.json", "repertoire.json"];
@@ -50,17 +54,32 @@ async function cacheFirst(request) {
   return response;
 }
 
+const ISOLATION = { "Cross-Origin-Opener-Policy": "same-origin", "Cross-Origin-Embedder-Policy": "require-corp" };
+const NO_BODY = [101, 204, 205, 304];
+
+function isolated(response) {
+  // Redirects and opaque responses can't be rebuilt; they carry no page or script anyway.
+  if (response.status === 0 || NO_BODY.includes(response.status)) return response;
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(ISOLATION)) headers.set(name, value);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
   if (request.method !== "GET" || url.origin !== scope.origin || !url.href.startsWith(scope.href)) return;
   const path = url.href.slice(scope.href.length);
+  let response;
   if (request.mode === "navigate") {
     // Every route is the one page: fresh when online, the cached shell when not.
-    event.respondWith(fetch(request).catch(async () => (await match(at("./"))) ?? Response.error()));
+    response = fetch(request).catch(async () => (await match(at("./"))) ?? Response.error());
   } else if (path.startsWith("data/")) {
-    event.respondWith(networkFirst(request, at(path.split("?")[0])));
+    response = networkFirst(request, at(path.split("?")[0]));
   } else if (path.startsWith("assets/") || path.startsWith("engine/") || FILES.includes(path)) {
-    event.respondWith(cacheFirst(request));
+    response = cacheFirst(request);
+  } else {
+    response = fetch(request);
   }
+  event.respondWith(response.then(isolated));
 });

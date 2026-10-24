@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { copyFileSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { defineConfig, type Plugin } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
@@ -42,8 +43,23 @@ function hosting(): Plugin {
   };
 }
 
+// GitHub Pages serves the site under the repo's name (adityasingh.io/chess/) and answers any path that isn't
+// a file with 404.html, so that build gets the sub-path and a copy of index.html as 404.html. It can't send
+// headers, so the service worker adds the cross-origin isolation ones (sw/sw.template.js).
+const pagesBase = process.env.COACH_GITHUB_PAGES_BASE;
+function githubPages(): Plugin {
+  return {
+    name: "coach-github-pages",
+    apply: "build",
+    writeBundle(options) {
+      if (pagesBase) copyFileSync(join(options.dir!, "index.html"), join(options.dir!, "404.html"));
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), serviceWorker(), hosting()],
+  base: pagesBase ?? "/",
+  plugins: [react(), serviceWorker(), hosting(), githubPages()],
   // One .env for the pipeline and the app, at the repo root. Vite exposes only VITE_ variables (the
   // Supabase URL and publishable key) to the bundle; the pipeline's secrets never reach it.
   envDir: "..",

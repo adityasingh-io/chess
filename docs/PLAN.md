@@ -78,7 +78,7 @@ this file wins.
 - **Browser engine flavours:** `stockfish-19-lite.js` (cores − 1 threads, at most 8, depth 24) when the page
   is cross-origin isolated, otherwise `stockfish-19-lite-single.js` (depth 20), which works on any static
   host. Both are copied from `node_modules` into `web/public/engine/` (gitignored) at dev and build time.
-  `web/public/_headers` sets COOP/COEP on Cloudflare Pages. Live lines are labelled LIVE, scored from my
+  The build's `_headers` sets COOP/COEP on Cloudflare Pages; on GitHub Pages the service worker adds them. Live lines are labelled LIVE, scored from my
   side, and never stored.
 - **Explore:** drag or tap to play moves for either side from any position in the viewer. Pawns promote to
   a queen. Mate, stalemate, insufficient material and the fifty-move rule come from chess.js, and the engine
@@ -187,10 +187,22 @@ this file wins.
 
 ## Deploy and automation
 
-- **Hosting:** Cloudflare Pages from the GitHub repo (root `web`, `npm run build`, output `dist`); Vercel
-  works too with `web/vercel.json`. The build writes `_headers` (cross-origin isolation for the
-  multi-threaded engine) itself, and with no `404.html` Pages falls back to `index.html`. Steps:
+- **Hosting:** GitHub Pages at `adityasingh.io/chess/` (the user site's domain plus the repo name; the repo
+  is public because Pages on a private repo needs a paid plan). `.github/workflows/pages.yml` builds with
+  `COACH_GITHUB_PAGES_BASE=/chess/`, which sets the sub-path and copies `index.html` to `404.html` for deep
+  links. It runs when CI passes on main, and the nightly calls it after a data commit (pushes made with the
+  workflow's token start no other workflow). Pages can't send headers, so the service worker adds COOP/COEP
+  to everything it serves: the engine is single-threaded on a first visit and multi-threaded after.
+  Cloudflare Pages and Vercel still work (the build writes `_headers`; `web/vercel.json`). Steps:
   [DEPLOY.md](DEPLOY.md).
+- **Fetch new games:** a Cloudflare Worker (`web/worker/update.ts`, deployed with Wrangler) behind a card
+  on the Games page. `GET /status` lists the chess.com games in the configured time classes that the
+  site's `games/index.json` lacks, and the nightly's latest run; `POST /update` starts the nightly only when
+  there is such a game and nothing is running or was published in the last 10 minutes. No sign-in: the most
+  anyone can do is start an update for a real new game early. Its GitHub token is a Worker secret limited
+  to this repo's Actions. The card follows the run every 15 s and offers a reload once the site has the
+  games. Data files are fetched with `cache: "no-cache"` so a new update shows at once (Pages lets browsers
+  keep files ten minutes).
 - **noindex** on by default: robots meta tag, `robots.txt` disallowing everything and an `X-Robots-Tag`
   header. `COACH_NOINDEX=0` at build time turns all three off.
 - **Secret scan:** `npm run build` ends with `scripts/scan-bundle.mjs`, which fails on known key formats

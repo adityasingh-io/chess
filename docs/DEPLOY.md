@@ -1,7 +1,8 @@
 # Deploying
 
-The app is a static site (`web/dist`) plus optional progress sync through Supabase. Everything here is a
-one-time setup done by hand; nothing in the repo creates accounts or projects.
+The app is a static site (`web/dist`) on GitHub Pages at `adityasingh.io/chess/`, a small Cloudflare
+Worker for the "Fetch new games" button, and optional progress sync through Supabase. Everything here is a
+one-time setup; nothing in the repo creates accounts or projects.
 
 ## Progress sync (Supabase, optional)
 
@@ -30,8 +31,10 @@ Supabase's built-in email sender allows only a few emails an hour, which is plen
 
 ## The GitHub repo
 
-1. Create an empty repo on GitHub (private is fine; every host below builds private repos) and push:
-   `git remote add origin git@github.com:<you>/<repo>.git && git push -u origin main`.
+1. Create an empty repo on GitHub and push: `git remote add origin git@github.com:<you>/<repo>.git &&
+   git push -u origin main`. It's public (`adityasingh-io/chess`): GitHub Pages on a private repo needs a
+   paid plan, and public repos also get Actions minutes free. Cloudflare Pages and Vercel build private
+   repos, if it ever goes back.
 2. CI (`.github/workflows/ci.yml`) runs on every push: pytest including the Stockfish tests (the Linux
    build must reproduce the results recorded on the Mac, which is what lets the two share a cache), the
    web checks, the production build with its secret scan, and the browser checks.
@@ -39,7 +42,40 @@ Supabase's built-in email sender allows only a few emails an hour, which is plen
 `web/public/data` is committed (it's public chess.com data). The SQLite cache, raw archives, the puzzle
 file and `.env` stay out.
 
-## Hosting (Cloudflare Pages)
+## Hosting (GitHub Pages)
+
+The user site `adityasingh-io.github.io` already serves `adityasingh.io`, so this repo's Pages site is at
+`adityasingh.io/<repo>/` with no DNS changes.
+
+1. Repo → Settings → Pages → Source: **GitHub Actions** (or `gh api -X POST repos/<you>/<repo>/pages -f
+   build_type=workflow`).
+2. `.github/workflows/pages.yml` builds with `COACH_GITHUB_PAGES_BASE=/chess/` (the repo name) and
+   deploys. It runs when CI passes on main, from the nightly after a data commit, and by hand (Actions →
+   Pages → Run workflow). The sub-path build also writes `404.html`, which Pages serves for deep links.
+3. Pages can't send headers, so the service worker adds the cross-origin isolation ones: the engine runs
+   single-threaded on a first visit and multi-threaded from the next page load.
+
+Pages lets browsers keep files for ten minutes; the app revalidates its data files, so a new update shows
+at once.
+
+## Fetch new games (Cloudflare Worker)
+
+The Games page has a **Fetch new games** card when the build has `VITE_UPDATE_URL` (pages.yml sets it).
+It calls `web/worker/update.ts`, which checks chess.com against the site's data and starts the nightly
+workflow on GitHub. The Worker's settings are in `web/worker/wrangler.toml`.
+
+1. **Deploy** from `web/worker`: `npx wrangler@4.152.0 deploy` (after `npx wrangler@4.152.0 login`, which
+   opens Cloudflare in the browser). It prints the `*.workers.dev` address that pages.yml uses.
+2. **GitHub token:** github.com → Settings → Developer settings → Fine-grained tokens → Generate new
+   token. Repository access: only this repo. Permissions → Repository → **Actions: Read and write**
+   (Metadata: read comes with it). Then, from `web/worker`: `npx wrangler@4.152.0 secret put GITHUB_TOKEN`
+   and paste it. Until it's set the card says the service isn't set up; when it expires, make a new one
+   the same way.
+
+No sign-in: the Worker only starts the nightly when chess.com has a game the site lacks and no update is
+running or publishing, so the most anyone can do is start a real update early.
+
+## Or Cloudflare Pages
 
 The build writes everything the host needs into `web/dist`: `_headers` with the cross-origin isolation
 headers the multi-threaded engine needs, and the noindex settings below. With no `404.html`, Pages serves
@@ -58,13 +94,13 @@ Limits that matter: 25 MiB per file and 20,000 files on the free plan. The build
 none is over 5 MB (the full-strength engine builds would not fit, which is why the browser uses the lite
 one).
 
-### Or Vercel
+## Or Vercel
 
 `web/vercel.json` holds the same setup (build command, `dist`, the single-page rewrite, the headers). Import
 the repo, set the root directory to `web`, add the same environment variables, and deploy. Domains → add
 `chess.<your domain>` and create the CNAME record Vercel shows.
 
-### Search engines
+## Search engines
 
 A personal site, so builds ask search engines to stay out: a `robots` noindex meta tag, a `robots.txt`
 that disallows everything, and an `X-Robots-Tag: noindex` header (in `_headers`, and in `vercel.json`).

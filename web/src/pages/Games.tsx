@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
+import UpdateCard from "../components/UpdateCard";
 import { useGamesIndex } from "../lib/data";
 import { day, grouped, n1 } from "../lib/format";
 import { TYPE } from "../lib/names";
@@ -69,6 +70,7 @@ export default function Games() {
           {filtered ? `${grouped(list.length)} of ${grouped(games.length)} games` : `${grouped(games.length)} games`}, newest first.
         </p>
       </div>
+      <UpdateCard />
       <section className="card">
         <div className="filters" aria-label="Filters">
           <Seg label="Result" value={f.result} onChange={(v) => set("result", v)}

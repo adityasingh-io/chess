@@ -18,6 +18,7 @@ build/
 # Web
 node_modules/
 web/dist/
+web/dist-pages/
 
 # OS / editors
 .DS_Store

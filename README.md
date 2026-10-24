@@ -62,10 +62,13 @@ as an app and works offline; training progress stays on the device unless Supaba
 
 ## Deploy
 
-[docs/DEPLOY.md](docs/DEPLOY.md) has the one-time steps: the GitHub repo, Cloudflare Pages (or Vercel)
-on a subdomain, the noindex toggle, Supabase sync, the nightly Action with its shared cache, and the
-optional AI-worded notes. CI (`.github/workflows/ci.yml`) runs every test, the build's secret scan and the
-browser checks on each push.
+The app is published on GitHub Pages at [adityasingh.io/chess](https://adityasingh.io/chess/) when CI
+passes on main and after each nightly update. On the Games page, **Fetch new games** starts the nightly
+update straight away, through a small Cloudflare Worker (`web/worker/`), and shows the new games when
+they're in. [docs/DEPLOY.md](docs/DEPLOY.md) has the one-time steps: GitHub Pages, the Worker and its
+GitHub token, the noindex toggle, Supabase sync, the nightly Action with its shared cache, the optional
+AI-worded notes, and Cloudflare Pages or Vercel instead. CI (`.github/workflows/ci.yml`) runs every test,
+the build's secret scan and the browser checks on each push.
 
 ## Tests
 

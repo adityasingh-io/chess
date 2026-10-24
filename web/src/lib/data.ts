@@ -1,5 +1,6 @@
 // Loads the static exports in public/data. Each file is fetched once and its promise kept, so components
-// can read it with React's use() under a Suspense boundary.
+// can read it with React's use() under a Suspense boundary. Fetches revalidate with the server (a quick 304
+// when unchanged): GitHub Pages lets browsers keep files for ten minutes, which would hide a fresh update.
 import { use } from "react";
 import type {
   Endgames, Game, GamesIndex, Insights, Leaks, Losses, MistakesIndex, OpeningReport, PuzzleIndex, PuzzleSet, Record as MistakeRecord,
@@ -14,7 +15,7 @@ export class DataError extends Error {}
 export function load<T>(path: string): Promise<T> {
   let p = cache.get(path) as Promise<T> | undefined;
   if (!p) {
-    p = fetch(BASE + path).then(async (r) => {
+    p = fetch(BASE + path, { cache: "no-cache" }).then(async (r) => {
       if (!r.ok) throw new DataError(r.status === 404 ? `Not in the exports: ${path}` : `${path}: HTTP ${r.status}`);
       return (await r.json()) as T;
     });
