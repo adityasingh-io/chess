@@ -43,3 +43,20 @@ def test_pool_caches_and_skips(tmp_path):
     stored = db.load_evals(conn, cfg.engine.version, SETTINGS.key)
     assert set(stored) == {START, AFTER_E4}
     assert len(stored[START]["lines"]) == 2
+
+
+def test_recorded_results_repeat_exactly():
+    """Stockfish output recorded on the Mac comes back the same here, so machines can share the cache."""
+    import json
+    from pathlib import Path
+
+    from conftest import settings_from_key
+
+    data = json.loads((Path(__file__).parent / "fixtures" / "games.json").read_text())
+    settings = settings_from_key(data["pass1"])
+    keys = sorted(data["evals1"])[:: max(1, len(data["evals1"]) // 4)][:4]
+    plies = max(len(line["pv"]) for key in keys for line in data["evals1"][key]["lines"])  # scripts/record_games.py trims lines
+    with open_engine(cfg.secrets.stockfish_path, settings) as engine:
+        for key in keys:
+            now = analyse_one(engine, key, settings)
+            assert [{**line, "pv": line["pv"][:plies]} for line in now["lines"]] == data["evals1"][key]["lines"], key

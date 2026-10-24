@@ -26,6 +26,11 @@ uv run coach calibrate               # engine budget study, writes docs/calibrat
 uv run coach review --n 20           # random mistake records with Stockfish's lines and the rule
 uv run coach review --type fork      # only one type, sub-type or flag
 uv run coach tagger-check            # sub-type tagger vs Lichess puzzle themes
+uv run coach puzzles                 # pick the Lichess puzzle subset (streams the puzzle file once)
+uv run coach repertoire              # write the starter repertoire.pgn (edit it afterwards)
+uv run coach cache pull              # merge the shared cache (GitHub release `cache`) into data/
+uv run coach cache push              # upload this machine's engine results, explorer stats and notes
+uv run coach notes --dry-run         # AI notes (off in config.toml): what would be sent, without sending
 ```
 
 Individual steps: `coach fetch`, `coach parse`, `coach analyze` (`--shard 2/3` takes one share of the
@@ -36,6 +41,28 @@ and resumed at any time. Exports go to `web/public/data/`, with their JSON Schem
 `web/schema/export.schema.json`.
 
 All tunable numbers live in [config.toml](config.toml). Secrets live in `.env`, which is gitignored.
+
+## Web app
+
+```bash
+cd web
+npm install
+npm run dev        # http://localhost:5173
+npm run check      # types, generated types up to date, unit and page tests
+npm run build      # production build in web/dist, then a scan that fails on anything secret-looking
+npm run e2e        # every page at phone and desktop width in Chrome, step timing, the live engine
+```
+
+Dashboard, leaks, games with a move-by-move viewer and live engine, openings tree and report, endgames,
+insights, puzzles from my games and Lichess with spaced repetition, and a repertoire trainer. It installs
+as an app and works offline; training progress stays on the device unless Supabase sync is set up.
+
+## Deploy
+
+[docs/DEPLOY.md](docs/DEPLOY.md) has the one-time steps: the GitHub repo, Cloudflare Pages (or Vercel)
+on a subdomain, the noindex toggle, Supabase sync, the nightly Action with its shared cache, and the
+optional AI-worded notes. CI (`.github/workflows/ci.yml`) runs every test, the build's secret scan and the
+browser checks on each push.
 
 ## Tests
 

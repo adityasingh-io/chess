@@ -58,7 +58,8 @@ def analyze(last: Last = None, reviewed: Reviewed = 0, pass1_only: bool = False,
 
 
 @app.command()
-def update(last: Last = None, reviewed: Reviewed = 0) -> None:
+def update(last: Last = None, reviewed: Reviewed = 0,
+           notes: Annotated[bool, typer.Option(help="Also ask for AI notes when they're on in config.toml.")] = True) -> None:
     """Fetch, parse, analyse, fetch explorer stats and export, touching only what's new."""
     from coach.build import fetch_explorer, fetch_puzzles, run_build
 
@@ -80,6 +81,14 @@ def update(last: Last = None, reviewed: Reviewed = 0) -> None:
     else:
         console.print("LICHESS_TOKEN not set: skipping explorer stats")
     step("puzzles", fetch_puzzles, cfg, conn, console)
+    if notes and cfg.notes.enabled:
+        from coach.build import write_notes
+
+        try:
+            kept, dropped = step("notes", write_notes, cfg, conn, console)
+            console.print(f"notes: {kept} new, {dropped} kept the template")
+        except Exception as e:  # noqa: BLE001 - notes are optional; the export goes ahead with the templates
+            console.print(f"notes skipped: {type(e).__name__}: {e}")
     result = step("build", run_build, cfg, conn, console)
     print_acceptance(cfg, result, timings)
 
@@ -185,6 +194,54 @@ def repertoire(force: Annotated[bool, typer.Option(help="Write the starter PGN a
         console.print(f"{path.name} exists; edit it, or pass --force to generate it again")
         return
     rep.write_starter(cfg, conn, console)
+
+
+cache_app = typer.Typer(no_args_is_help=True, help="The shared cache on the GitHub release `cache` (src/coach/cache.py).")
+app.add_typer(cache_app, name="cache")
+
+
+@cache_app.command("pull")
+def cache_pull() -> None:
+    """Merge the shared Stockfish results, explorer responses and notes into the local database."""
+    from coach import cache
+
+    cfg, conn = _setup()
+    if not cache.pull(cfg, conn, console.print):
+        raise typer.Exit(1)
+
+
+@cache_app.command("push")
+def cache_push() -> None:
+    """Upload this machine's Stockfish results, explorer responses and notes (merge with `pull` first)."""
+    from coach import cache
+
+    cfg, conn = _setup()
+    cache.push(cfg, conn, console.print)
+
+
+@app.command("notes")
+def notes_cmd(dry_run: Annotated[bool, typer.Option(help="Print what Claude would be sent for the costliest mistake, without asking.")] = False,
+              show: Annotated[bool, typer.Option(help="Print the cached notes.")] = False) -> None:
+    """Have Claude reword the explanations of my costliest mistakes (off unless [notes] enabled = true)."""
+    from coach import notes
+    from coach.build import load_inputs, write_notes
+
+    cfg, conn = _setup()
+    if show:
+        console.print_json(notes.dump(conn))
+        return
+    if dry_run:
+        _, models, _, _ = load_inputs(cfg, conn)
+        picked = notes.costliest(cfg, models)
+        console.print(f"{len(picked)} records would be sent. System prompt:\n{notes.SYSTEM}\n")
+        if picked:
+            console.print(f"First message ({picked[0].id}):\n{notes.facts(picked[0]).text}")
+        return
+    if not cfg.notes.enabled:
+        console.print("notes are off: set enabled = true under [notes] in config.toml")
+        raise typer.Exit(1)
+    kept, dropped = write_notes(cfg, conn, console)
+    console.print(f"{kept} new notes, {dropped} kept the template; run `coach build` to export them")
 
 
 @app.command()

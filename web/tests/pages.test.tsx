@@ -53,6 +53,25 @@ test("the viewer steps through a game with the keyboard", async () => {
   expect(await screen.findByText(r.explanation)).toBeTruthy();
 }, 20_000);
 
+test("a note Claude worded replaces the template, which stays one tap away", async () => {
+  const id = "185836926026";
+  const g = data<Game>(`games/${id}.json`);
+  const r = g.records[0];
+  const note = `You played ${r.san}. Stockfish preferred ${r.best_san}.`;
+  const real = globalThis.fetch;
+  globalThis.fetch = (async (input: string | URL | Request) => String(input).endsWith(`games/${id}.json`)
+    ? new Response(JSON.stringify({ ...g, records: g.records.map((x, i) => i === 0 ? { ...x, note } : x) }))
+    : real(input)) as typeof fetch;
+  try {
+    await open(`/games/${id}?ply=${r.ply}`);
+    expect(await screen.findByText(note, {}, SLOW)).toBeTruthy();
+    const details = screen.getByText("Worded by Claude from Stockfish's facts").closest("details")!;
+    expect(within(details as HTMLElement).getByText(r.explanation)).toBeTruthy();
+  } finally {
+    globalThis.fetch = real;
+  }
+}, 20_000);
+
 test("the arrow buttons step the game and stop at its ends; the eval bar shows the stored score", async () => {
   const id = "164948678288";
   const g = data<Game>(`games/${id}.json`);

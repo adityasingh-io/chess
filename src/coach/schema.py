@@ -94,7 +94,8 @@ class Record(Model):
     net_after: int
     net_best: int | None
     rule: str
-    explanation: str
+    explanation: str           # template text from the facts above
+    note: str | None           # Claude's rewording of it (notes.py; checked against the same facts), if any
 
 
 class LossInfo(Model):

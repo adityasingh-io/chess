@@ -299,6 +299,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .explain .lead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 1.05rem; }
 .explain p { margin: 0; }
 .callout { border-left: 3px solid var(--bad); padding: 6px 10px; background: var(--soft); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: .9rem; }
+.worded { font-size: .85rem; color: var(--muted); }
+.worded summary { cursor: pointer; }
+.worded p { margin: 6px 0 0; }
 .moves { display: grid; grid-template-columns: 2.6rem 1fr 1fr; font-family: var(--font-num); font-size: .88rem; max-height: 320px; overflow: auto; border-top: 1px solid var(--line); position: relative; overscroll-behavior: contain; }
 @media (min-width: 900px) { .moves { max-height: 440px; } }
 .moves .no { color: var(--muted); padding: 5px 0 5px 6px; }

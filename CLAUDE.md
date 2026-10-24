@@ -34,5 +34,7 @@ they differ).
 - `web/`: the app (Vite + React). In `web/`: `npm run dev`; `npm run check` (types, generated types up to
   date, unit and page tests); `npm run e2e` (builds, then checks every page at phone and desktop width in
   Chrome, the 250-ply game's step timing and the live engine). `npm run types` regenerates
-  `src/types/export.ts` from `schema/export.schema.json`. Progress sync setup: `docs/DEPLOY.md`
-  and `supabase/migrations/`.
+  `src/types/export.ts` from `schema/export.schema.json`. `npm run build` ends with a secret scan of
+  `dist/`. Progress sync setup: `docs/DEPLOY.md` and `supabase/migrations/`.
+- Deploy, nightly Action, shared cache (`coach cache pull|push`) and AI notes (`coach notes`, off in
+  `config.toml`, short-lived credentials only): `docs/DEPLOY.md`. Workflows in `.github/workflows/`.

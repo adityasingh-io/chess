@@ -113,6 +113,13 @@ white = ["Queen's Gambit Declined", "Queen's Gambit Accepted", "Slav Defense", "
 black = ["Caro-Kann Defense: Classical Variation", "Caro-Kann Defense: Advance Variation",
          "Caro-Kann Defense: Exchange Variation", "Slav Defense"]
 
+[notes]                         # AI-worded coach notes (src/coach/notes.py); short-lived credentials only
+enabled = false                 # also run by `coach update`, and shown in the game viewer
+count = 30                      # my costliest confirmed mistakes get one
+model = "claude-opus-5-5"
+effort = "low"                  # rewording only, so little thinking
+max_tokens = 4000               # includes thinking; a reply cut short keeps the template
+
 [rating_map]                    # chess.com rapid -> Lichess rapid (lucb3, "Converting Chess.com to Lichess ratings")
 chesscom = [600, 700, 800, 1000, 1100]
 lichess = [980, 1070, 1165, 1350, 1440]

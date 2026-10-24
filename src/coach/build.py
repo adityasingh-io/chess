@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from rich.console import Console
 
-from coach import db, explorer
+from coach import db, explorer, notes
 from coach.analysis import load_games, select_game_ids
 from coach.config import Config
 from coach.export import Built, build, write
@@ -52,11 +52,18 @@ def fetch_puzzles(cfg: Config, conn: sqlite3.Connection, console: Console, refre
     return fetch_subset(cfg, models, console, refresh)
 
 
+def write_notes(cfg: Config, conn: sqlite3.Connection, console: Console) -> tuple[int, int]:
+    """Ask Claude to reword the explanations of my costliest mistakes that have no cached note yet."""
+    _, models, _, _ = load_inputs(cfg, conn)
+    return notes.write(conn, cfg, notes.costliest(cfg, models), notes.claude(cfg), console.print)
+
+
 def run_build(cfg: Config, conn: sqlite3.Connection, console: Console) -> BuildResult:
     started = time.perf_counter()
     games, models, evals1, evals2 = load_inputs(cfg, conn)
     stats = explorer.load(conn, cfg)
     missing = len(explorer_keys(cfg, models, evals1) - set(stats))
-    built = build(cfg, models, len(games), evals1, evals2, stats)
+    worded = notes.load(conn, cfg, notes.costliest(cfg, models)) if cfg.notes.enabled else {}
+    built = build(cfg, models, len(games), evals1, evals2, stats, worded)
     written, unchanged = write(cfg, built)
     return BuildResult(len(games), models, built, written, unchanged, time.perf_counter() - started, missing)

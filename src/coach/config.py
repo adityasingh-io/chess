@@ -187,6 +187,15 @@ class Repertoire:
 
 
 @dataclass(frozen=True)
+class Notes:
+    enabled: bool
+    count: int
+    model: str
+    effort: str
+    max_tokens: int
+
+
+@dataclass(frozen=True)
 class Calibration:
     moves: int
     pass1_budgets: list[int]
@@ -212,7 +221,6 @@ class Secrets:
     stockfish_path: str | None
     chesscom_contact_email: str | None
     lichess_token: str | None
-    anthropic_api_key: str | None
 
 
 @dataclass(frozen=True)
@@ -228,6 +236,7 @@ class Config:
     tagger_check: TaggerCheck
     puzzles: Puzzles
     repertoire: Repertoire
+    notes: Notes
     calibration: Calibration
     secrets: Secrets
 
@@ -292,7 +301,8 @@ def load_config(root: Path | None = None) -> Config:
         ),
         engine=EngineConfig(
             version=engine["version"],
-            workers=int(engine["workers"]),
+            # COACH_WORKERS fits the pool to the machine (the nightly runner); results don't depend on it.
+            workers=int(os.environ.get("COACH_WORKERS") or engine["workers"]),
             pass1=_search(engine["pass1"]),
             pass2=_search(engine["pass2"]),
             triggers=Pass2Triggers(
@@ -324,6 +334,7 @@ def load_config(root: Path | None = None) -> Config:
         tagger_check=_section(TaggerCheck, raw["tagger_check"]),
         puzzles=_section(Puzzles, raw["puzzles"]),
         repertoire=_section(Repertoire, raw["repertoire"]),
+        notes=_section(Notes, raw["notes"]),
         calibration=Calibration(
             moves=int(calib["moves"]),
             pass1_budgets=[int(n) for n in calib["pass1_budgets"]],
@@ -336,6 +347,5 @@ def load_config(root: Path | None = None) -> Config:
             stockfish_path=secret("STOCKFISH_PATH"),
             chesscom_contact_email=secret("CHESSCOM_CONTACT_EMAIL"),
             lichess_token=secret("LICHESS_TOKEN"),
-            anthropic_api_key=secret("ANTHROPIC_API_KEY"),
         ),
     )

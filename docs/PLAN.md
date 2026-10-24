@@ -152,6 +152,37 @@ this file wins.
 - **Exports are committed.** The `.gitignore` rule `data/` also matched `web/public/data`, so Phase 2's
   exports never reached git. It is now `/data/`.
 
+## Deploy and automation
+
+- **Hosting:** Cloudflare Pages from the GitHub repo (root `web`, `npm run build`, output `dist`); Vercel
+  works too with `web/vercel.json`. The build writes `_headers` (cross-origin isolation for the
+  multi-threaded engine) itself, and with no `404.html` Pages falls back to `index.html`. Steps:
+  [DEPLOY.md](DEPLOY.md).
+- **noindex** on by default: robots meta tag, `robots.txt` disallowing everything and an `X-Robots-Tag`
+  header. `COACH_NOINDEX=0` at build time turns all three off.
+- **Secret scan:** `npm run build` ends with `scripts/scan-bundle.mjs`, which fails on known key formats
+  (Anthropic, Supabase secret and service-role, Lichess, GitHub, AWS, private keys) and on the value of
+  any pipeline secret (the `.env` file's non-`VITE_` variables and the CI secrets). It prints names only.
+- **Shared cache:** `coach cache push` uploads the `evals`, `explorer` and `notes` tables as one
+  zstd-compressed SQLite file (about 5 MB) and the Lichess puzzle subset to the release `cache`; `pull`
+  merges with `INSERT OR IGNORE`, so rows already present stay. Games and moves are rebuilt from chess.com.
+  CI checks that the Linux Stockfish 19 reproduces results recorded on the Mac, which is what makes
+  sharing sound. A fresh checkout's export keeps the last exported Lichess puzzles when the subset is
+  missing.
+- **Nightly Action:** pinned Stockfish 19 Linux build with a checksum, cache pull (it stops if there's no
+  cache, rather than re-analysing every game), `coach update --no-notes`, the optional notes step, cache
+  push, and a commit of `web/public/data` if anything changed. `COACH_WORKERS=4` fits the pool to the
+  runner; results don't depend on the worker count.
+- **AI notes** (off in `config.toml`): the 30 costliest confirmed records by Win% lost. The model
+  (`claude-opus-5-5`, low effort) gets only stored facts: my move, Win% before and after, Stockfish's
+  scores and lines in SAN, material at the end of each line, the tags and the template text; no FEN, so it
+  isn't asked to read the position. Every move in a reply must be one of the facts' moves, every square
+  must appear in them, every number must be one of theirs (or a rounding of one), with no numbers spelled
+  out, 1 to 4 sentences and at most 600 characters. A failing or cut-off reply is cached as failed and the
+  template stays. Notes are cached per record and per facts hash (with the model and prompt version), so
+  a record is asked about once unless its facts change. The viewer shows the note with the template
+  behind "Worded by Claude from Stockfish's facts".
+
 ## How the brief is read
 
 1. Labels, accuracy and Win% drops come from pass 1, so every move is judged at the same depth. Pass 2

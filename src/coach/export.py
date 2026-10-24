@@ -34,7 +34,7 @@ def ev(line: dict | None) -> S.Eval | None:
     return S.Eval(cp=line.get("cp"), mate=line.get("mate")) if line else None
 
 
-def record_out(r: Record) -> S.Record:
+def record_out(r: Record, notes: dict[str, str]) -> S.Record:
     move = r.ply.move
     best = r.best_line[0] if r.best_line else None
     return S.Record(
@@ -51,7 +51,7 @@ def record_out(r: Record) -> S.Record:
         think=r1(move["think_time"]), clock=r1(move["clock"]), opp_rating=r.game.row["opp_rating"],
         primary=r.primary, subtype=r.subtype, flags=r.flags, tags=r.tags, themes=r.themes,
         confirmed=r.confirmed, source=r.source, net_after=r.net_after, net_best=r.net_best,
-        rule=r.rule, explanation=explain(r),
+        rule=r.rule, explanation=explain(r), note=notes.get(r.id),
     )
 
 
@@ -87,7 +87,7 @@ def move_out(p: Ply, evals1: dict[str, dict], record_ids: dict[int, str], plies:
     )
 
 
-def game_out(cfg: Config, m: GameModel, evals1: dict[str, dict], evals2: dict[str, dict]) -> S.Game:
+def game_out(cfg: Config, m: GameModel, evals1: dict[str, dict], evals2: dict[str, dict], notes: dict[str, str]) -> S.Game:
     row = m.row
     record_ids = {r.ply.number: r.id for r in m.records}
     loss = None
@@ -112,7 +112,7 @@ def game_out(cfg: Config, m: GameModel, evals1: dict[str, dict], evals2: dict[st
         accuracy={c: r1(v) for c, v in m.accuracy.items()},
         chesscom_accuracy={"white": row["cc_acc_white"], "black": row["cc_acc_black"]},
         moves=[move_out(p, evals1, record_ids, cfg.engine.pv_plies) for p in m.plies],
-        records=[record_out(r) for r in m.records],
+        records=[record_out(r, notes) for r in m.records],
         loss=loss, thrown=thrown, endgame=endgame_out(m, evals2, evals1),
     )
 
@@ -218,7 +218,7 @@ class Built:
 
 
 def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, dict], evals2: dict[str, dict],
-          explorer: dict[str, dict]) -> Built:
+          explorer: dict[str, dict], notes: dict[str, str] | None = None) -> Built:
     stamp = as_of(models)
     ordered = by_time(models)
     all_leaks = leaks(cfg, models)
@@ -229,10 +229,10 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
     rated = [m for m in ordered if m.row["rated"] and m.row["my_rating"]]
     engine = S.EngineInfo(version=cfg.engine.version, pass1=cfg.engine.pass1.key, pass2=cfg.engine.pass2.key)
 
-    games = {m.id: game_out(cfg, m, evals1, evals2) for m in ordered}
+    games = {m.id: game_out(cfg, m, evals1, evals2, notes or {}) for m in ordered}
     record_index = [r for g in games.values() for r in g.records]
     mine = S.PuzzleSet(as_of=stamp, source="mine", puzzles=[S.Puzzle(**p) for p in my_puzzles(cfg, ordered, evals2)])
-    lichess = S.PuzzleSet(as_of=stamp, source="lichess", puzzles=[S.Puzzle(**lichess_puzzle(row)) for row in load_subset(cfg) or []])
+    lichess = S.PuzzleSet(as_of=stamp, source="lichess", puzzles=lichess_puzzles(cfg))
     files: dict[str, BaseModel] = {
         "summary.json": S.Summary(
             as_of=stamp, username=cfg.player.username, rating=rated[-1].row["my_rating"] if rated else None,
@@ -274,6 +274,15 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
         "repertoire.json": repertoire_out(cfg, models, evals1, stamp),
     }
     return Built(files, games)
+
+
+def lichess_puzzles(cfg: Config) -> list[S.Puzzle]:
+    """From the cached subset; without one (a fresh checkout), keep what was exported last time."""
+    subset = load_subset(cfg)
+    if subset is not None:
+        return [S.Puzzle(**lichess_puzzle(row)) for row in subset]
+    last = cfg.export_dir / "puzzles" / "lichess.json"
+    return S.PuzzleSet.model_validate_json(last.read_text()).puzzles if last.exists() else []
 
 
 def tag_counts(puzzles: S.PuzzleSet) -> dict[str, int]:

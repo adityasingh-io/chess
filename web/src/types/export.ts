@@ -218,6 +218,7 @@ net_after: number
 net_best: (number | null)
 rule: string
 explanation: string
+note: (string | null)
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema

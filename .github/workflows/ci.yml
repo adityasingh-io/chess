@@ -1,0 +1,50 @@
+# Tests for both halves, the bundle secret scan, and the browser checks.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      # The Linux Stockfish must reproduce the results recorded on the Mac, or the two can't share a cache.
+      - run: .github/scripts/stockfish.sh
+      - run: uv run pytest
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      # Types, generated types up to date, unit and page tests.
+      - run: npm run check
+      # `build` ends with scripts/scan-bundle.mjs, which fails on anything secret-looking in dist/.
+      - run: npm run build
+      # Every page at phone and desktop width in the runner's Google Chrome.
+      - run: npm run e2e

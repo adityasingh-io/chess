@@ -448,7 +448,13 @@ function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, onCompare }
       {g.thrown && cur === g.thrown.ply && (
         <div className="callout"><b>Threw away a win. </b>Your Win% had reached {n1(g.thrown.peak)}% in this game.</div>
       )}
-      {r && <p>{r.explanation}</p>}
+      {r && <p>{r.note ?? r.explanation}</p>}
+      {r?.note && (
+        <details className="worded">
+          <summary>Worded by Claude from Stockfish's facts</summary>
+          <p>{r.explanation}</p>
+        </details>
+      )}
       {cmp && !comparing && (
         <>
           <div className="label">Stockfish's best{bestSan ? `: ${bestSan}` : ""}{bestScore ? ` (${bestScore})` : ""}</div>

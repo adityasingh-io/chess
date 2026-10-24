@@ -1,0 +1,74 @@
+# Every night: new chess.com games through Stockfish and into the exported JSON, committed so the host
+# redeploys. Needs the shared cache (`coach cache push` from the Mac once), so it only analyses new games.
+# README.md, "Nightly update", lists the secrets and variables.
+name: Nightly update
+
+on:
+  schedule:
+    - cron: "30 21 * * *"   # 03:00 in India
+  workflow_dispatch:
+
+permissions:
+  contents: write           # commit web/public/data, update the cache release
+  id-token: write           # GitHub's OIDC token, exchanged for short-lived Anthropic credentials (notes only)
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      CHESSCOM_CONTACT_EMAIL: ${{ secrets.CHESSCOM_CONTACT_EMAIL }}
+      LICHESS_TOKEN: ${{ secrets.LICHESS_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+      COACH_WORKERS: 4
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          enable-cache: true
+      - run: uv sync --locked --extra notes
+      - run: .github/scripts/stockfish.sh
+
+      - name: Pull the shared cache
+        run: uv run coach cache pull
+
+      - name: Update
+        run: uv run coach update --no-notes
+
+      # Optional: only when the federation rule is set up (README.md) and [notes] enabled = true. GitHub's
+      # token lives about five minutes, so it's fetched right before the notes, which take a minute or two.
+      - name: AI notes
+        if: vars.ANTHROPIC_FEDERATION_RULE_ID != ''
+        continue-on-error: true
+        env:
+          ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+          ANTHROPIC_IDENTITY_TOKEN_FILE: ${{ runner.temp }}/anthropic-oidc
+        run: |
+          # Optional ids: unset when the variable is empty, so the SDK doesn't send an empty one.
+          for v in ANTHROPIC_SERVICE_ACCOUNT_ID ANTHROPIC_WORKSPACE_ID; do [ -n "${!v}" ] || unset "$v"; done
+          curl -sSf -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" | jq -r .value > "$ANTHROPIC_IDENTITY_TOKEN_FILE"
+          uv run coach notes
+          uv run coach build
+
+      - name: Push the shared cache
+        run: uv run coach cache push
+
+      - name: Commit the new data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/public/data web/schema
+          if git diff --cached --quiet; then
+            echo "No new data."
+          else
+            git commit -m "Nightly data update"
+            git push
+          fi

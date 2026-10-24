@@ -2131,6 +2131,17 @@
     "explanation": {
      "title": "Explanation",
      "type": "string"
+    },
+    "note": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Note"
     }
    },
    "required": [
@@ -2171,7 +2182,8 @@
     "net_after",
     "net_best",
     "rule",
-    "explanation"
+    "explanation",
+    "note"
    ],
    "title": "Record",
    "type": "object"

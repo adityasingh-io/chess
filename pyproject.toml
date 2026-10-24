@@ -19,6 +19,11 @@ dependencies = [
     "zstandard>=0.25.0",
 ]
 
+[project.optional-dependencies]
+# AI-worded coach notes (off in config.toml); credentials come from an `ant auth login` profile or
+# Workload Identity Federation, never a stored key.
+notes = ["anthropic>=2.3.0,<3"]
+
 [project.scripts]
 coach = "coach.cli:main"
 

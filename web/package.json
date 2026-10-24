@@ -1,7 +1,7 @@
 {
   "name": "chess-coach-web",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "engines": {
@@ -39,7 +39,7 @@
     "predev": "node scripts/copy-engine.mjs",
     "dev": "vite",
     "prebuild": "node scripts/copy-engine.mjs",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node scripts/scan-bundle.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "check": "tsc && node scripts/gen-types.mjs --check && vitest run",
