@@ -62,10 +62,15 @@ at once.
 
 The Games page has a **Fetch new games** card when the build has `VITE_UPDATE_URL` (pages.yml sets it).
 It calls `web/worker/update.ts`, which checks chess.com against the site's data and starts the nightly
-workflow on GitHub. The Worker's settings are in `web/worker/wrangler.toml`.
+workflow on GitHub. The Worker also does this by itself every 5 minutes (the cron in
+`web/worker/wrangler.toml`, with the Worker's other settings), so a new game is usually on the site a few
+minutes after it ends. The scheduled check leaves alone a game an earlier run already saw (one the
+pipeline leaves out, or a failed run); the button still starts those. `npx wrangler@4.152.0 tail` from
+`web/worker` shows what each check did.
 
 1. **Deploy** from `web/worker`: `npx wrangler@4.152.0 deploy` (after `npx wrangler@4.152.0 login`, which
-   opens Cloudflare in the browser). It prints the `*.workers.dev` address that pages.yml uses.
+   opens Cloudflare in the browser). It prints the `*.workers.dev` address that pages.yml uses and the
+   schedule. The free plan allows 5 cron triggers per account; this uses one.
 2. **GitHub token:** github.com → Settings → Developer settings → Fine-grained tokens → Generate new
    token. Repository access: only this repo. Permissions → Repository → **Actions: Read and write**
    (Metadata: read comes with it). Then, from `web/worker`: `npx wrangler@4.152.0 secret put GITHUB_TOKEN`

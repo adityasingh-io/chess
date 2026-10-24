@@ -65,6 +65,25 @@ test("the update starts only for a new game, with nothing running or publishing"
   expect(await start({ ...ENV, GITHUB_TOKEN: undefined }, now)).toMatchObject({ started: false, reason: "no-token" });
 });
 
+test("the 5-minute check starts the update for a game no run has seen, and leaves seen ones to the button", async () => {
+  const now = 10_000;   // game 2 ended at 2000; a run starts 120 s before it finishes
+  let sent = stubWorld([done(1500)]);
+  expect((await start(ENV, now, true)).started).toBe(true);
+  sent = stubWorld([done(3000)]);   // started 880 s after the game ended, and the site still lacks it
+  expect(await start(ENV, now, true)).toMatchObject({ started: false, reason: "seen" });
+  expect(sent).toEqual([]);
+  expect((await start(ENV, now)).started).toBe(true);
+  sent = stubWorld([done(2200, "failure")]);   // started 80 s after it ended: chess.com may not have listed it yet
+  expect((await start(ENV, now, true)).started).toBe(true);
+
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  sent = stubWorld([done(1500)]);
+  await worker.scheduled(null, ENV);
+  expect(sent).toHaveLength(1);
+  expect(log).toHaveBeenCalledWith("started the update for 2");
+  log.mockRestore();
+});
+
 test("the Worker answers the app's origin, and only its two routes", async () => {
   stubWorld();
   const options = await worker.fetch(new Request("https://w.test/update", { method: "OPTIONS", headers: { Origin: "http://localhost:5173" } }), ENV);

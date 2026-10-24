@@ -274,7 +274,10 @@ this file wins.
   on the Games page. `GET /status` lists the chess.com games in the configured time classes that the
   site's `games/index.json` lacks, and the nightly's latest run; `POST /update` starts the nightly only when
   there is such a game and nothing is running or was published in the last 10 minutes. No sign-in: the most
-  anyone can do is start an update for a real new game early. Its GitHub token is a Worker secret limited
+  anyone can do is start an update for a real new game early. Since 2026-10-25 the Worker also runs the
+  same check every 5 minutes (a cron trigger) and starts the update itself; that check skips games a run
+  has already seen (started at least 5 minutes after the game ended), so a game the pipeline leaves out or
+  a failed run doesn't restart the nightly every few minutes. Its GitHub token is a Worker secret limited
   to this repo's Actions. The card follows the run every 15 s and offers a reload once the site has the
   games. Data files are fetched with `cache: "no-cache"` so a new update shows at once (Pages lets browsers
   keep files ten minutes).
@@ -292,7 +295,10 @@ this file wins.
 - **Nightly Action:** pinned Stockfish 19 Linux build with a checksum, cache pull (it stops if there's no
   cache, rather than re-analysing every game), `coach update --no-notes`, the optional notes step, cache
   push, and a commit of `web/public/data` if anything changed. `COACH_WORKERS=4` fits the pool to the
-  runner; results don't depend on the worker count.
+  runner; results don't depend on the worker count. It stays on the x86 runner: on 2026-10-25 the same two
+  games analysed from scratch took 3 min 5 s there (AMD EPYC, 2 cores with 2 threads each, Stockfish bench
+  about 0.92M nodes/s per process) and 4 min 22 s on the free ARM runner (4 Neoverse N2 cores, about
+  0.68M), with identical results on both.
 - **AI notes** (off in `config.toml`): the 30 costliest confirmed records by Win% lost. The model
   (`claude-opus-5-5`, low effort) gets only stored facts: my move, Win% before and after, Stockfish's
   scores and lines in SAN, material at the end of each line, the tags and the template text; no FEN, so it

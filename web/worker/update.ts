@@ -2,6 +2,8 @@
 //   GET  /status  the chess.com games newer than the site's data, and the latest nightly run on GitHub
 //   POST /update  starts the nightly workflow, only when chess.com has a game the site doesn't and no
 //                 update is running or publishing
+// Every 5 minutes (wrangler.toml's cron) it does the same by itself, so a new game is usually on the site a few
+// minutes after it ends without anyone pressing the button.
 // There's no sign-in: the most a stranger could do is start an update for a real new game a little before
 // the nightly would. The GitHub token (a Worker secret) can only read and run this repo's Actions.
 
@@ -18,10 +20,13 @@ export interface Env {
 export interface Waiting { id: string; url: string; end: number }
 export interface Run { status: string; conclusion: string | null; started: number; finished: number; url: string }
 export interface Status { waiting: Waiting[]; run: Run | null; error?: string }
-export interface Started { started: boolean; reason?: "running" | "publishing" | "none" | "no-token"; status: Status }
+export interface Started { started: boolean; reason?: "running" | "publishing" | "none" | "seen" | "no-token"; status: Status }
 
 // After a nightly finishes, publishing to Pages takes a minute or two; don't start another meanwhile.
 const PUBLISHING_SECONDS = 600;
+// chess.com can take a little while to list a finished game, so a run that started less than this long after a
+// game ended may not have seen it.
+const LISTED_SECONDS = 300;
 const AGENT = "chess-coach update worker (+https://github.com/adityasingh-io/chess)";
 
 async function json<T>(url: string, init: RequestInit = {}): Promise<T> {
@@ -79,21 +84,25 @@ export async function status(env: Env): Promise<Status> {
            ...(errors.length ? { error: errors.join("; ") } : {}) };
 }
 
-export async function start(env: Env, now = Date.now() / 1000): Promise<Started> {
+/** Starts the nightly. The scheduled check (`auto`) also leaves alone games a run has already seen, so a game the
+    pipeline leaves out, or a run that failed, doesn't start it again every few minutes; the button still can. */
+export async function start(env: Env, now = Date.now() / 1000, auto = false): Promise<Started> {
   const s = await status(env);
   if (!env.GITHUB_TOKEN) return { started: false, reason: "no-token", status: s };
   if (s.error) throw new Error(s.error);
   if (s.run && s.run.status !== "completed") return { started: false, reason: "running", status: s };
   if (!s.waiting.length) return { started: false, reason: "none", status: s };
+  const run = s.run;
+  if (auto && run && s.waiting.every((g) => g.end <= run.started - LISTED_SECONDS)) return { started: false, reason: "seen", status: s };
   if (s.run?.conclusion === "success" && now - s.run.finished < PUBLISHING_SECONDS) return { started: false, reason: "publishing", status: s };
   const r = await github(env, `/actions/workflows/${env.WORKFLOW}/dispatches`, { method: "POST", body: JSON.stringify({ ref: "main" }) });
   if (!r.ok) {
     const why = ((await r.json().catch(() => null)) as { message?: string } | null)?.message;
     throw new Error(`GitHub: HTTP ${r.status} starting the update${why ? ` (${why})` : ""}`);
   }
-  const run: Run = { status: "queued", conclusion: null, started: Math.floor(now), finished: Math.floor(now),
-                     url: `https://github.com/${env.REPO}/actions/workflows/${env.WORKFLOW}` };
-  return { started: true, status: { ...s, run } };
+  const queued: Run = { status: "queued", conclusion: null, started: Math.floor(now), finished: Math.floor(now),
+                        url: `https://github.com/${env.REPO}/actions/workflows/${env.WORKFLOW}` };
+  return { started: true, status: { ...s, run: queued } };
 }
 
 export default {
@@ -117,5 +126,10 @@ export default {
       return reply({ error: e instanceof Error ? e.message : String(e) }, 502);
     }
     return reply({ error: "not found" }, 404);
+  },
+
+  async scheduled(_controller: unknown, env: Env): Promise<void> {
+    const r = await start(env, Date.now() / 1000, true);
+    console.log(r.started ? `started the update for ${r.status.waiting.map((g) => g.id).join(", ")}` : `not started: ${r.reason}`);
   },
 };

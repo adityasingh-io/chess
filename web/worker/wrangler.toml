@@ -4,6 +4,10 @@ name = "chess-update"
 main = "update.ts"
 compatibility_date = "2026-08-01"
 
+# The scheduled check: starts the update by itself when chess.com has a game the site lacks (update.ts).
+[triggers]
+crons = ["*/5 * * * *"]
+
 [vars]
 REPO = "adityasingh-io/chess"
 WORKFLOW = "nightly.yml"
