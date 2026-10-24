@@ -59,6 +59,9 @@ this file wins.
   positions the Mac had analysed and matched them exactly. Their results were merged into the cache, and
   a local run found everything cached. Explorer stats: 1,262 positions in 50 minutes. A no-op `coach update`
   takes about 11 s.
+- **20-record review (2026-10-24), thresholds kept.** Of 20 random records, 14 fit, 3 were unsure (#9, #10,
+  #13, all quiet) and 3 unmarked; none was marked wrong. Six of the 20 lines stop on a capture, so their
+  material is measured mid-exchange (reading 3); the review found no wrong label from it, #14 included.
 
 ## How the brief is read
 
