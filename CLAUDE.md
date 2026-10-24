@@ -29,3 +29,7 @@ they differ).
 - `src/coach/`: pipeline (`uv run coach --help`). `config.toml` holds every tunable number; `.env` holds
   secrets. `data/` (gitignored) holds raw archives and `coach.sqlite`.
 - `uv run pytest` (add `-m "not engine"` to skip tests that run Stockfish).
+- `web/`: the app (Vite + React). In `web/`: `npm run dev`; `npm run check` (types, generated types up to
+  date, unit and page tests); `npm run e2e` (builds, then checks every page at phone and desktop width in
+  Chrome, the 250-ply game's step timing and the live engine). `npm run types` regenerates
+  `src/types/export.ts` from `schema/export.schema.json`.

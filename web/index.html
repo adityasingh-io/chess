@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0d141b">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <title>Chess coach</title>
+    <script>
+      // Apply a saved theme choice before first paint (no flash); "auto" leaves the attribute off.
+      try { const t = localStorage.getItem("coach-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

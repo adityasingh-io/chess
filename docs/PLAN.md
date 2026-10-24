@@ -63,6 +63,29 @@ this file wins.
   #13, all quiet) and 3 unmarked; none was marked wrong. Six of the 20 lines stop on a capture, so their
   material is measured mid-exchange (reading 3); the review found no wrong label from it, #14 included.
 
+## Web app
+
+- **Visual direction B · Night study** (chosen 2026-10-24 over A · Clubroom): dark first, ink-blue
+  surfaces, walnut board, Archivo with narrow caps for labels and JetBrains Mono for numbers and moves. The
+  light variant follows the OS, or the Auto/Light/Dark switch (kept in `localStorage`). Severity is a
+  one-hue ramp always shown with ?! ? ??. Amber is my move, teal Stockfish's best, violet the live engine.
+- **Stack** (exact versions pinned in `web/package.json`): Vite 8, React 19, TypeScript 7, React Router 8,
+  react-chessboard 5 with chess.js 1.4 for rules-level board work, Recharts 3 as the one charting library,
+  the `stockfish` npm package 19.0.1 (GPL-3.0) for the browser engine. Tests: Vitest with Testing Library
+  in jsdom, and `e2e/run.mjs` driving the installed Chrome through playwright-core.
+- **Data:** pages fetch the JSON exports and read them with React's `use()`. `mistakes/index.json` (the
+  biggest file) loads only on a leak's detail page. Pages are split into their own chunks.
+- **Browser engine flavours:** `stockfish-19-lite.js` (cores − 1 threads, at most 8, depth 24) when the page
+  is cross-origin isolated, otherwise `stockfish-19-lite-single.js` (depth 20), which works on any static
+  host. Both are copied from `node_modules` into `web/public/engine/` (gitignored) at dev and build time.
+  `web/public/_headers` sets COOP/COEP on Cloudflare Pages. Live lines are labelled LIVE, scored from my
+  side, and never stored.
+- **Explore:** drag or tap to play moves for either side from any position in the viewer. Pawns promote to
+  a queen. Mate, stalemate, insufficient material and the fifty-move rule come from chess.js, and the engine
+  isn't asked about those positions.
+- **Exports are committed.** The `.gitignore` rule `data/` also matched `web/public/data`, so Phase 2's
+  exports never reached git. It is now `/data/`.
+
 ## How the brief is read
 
 1. Labels, accuracy and Win% drops come from pass 1, so every move is judged at the same depth. Pass 2

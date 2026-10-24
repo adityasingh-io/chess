@@ -1,0 +1,4 @@
+# Cloudflare Pages: cross-origin isolation for the multi-threaded in-browser Stockfish.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
