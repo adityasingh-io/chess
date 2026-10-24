@@ -184,7 +184,11 @@ def opening_out(cfg: Config, models: list[GameModel], colour: str, evals1: dict[
             their_san=s["theirs"].move["san"], their_share=r1(s["share"]), explorer_games=s["explorer_games"],
             my_san=s["mine"].move["san"], my_drop=r1(s["mine"].drop), record=record,
         ))
-    families = [S.Family(**{**f, "variations": [S.Variation(**v) for v in f["variations"]]})
+    # Rounded like every other exported number, so the Mac and the nightly runner write identical files.
+    def stats_out(s: dict) -> dict:
+        return {**s, **{k: r1(s[k]) for k in ("score", "score_vs_rest", "win_after_opening", "accuracy")}}
+
+    families = [S.Family(**{**stats_out(f), "variations": [S.Variation(**stats_out(v)) for v in f["variations"]]})
                 for f in opening_families(cfg, models, colour)]
     return S.OpeningReport(
         as_of=stamp, colour=colour, games=len(mine), score=r1(colour_score), families=families,
