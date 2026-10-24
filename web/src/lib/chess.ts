@@ -73,3 +73,10 @@ export function gameOver(fen: string): string | null {
   if (board.isDrawByFiftyMoves()) return "Draw by the fifty-move rule";
   return null;
 }
+
+/** Who won, by the rules, if the game is over in this position: a checkmate is won by the side not to move. */
+export function outcome(fen: string): Side | "draw" | null {
+  const over = gameOver(fen);
+  if (!over) return null;
+  return over === "Checkmate" ? (sideToMove(fen) === "white" ? "black" : "white") : "draw";
+}

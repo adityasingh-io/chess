@@ -83,6 +83,19 @@ this file wins.
 - **Explore:** drag or tap to play moves for either side from any position in the viewer. Pawns promote to
   a queen. Mate, stalemate, insufficient material and the fifty-move rule come from chess.js, and the engine
   isn't asked about those positions.
+- **Eval bar** beside every viewer board, as on chess.com and Lichess: the fill is White's Win% and the
+  number is Stockfish's score, written at the end of the side that is ahead. Game positions use the stored
+  `win` and `eval` (the start position has only its Win%); Explore uses the live top line, converted with a
+  TypeScript port of the pipeline's Win% formula that is tested against every stored move.
+- **Compare** (added 2026-10-24 after the first Phase 3 look): for any of my moves that wasn't Stockfish's
+  best, two boards step together from the position before the move: my move followed by Stockfish's line
+  after it, and Stockfish's best line. Records use their pass-2 lines and scores (`reply_line`,
+  `after_eval`, `best_line`, `best_eval`); other moves use the stored pass-1 lines. Side by side when the
+  boards get at least 560 px between them, otherwise one board at a time with a You / Stockfish switch.
+  Previous and next step through my mistakes in the game. Leak cards switch between the two lines.
+- **One set of arrows:** ◀ ▶ ⏮ ⏭ and the arrow keys step whatever the board shows: the game, the compared
+  lines, or the moves played in Explore (where ◀ takes a move back and ▶ plays it again). Esc goes back to
+  the game.
 - **Exports are committed.** The `.gitignore` rule `data/` also matched `web/public/data`, so Phase 2's
   exports never reached git. It is now `/data/`.
 

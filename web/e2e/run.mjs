@@ -1,6 +1,7 @@
 // End-to-end check of the Phase 3 acceptance: every page at phone and desktop width in both themes (no
 // console errors, no sideways scroll), the numbers on screen match the exports, a 250-ply game steps
-// smoothly, and Explore gets live lines from the in-browser engine.
+// smoothly, the arrow buttons step the game, a comparison and Explore, and Explore gets live lines from
+// the in-browser engine.
 //
 // Uses the installed Google Chrome through playwright-core. Builds and serves the production bundle
 // (vite preview) unless E2E_URL is set; --dev serves the dev build instead.
@@ -11,6 +12,7 @@ import { createServer } from "node:http";
 import { extname } from "node:path";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Chess } from "chess.js";
 import { chromium } from "playwright-core";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -54,6 +56,20 @@ async function plainServer() {
 }
 const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail });
 
+// Board positions as piece codes by square ("e2": "wP"): expected ones from chess.js, shown ones read from
+// react-chessboard's DOM (squares carry data-square, pieces data-piece).
+const fenAfter = (fen, ucis) => {
+  const c = new Chess(fen);
+  for (const u of ucis) c.move({ from: u.slice(0, 2), to: u.slice(2, 4), promotion: u[4] });
+  return c.fen();
+};
+const placementOf = (fen) => Object.fromEntries(new Chess(fen).board().flat().filter(Boolean)
+  .map((p) => [p.square, p.color + p.type.toUpperCase()]));
+const boardOn = (page, id) => page.evaluate((id) => Object.fromEntries(
+  [...document.querySelectorAll(`[id^="${id}-square-"]`)].map((sq) => [sq.getAttribute("data-square"), sq.querySelector("[data-piece]")?.getAttribute("data-piece")])
+    .filter(([, p]) => p)), id);
+const same = (a, b) => JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort());
+
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 try {
   const PAGES = [
@@ -62,6 +78,7 @@ try {
     { path: "/leaks/hung_piece", name: "leak-detail", ready: ".pos .board" },
     { path: "/games", name: "games", ready: ".game-row" },
     { path: `/games/${LONG_GAME}`, name: "viewer", ready: ".moves .mv" },
+    { path: `/games/${LONG_GAME}?ply=${longGame.records[0].ply}&compare=1`, name: "compare", ready: ".cmp-side .board" },
   ];
   for (const theme of ["dark", "light"]) {
     for (const width of [390, 1280]) {
@@ -150,8 +167,56 @@ try {
   const at = Number(/(\d+) of /.exec(jumped ?? "")?.[1]);
   check("viewer: clicking the graph's middle jumps to the middle move", Math.abs(at - n / 2) <= 2, jumped ?? "");
 
+  // The arrow buttons, clicked quickly, end on the right position, and the eval bar shows the stored score.
+  await page.goto(`${base}/games/${LONG_GAME}?ply=0`);
+  await page.waitForSelector(".moves .mv");
+  for (let i = 0; i < 12; i++) await page.click('button[aria-label^="Next move"]');
+  for (let i = 0; i < 4; i++) await page.click('button[aria-label^="Previous move"]');
+  await page.waitForTimeout(400);
+  const at8 = placementOf(fenAfter(longGame.initial_fen, longGame.moves.slice(0, 8).map((m) => m.uci)));
+  const cap8 = await page.textContent(".board-cap");
+  check("viewer: ▶ ×12 then ◀ ×4 shows move 8", same(await boardOn(page, `game-${LONG_GAME}`), at8) && cap8.includes(`8 of ${n}`), cap8);
+  const bar8 = await page.$eval(".v-board .evalbar", (e) => ({ win: e.dataset.win, text: e.textContent }));
+  check("viewer: the eval bar shows the stored Win% and score", bar8.win === longGame.moves[7].win.toFixed(1) && bar8.text,
+    `${bar8.win} "${bar8.text}" vs ${longGame.moves[7].win}`);
+
+  // Compare: two boards side by side, stepped together; Next goes to the next mistake.
+  const rec = longGame.records[0];
+  await page.goto(`${base}/games/${LONG_GAME}?ply=${rec.ply}&compare=1`);
+  await page.waitForSelector(".cmp-side .board");
+  const sides = await page.$$eval(".cmp-side", (els) => els.map((e) => { const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width }; }));
+  check("compare 1280px: the two boards sit side by side", sides.length === 2 && sides.every((b) => b.w > 250) &&
+    Math.abs(sides[0].y - sides[1].y) < 2 && sides[1].x >= sides[0].x + sides[0].w, JSON.stringify(sides));
+  for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(400);
+  const youOk = same(await boardOn(page, `game-${LONG_GAME}-you`), placementOf(fenAfter(rec.fen, [rec.uci, ...rec.reply_line].slice(0, 3))));
+  const bestOk = same(await boardOn(page, `game-${LONG_GAME}-best`), placementOf(fenAfter(rec.fen, rec.best_line.slice(0, 3))));
+  check("compare: → ×3 steps both lines to their third move", youOk && bestOk, `your line ${youOk}, best line ${bestOk}`);
+  if (shots) await page.screenshot({ path: join(shots, "compare-1280-dark.png"), fullPage: true });
+  await page.click('button[title="Your next mistake in this game"]');
+  const head = await page.textContent(".cmp-head");
+  check("compare: Next opens the next mistake before its move", /mistake 2 of/.test(head) && /before the move/.test(head), head);
+  await page.keyboard.press("Escape");
+  check("compare: Esc goes back to the game", !(await page.$(".cmp")) && !!(await page.$(".v-board .board")), "");
+
+  // A leak's position card steps its line with ▶.
+  await page.goto(`${base}/leaks/hung_piece`);
+  await page.waitForSelector(".pos .board");
+  const card = page.locator(".pos").first();
+  const boardId = (await card.locator('[id$="-square-a1"]').getAttribute("id")).replace(/-square-a1$/, "");
+  const before = await boardOn(page, boardId);
+  await card.getByRole("button", { name: "Forward a move" }).click();
+  await card.getByRole("button", { name: "Forward a move" }).click();
+  await page.waitForTimeout(400);
+  const pressedChip = await card.locator('.chips button[aria-pressed="true"]').textContent();
+  const secondChip = await card.locator(".chips button").nth(1).textContent();
+  check("leaks: ▶ steps a position's line on its board", pressedChip === secondChip && !same(before, await boardOn(page, boardId)),
+    `${pressedChip} vs ${secondChip}`);
+
   // Explore: the live engine answers with lines, labelled live (mid-game; this game ends in a 50-move draw,
   // where Explore says so instead of starting the engine).
+  await page.goto(`${base}/games/${LONG_GAME}?ply=0`);
+  await page.waitForSelector(".moves .mv");
   await page.keyboard.press("End");
   const ended = await page.click("button.live").then(() => page.textContent(".live-panel"));
   check("explore: the final 50-move position is reported as a draw", /fifty-move rule/.test(ended ?? ""), "");
@@ -169,19 +234,40 @@ try {
   const plain = await plainServer();
   const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, colorScheme: "dark" });
   const phone = await ctx2.newPage();
+  // Compare on a phone: one board at a time, with a switch.
+  await phone.goto(`${plain.url}/games/${LONG_GAME}?ply=${rec.ply}&compare=1`);
+  await phone.waitForSelector(".cmp-side .board");
+  const shown = () => phone.$$eval(".cmp-side", (els) => els.map((e) => e.getBoundingClientRect().width > 0));
+  const firstShown = await shown();
+  await phone.click('.cmp-pick button:has-text("Stockfish")');
+  const thenShown = await shown();
+  check("compare 390px: one board at a time, switched by You / Stockfish", firstShown.join() === "true,false" && thenShown.join() === "false,true",
+    `${firstShown} then ${thenShown}`);
+  if (shots) await phone.screenshot({ path: join(shots, "compare-390-dark.png"), fullPage: true });
   await phone.goto(`${plain.url}/games/${LONG_GAME}?ply=0`);
   await phone.waitForSelector(".moves .mv");
   await phone.click("button.live");
   await phone.click(`[id="game-${LONG_GAME}-square-e2"]`);
   await phone.click(`[id="game-${LONG_GAME}-square-e4"]`);
-  const playedOk = await phone.waitForSelector(".live-panel .pill.san", { timeout: 5000 }).then((e) => e.textContent(), () => null);
+  const playedOk = await phone.waitForSelector(".live-panel .played button.san", { timeout: 5000 }).then((e) => e.textContent(), () => null);
   const single = await phone.waitForSelector(".live-line", { timeout: 30000 }).then(() => true, () => false);
   const engine = await phone.textContent(".live-panel .card-head");
   const isolated2 = await phone.evaluate(() => crossOriginIsolated);
   check("explore: tap e2 then e4 plays 1. e4", playedOk === "1. e4", String(playedOk));
   check("explore without COOP/COEP: single-threaded engine gives lines", single && !isolated2 && /1 thread/.test(engine ?? ""),
     `${engine?.trim()} · crossOriginIsolated=${isolated2}`);
+  const liveBar = await phone.waitForSelector(".v-board .evalbar.live", { timeout: 10000 }).then(() => true, () => false);
+  check("explore: the eval bar shows the live score", liveBar, "");
   if (shots) await phone.screenshot({ path: join(shots, "explore-390-dark.png"), fullPage: true });
+  // In Explore ◀ takes a move back and ▶ plays it again.
+  await phone.click('button[aria-label^="Take back a move"]');
+  await phone.waitForTimeout(400);
+  const backOk = same(await boardOn(phone, `game-${LONG_GAME}`), placementOf(longGame.initial_fen));
+  const redo = await phone.$$eval(".live-panel .played button.redo", (els) => els.map((e) => e.textContent).join());
+  await phone.click('button[aria-label^="Play the next move again"]');
+  await phone.waitForTimeout(400);
+  const fwdOk = same(await boardOn(phone, `game-${LONG_GAME}`), placementOf(fenAfter(longGame.initial_fen, ["e2e4"])));
+  check("explore: ◀ takes 1. e4 back and ▶ plays it again", backOk && redo === "1. e4" && fwdOk, `back ${backOk}, redo "${redo}", forward ${fwdOk}`);
   await ctx2.close();
   plain.server.close();
 } finally {

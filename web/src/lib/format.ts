@@ -43,6 +43,15 @@ export function evalFor(ev: Eval | null | undefined, side: "white" | "black") {
   return ev.cp == null ? "–" : signed((ev.cp * s) / 100);
 }
 
+/** The short score written on the eval bar, without a sign (its end of the bar says who is ahead): "0.8",
+    "12", "M3". */
+export function barText(ev: Eval) {
+  if (ev.mate != null) return `M${Math.abs(ev.mate)}`;
+  if (ev.cp == null) return "";
+  const p = Math.abs(ev.cp) / 100;
+  return p < 9.95 ? p.toFixed(1) : String(Math.round(p));
+}
+
 /** Split a SAN line as exported ("14...Rb6 15. Qa5 Rb8") into one label per move ("14…Rb6", "15. Qa5", "Rb8"). */
 export function sanTokens(line: string): string[] {
   const out: string[] = [];

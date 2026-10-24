@@ -1,12 +1,14 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { Board, type ArrowKind, type HighlightKind } from "../components/Board";
+import { EvalBar, type BarValue } from "../components/EvalBar";
 import { EvalChart, ThinkChart, type ThinkBar } from "../components/charts";
 import { LineChips, Nag } from "../components/bits";
 import { useGame } from "../lib/data";
-import { clock, dateTime, evalFor, grouped, moveName, n1, sanTokens, signed, timeControl } from "../lib/format";
-import { gameOver, lineSan, numberedLine, replay, sideToMove, targets, tryMove, uciParts, type Side } from "../lib/chess";
+import { clock, dateTime, evalFor, grouped, moveName, n1, plural, sanTokens, signed, timeControl } from "../lib/format";
+import { gameOver, lineSan, numberedLine, outcome, replay, sideToMove, targets, tryMove, uciParts, type Side } from "../lib/chess";
 import { useLiveEngine, type LiveState } from "../lib/engine";
+import { winOf, winOfOutcome } from "../lib/winpct";
 import { FLAG, LABEL, RESULT_WORD, SEV, SEVERITIES, SHORT, TYPE, tagName } from "../lib/names";
 import type { Game, Move, Record as MistakeRecord } from "../types/export";
 
@@ -14,14 +16,65 @@ export default function GameViewerRoute() {
   const { id = "" } = useParams();
   const [params] = useSearchParams();
   const ply = params.get("ply");
-  return <GameViewer key={`${id}:${ply ?? ""}`} id={id} startPly={ply != null && /^\d+$/.test(ply) ? Number(ply) : null} />;
+  const compare = params.get("compare") === "1";
+  return (
+    <GameViewer key={`${id}:${ply ?? ""}:${compare}`} id={id} startCompare={compare}
+      startPly={ply != null && /^\d+$/.test(ply) ? Number(ply) : null} />
+  );
 }
 
-type Line = { key: string; fens: string[]; ucis: string[]; tokens: string[]; i: number };
 type ExploreMove = { uci: string; san: string; fen: string };
-type Explore = { base: string; from: string; moves: ExploreMove[] };
+/** Moves played in Explore from `base`. The first `at` are on the board; the rest can be stepped forward again. */
+type Explore = { base: string; from: string; moves: ExploreMove[]; at: number };
+/** One side of a comparison: moves from the position before my move, their positions, and Stockfish's
+    stored score for the line. */
+type CmpLine = { ucis: string[]; tokens: string[]; fens: string[]; bar: BarValue };
+type Cmp = { base: string; you: CmpLine; best: CmpLine; steps: number };
 
-function GameViewer({ id, startPly }: { id: string; startPly: number | null }) {
+/** The stored score for the position after `ply` plies. The start position has only its Win%. */
+function storedBar(g: Game, fens: string[], ply: number): BarValue {
+  if (ply === 0) return { win: g.start_win };
+  const mv = g.moves[ply - 1];
+  return { win: mv.win, ev: mv.eval, outcome: mv.eval ? null : outcome(fens[ply]) };
+}
+
+/** My move at `ply` next to Stockfish's best from the same position, or null when there's nothing to compare
+    (not my move, or it was the best move). My side continues with Stockfish's line after my move: the
+    record's deeper line if there is one, else the stored line for the next position. */
+function compareAt(g: Game, fens: string[], me: Side, ply: number, r: MistakeRecord | undefined): Cmp | null {
+  const m = g.moves[ply - 1];
+  if (!m || m.side !== me || ply >= fens.length) return null;
+  const base = fens[ply - 1], after = fens[ply];
+  const deep = !!r?.best_line.length;
+  const bestUcis = deep ? r!.best_line : m.best_line;
+  if (!bestUcis.length || bestUcis[0] === m.uci || (!r && (m.label === "best" || m.label === "book"))) return null;
+  const reply = r ? r.reply_line : g.moves[ply]?.best_line ?? [];
+  const you: CmpLine = {
+    ucis: [m.uci, ...reply],
+    tokens: [moveName(ply, m.san), ...(r ? sanTokens(r.reply_line_san) : numberedLine(after, lineSan(after, reply)))],
+    fens: replay(base, [m.uci, ...reply]),
+    bar: r?.after_eval ? { win: winOf(r.after_eval), ev: r.after_eval }
+      : r?.after_terminal ? { win: winOfOutcome(r.after_terminal), outcome: r.after_terminal } : storedBar(g, fens, ply),
+  };
+  const best: CmpLine = {
+    ucis: bestUcis,
+    tokens: deep ? sanTokens(r!.best_line_san) : numberedLine(base, lineSan(base, bestUcis)),
+    fens: replay(base, bestUcis),
+    bar: r?.best_eval ? { win: winOf(r.best_eval), ev: r.best_eval } : storedBar(g, fens, ply - 1),
+  };
+  return { base, you, best, steps: Math.max(you.fens.length, best.fens.length) };
+}
+
+const RESULT_SCORE = { white: "1–0", black: "0–1", draw: "½–½" } as const;
+const scoreText = (b: BarValue, me: Side) => (b.outcome ? RESULT_SCORE[b.outcome] : b.ev ? evalFor(b.ev, me) : "");
+
+const NAV = {
+  game: ["First move (Home)", "Previous move (←)", "Next move (→)", "Last move (End)"],
+  compare: ["Before the move (Home)", "Back a move in both lines (←)", "Forward a move in both lines (→)", "End of the lines (End)"],
+  explore: ["Take back every move (Home)", "Take back a move (←)", "Play the next move again (→)", "Play every move again (End)"],
+};
+
+function GameViewer({ id, startPly, startCompare }: { id: string; startPly: number | null; startCompare: boolean }) {
   const g = useGame(id);
   const me = g.colour, opp: Side = me === "white" ? "black" : "white";
   const fens = useMemo(() => [g.initial_fen, ...replay(g.initial_fen, g.moves.map((m) => m.uci))], [g]);
@@ -30,60 +83,84 @@ function GameViewer({ id, startPly }: { id: string; startPly: number | null }) {
   const myWin = useMemo(() => [g.start_win, ...g.moves.slice(0, n).map((m) => m.win)].map((w) => (me === "black" ? 100 - w : w)), [g, me, n]);
   const labels = useMemo(() => ["start", ...g.moves.map((m) => moveName(m.ply, m.san))], [g]);
   const turning = g.loss?.turning_ply ?? null;
+  // My mistakes that have a line to compare, in game order, for "previous / next mistake".
+  const mistakes = useMemo(() => g.records.map((x) => x.ply).filter((p) => compareAt(g, fens, me, p, recAt.get(p))).sort((a, b) => a - b),
+    [g, fens, me, recAt]);
 
   const clamp = useCallback((k: number) => Math.max(0, Math.min(n, k)), [n]);
   const [cur, setCur] = useState(() => clamp(startPly ?? turning ?? 0));
   const [flip, setFlip] = useState(false);
-  const [line, setLine] = useState<Line | null>(null);
+  const [compare, setCompare] = useState<number | null>(startCompare ? 0 : null);   // step through both lines
+  const [show, setShow] = useState<"you" | "best">("you");                         // the board shown on a phone
   const [explore, setExplore] = useState<Explore | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
   const go = useCallback((k: number) => {
     setCur(clamp(k));
-    setLine(null);
+    setCompare(null);
     setExplore(null);
     setSelected(null);
   }, [clamp]);
+  const openCompare = useCallback((ply: number, step = 0) => {
+    setCur(ply);
+    setCompare(step);
+    setExplore(null);
+    setSelected(null);
+  }, []);
 
   const m: Move | undefined = cur ? g.moves[cur - 1] : undefined;
   const r = recAt.get(cur);
-  const mine = (mv?: Move) => mv?.side === me;
-  const gameFen = line ? line.fens[line.i] : fens[cur];
-  const exploreFen = explore ? (explore.moves.at(-1)?.fen ?? explore.base) : null;
+  const mine = m?.side === me;
+  const cmp = useMemo(() => compareAt(g, fens, me, cur, recAt.get(cur)), [g, fens, me, cur, recAt]);
+  const comparing = compare != null && cmp != null;
+  const gameFen = fens[cur];
+  const exploreFen = explore ? (explore.at ? explore.moves[explore.at - 1].fen : explore.base) : null;
   const shownFen = exploreFen ?? gameFen;
   const over = exploreFen ? gameOver(exploreFen) : null;
   const live = useLiveEngine(exploreFen && !over ? exploreFen : null);
+  const liveLines = live.fen === exploreFen ? live.lines : [];
 
-  // Keyboard: ← → Home End step through the game, F flips; in Explore ← takes a move back and Esc leaves.
+  // ◀ ▶ ⏮ ⏭ and the arrow keys move through whatever the board shows: the game, the two lines being compared,
+  // or the moves played in Explore.
+  const mode = explore ? "explore" : comparing ? "compare" : "game";
+  const at = explore ? explore.at : comparing ? compare : cur;
+  const end = explore ? explore.moves.length : comparing ? cmp.steps : n;
+  const navTo = (f: (at: number, end: number) => number) => {
+    if (explore) setExplore((x) => x && { ...x, at: Math.max(0, Math.min(x.moves.length, f(x.at, x.moves.length))) });
+    else if (comparing) setCompare((s) => (s == null ? s : Math.max(0, Math.min(cmp.steps, f(s, cmp.steps)))));
+    else { setCur((c) => clamp(f(c, n))); setSelected(null); }
+  };
+  const leave = () => { setExplore(null); setCompare(null); setSelected(null); };
+
+  const onKey = useEffectEvent((e: KeyboardEvent) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement).closest?.("input, select, textarea")) return;
+    if (e.key === "ArrowLeft") navTo((a) => a - 1);
+    else if (e.key === "ArrowRight") navTo((a) => a + 1);
+    else if (e.key === "Home") navTo(() => 0);
+    else if (e.key === "End") navTo((_, e) => e);
+    else if (e.key === "f" || e.key === "F") setFlip((f) => !f);
+    else if (e.key === "Escape" && mode !== "game") leave();
+    else return;
+    e.preventDefault();
+  });
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement).closest?.("input, select, textarea")) return;
-      if (explore) {
-        if (e.key === "Escape") setExplore(null);
-        else if (e.key === "ArrowLeft") setExplore((x) => (x && x.moves.length ? { ...x, moves: x.moves.slice(0, -1) } : null));
-        else if (e.key === "f" || e.key === "F") setFlip((f) => !f);
-        else return;
-      } else if (e.key === "ArrowLeft") go(cur - 1);
-      else if (e.key === "ArrowRight") go(cur + 1);
-      else if (e.key === "Home") go(0);
-      else if (e.key === "End") go(n);
-      else if (e.key === "f" || e.key === "F") setFlip((f) => !f);
-      else if (e.key === "Escape" && line) setLine(null);
-      else return;
-      e.preventDefault();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [cur, n, go, explore, line]);
+    const handler = (e: KeyboardEvent) => onKey(e);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
+  // Playing a move on the board starts Explore; playing the move that was taken back steps forward again.
   const play = useCallback((from: string, to: string, promotion?: string) => {
-    const fen = exploreFen ?? gameFen;
-    const mv = tryMove(fen, from, to, promotion);
+    const mv = tryMove(shownFen, from, to, promotion);
     if (!mv) return false;
-    setExplore((x) => (x ? { ...x, moves: [...x.moves, mv] } : { base: gameFen, from: line ? line.tokens[line.i] : labels[cur], moves: [mv] }));
+    setExplore((x) => {
+      if (!x) return { base: gameFen, from: labels[cur], moves: [mv], at: 1 };
+      if (x.moves[x.at]?.uci === mv.uci) return { ...x, at: x.at + 1 };
+      return { ...x, moves: [...x.moves.slice(0, x.at), mv], at: x.at + 1 };
+    });
     setSelected(null);
     return true;
-  }, [exploreFen, gameFen, line, labels, cur]);
+  }, [shownFen, gameFen, labels, cur]);
 
   const dots = useMemo(() => (selected ? targets(shownFen, selected) : []), [selected, shownFen]);
   const onSquare = (square: string) => {
@@ -94,19 +171,24 @@ function GameViewer({ id, startPly }: { id: string; startPly: number | null }) {
   // What the board shows.
   let arrows: { uci: string; kind: ArrowKind }[] = [];
   let highlight: { uci: string; kind: HighlightKind } | null = null;
-  const showBest = !!m && mine(m) && !!m.best && m.best !== m.uci && m.label !== "best" && m.label !== "book";
   if (explore) {
-    const last = explore.moves.at(-1);
-    if (last) highlight = { uci: last.uci, kind: "them" };
-    if (live.lines[0]) arrows = [{ uci: live.lines[0].pv[0], kind: "live" }];
-  } else if (line) {
-    highlight = { uci: line.ucis[line.i], kind: "best" };
+    if (explore.at) highlight = { uci: explore.moves[explore.at - 1].uci, kind: "them" };
+    if (liveLines[0]) arrows = [{ uci: liveLines[0].pv[0], kind: "live" }];
   } else if (m) {
-    highlight = { uci: m.uci, kind: mine(m) ? "you" : "them" };
-    if (mine(m)) arrows = showBest ? [{ uci: m.best!, kind: "best" }, { uci: m.uci, kind: "you" }] : [{ uci: m.uci, kind: "you" }];
+    highlight = { uci: m.uci, kind: mine ? "you" : "them" };
+    if (mine) arrows = cmp ? [{ uci: cmp.best.ucis[0], kind: "best" }, { uci: m.uci, kind: "you" }] : [{ uci: m.uci, kind: "you" }];
   }
   const orientation: Side = flip ? opp : me;
   const toMove = sideToMove(shownFen);
+
+  // The eval bar: the stored score for game positions, the live engine's in Explore (until it answers, the
+  // stored one for the position Explore started from).
+  const exploreOutcome = exploreFen && over ? outcome(exploreFen) : null;
+  const bar: BarValue = !explore ? storedBar(g, fens, cur)
+    : exploreOutcome ? { win: winOfOutcome(exploreOutcome), outcome: exploreOutcome }
+    : liveLines[0] ? { win: winOf(liveLines[0].eval), ev: liveLines[0].eval }
+    : explore.at === 0 ? storedBar(g, fens, cur) : { win: null };
+  const barLive = !!explore && !exploreOutcome && !!liveLines[0];
 
   const startClock = Number(g.time_control.split("+")[0]);
   const clockOf = (side: Side) => {
@@ -131,46 +213,64 @@ function GameViewer({ id, startPly }: { id: string; startPly: number | null }) {
     .map((x) => ({ k: x.ply, t: x.think!, label: moveName(x.ply, x.san), severity: recAt.get(x.ply)?.severity ?? null })), [g, me, recAt]);
 
   const caption = explore ? (
-    <span><span className="live-badge">LIVE</span> <b>Explore</b> · {explore.moves.length ? `${explore.moves.length} from ${explore.from}` : `from ${explore.from}`}</span>
-  ) : line ? (
-    <span><b>Stockfish's line</b> · {line.tokens[line.i]} · <button type="button" className="linkish" onClick={() => setLine(null)}>back to the game</button></span>
+    <span><span className="live-badge">LIVE</span> <b>Explore</b> · {explore.at ? `${explore.at} from ${explore.from}` : `from ${explore.from}`}</span>
   ) : m ? (
     <span>After <b className="san">{moveName(cur, m.san)}</b> · {cur} of {n}</span>
   ) : <span>Start position</span>;
 
+  const [first, prev, next, last] = NAV[mode];
+  const navbtns = (
+    <div className="navbtns">
+      <button type="button" title={first} aria-label={first} disabled={at === 0} onClick={() => navTo(() => 0)}>⏮</button>
+      <button type="button" title={prev} aria-label={prev} disabled={at === 0} onClick={() => navTo((a) => a - 1)}>◀</button>
+      <button type="button" title={next} aria-label={next} disabled={at === end} onClick={() => navTo((a) => a + 1)}>▶</button>
+      <button type="button" title={last} aria-label={last} disabled={at === end} onClick={() => navTo((_, e) => e)}>⏭</button>
+      <button type="button" title="Flip the board (F)" aria-label="Flip the board" onClick={() => setFlip((f) => !f)}>⇅</button>
+      {mode === "compare" ? (
+        <button type="button" className="leave" title="Back to the game (Esc)" onClick={leave}>Back to the game</button>
+      ) : (
+        <button type="button" className="live" aria-pressed={!!explore}
+          title={explore ? "Back to the game (Esc)" : "Play any move here; the in-browser Stockfish evaluates it live, never saved"}
+          onClick={() => (explore ? leave() : setExplore({ base: gameFen, from: labels[cur], moves: [], at: 0 }))}>
+          {explore ? "Leave explore" : "Explore · live"}
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <>
       <GameHead g={g} me={me} opp={opp} onTurning={turning != null ? () => go(turning) : undefined} broken={n < g.moves.length ? n : null} />
-      <div className="viewer">
+      <div className={`viewer${comparing ? " comparing" : ""}`}>
         <div className="colA">
-          <div className="v-board">
-            <div className="board-cap">
-              {caption}
-              {arrows.length > 1 && (
-                <span className="board-keys">
-                  <span><i style={{ background: "var(--you)" }} />Your move</span>
-                  <span><i style={{ background: "var(--best)" }} />Stockfish's best</span>
-                </span>
-              )}
+          {comparing ? (
+            <Compare id={`game-${g.id}`} cur={cur} m={m!} r={r} cmp={cmp} step={compare} setStep={setCompare} me={me}
+              orientation={orientation} show={show} setShow={setShow} mistakes={mistakes} onMistake={(p) => openCompare(p)}>
+              {navbtns}
+            </Compare>
+          ) : (
+            <div className="v-board">
+              <div className="board-cap">
+                {caption}
+                {arrows.length > 1 && (
+                  <span className="board-keys">
+                    <span><i style={{ background: "var(--you)" }} />Your move</span>
+                    <span><i style={{ background: "var(--best)" }} />Stockfish's best</span>
+                  </span>
+                )}
+              </div>
+              {strip(orientation === "white" ? "black" : "white")}
+              <div className="board-row">
+                <EvalBar value={bar} orientation={orientation} me={me} live={barLive}
+                  note={barLive ? `live, depth ${live.depth}` : undefined} />
+                <Board id={`game-${g.id}`} fen={shownFen} orientation={orientation} arrows={arrows} highlight={highlight}
+                  selected={selected} dots={dots} onDrop={(from, to) => play(from, to)} onSquare={onSquare}
+                  label={explore ? "Explore board: play any move" : m ? `Position after ${moveName(cur, m.san)}` : "Start position"} />
+              </div>
+              {strip(orientation)}
+              {navbtns}
             </div>
-            {strip(orientation === "white" ? "black" : "white")}
-            <Board id={`game-${g.id}`} fen={shownFen} orientation={orientation} arrows={arrows} highlight={highlight}
-              selected={selected} dots={dots} onDrop={(from, to) => play(from, to)} onSquare={onSquare}
-              label={explore ? "Explore board: play any move" : m ? `Position after ${moveName(cur, m.san)}` : "Start position"} />
-            {strip(orientation)}
-            <div className="navbtns">
-              <button type="button" title="First move (Home)" aria-label="First move" onClick={() => go(0)}>⏮</button>
-              <button type="button" title="Previous (←)" aria-label="Previous move" onClick={() => go(cur - 1)}>◀</button>
-              <button type="button" title="Next (→)" aria-label="Next move" onClick={() => go(cur + 1)}>▶</button>
-              <button type="button" title="Last move (End)" aria-label="Last move" onClick={() => go(n)}>⏭</button>
-              <button type="button" title="Flip board (F)" aria-label="Flip board" onClick={() => setFlip((f) => !f)}>⇅</button>
-              <button type="button" className="live" aria-pressed={!!explore}
-                title="Play any move here; the in-browser Stockfish evaluates it live, never saved"
-                onClick={() => setExplore((x) => (x ? null : { base: gameFen, from: line ? line.tokens[line.i] : labels[cur], moves: [] }))}>
-                {explore ? "Leave explore" : "Explore · live"}
-              </button>
-            </div>
-          </div>
+          )}
           <section className="card v-graph">
             <div className="card-head">
               <h2>Win% and think time</h2>
@@ -186,12 +286,12 @@ function GameViewer({ id, startPly }: { id: string; startPly: number | null }) {
         </div>
         <div className="colB">
           {explore ? (
-            <LivePanel live={live} explore={explore} me={me} over={over}
+            <LivePanel live={live} lines={liveLines} explore={explore} me={me} over={over}
               onPlay={(uci) => { const p = uciParts(uci); play(p.from, p.to, p.promotion); }}
-              onUndo={() => setExplore((x) => (x ? { ...x, moves: x.moves.slice(0, -1) } : x))}
-              onClose={() => setExplore(null)} />
+              onAt={(k) => navTo(() => k)} onClose={leave} />
           ) : (
-            <Explain g={g} me={me} cur={cur} m={m} r={r} myWin={myWin} turning={turning} fens={fens} line={line} setLine={setLine} />
+            <Explain g={g} me={me} cur={cur} m={m} r={r} myWin={myWin} turning={turning} cmp={cmp} comparing={comparing}
+              onCompare={(step) => openCompare(cur, step)} />
           )}
           <section className="card v-moves">
             <div className="card-head"><h2>Moves</h2><span className="muted small">← → to step · F to flip</span></div>
@@ -200,6 +300,74 @@ function GameViewer({ id, startPly }: { id: string; startPly: number | null }) {
         </div>
       </div>
     </>
+  );
+}
+
+/** My move and Stockfish's best on two boards, stepped together. Side by side when there's room, otherwise
+    one board at a time with a switch. */
+function Compare({ id, cur, m, r, cmp, step, setStep, me, orientation, show, setShow, mistakes, onMistake, children }: {
+  id: string; cur: number; m: Move; r?: MistakeRecord; cmp: Cmp; step: number; setStep: (k: number) => void; me: Side;
+  orientation: Side; show: "you" | "best"; setShow: (s: "you" | "best") => void; mistakes: number[];
+  onMistake: (ply: number) => void; children: ReactNode;
+}) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => { ref.current?.scrollIntoView?.({ block: "nearest" }); }, [cur]);
+  const i = mistakes.indexOf(cur);
+  const prev = mistakes.filter((p) => p < cur).at(-1), next = mistakes.find((p) => p > cur);
+  const side = (key: "you" | "best") => {
+    const l = cmp[key];
+    const k = Math.min(step, l.fens.length);
+    const fen = k ? l.fens[k - 1] : cmp.base;
+    const name = key === "you" ? "Your move" : "Stockfish's best";
+    return (
+      <div className={`cmp-side cmp-${key}`}>
+        <div className="cmp-cap">
+          <span className="label">{name}</span>
+          <b className="san">{l.tokens[0]}</b>
+          {key === "you" && r && <Nag severity={r.severity} />}
+          <span className="num">{scoreText(l.bar, me)}</span>
+        </div>
+        <div className="board-row">
+          <EvalBar value={l.bar} orientation={orientation} me={me}
+            note={key === "you" ? "Stockfish's score after your move" : "Stockfish's score with its best move"} />
+          <Board id={`${id}-${key}`} fen={fen} orientation={orientation}
+            arrows={k === 0 ? [{ uci: l.ucis[0], kind: key }] : []} highlight={k ? { uci: l.ucis[k - 1], kind: key } : null}
+            label={k ? `${name} line after ${l.tokens[k - 1]}` : `Before ${moveName(cur, m.san)}: ${name.toLowerCase()} ${l.tokens[0]}`} />
+        </div>
+        <LineChips tokens={l.tokens} playable={l.fens.length === l.tokens.length} active={k ? k - 1 : null}
+          onPick={(j) => setStep(j + 1)} label={key === "you" ? "Your move, then Stockfish's line" : "Stockfish's best line"} />
+        {step > l.fens.length && <span className="muted small">This line ends here.</span>}
+      </div>
+    );
+  };
+  return (
+    <section ref={ref} className="v-board cmp" data-show={show} aria-label={`${moveName(cur, m.san)} compared with Stockfish's best`}>
+      <div className="cmp-head">
+        <span>
+          <b className="san">{moveName(cur, m.san)}</b> against Stockfish's best ·{" "}
+          <span className="num">{step === 0 ? "before the move" : `move ${step} of ${cmp.steps}`}</span>
+        </span>
+        {mistakes.length > 0 && (
+          <span className="cmp-mistakes">
+            <button type="button" className="btn ghost" disabled={prev == null} onClick={() => prev != null && onMistake(prev)}
+              title="Your previous mistake in this game">‹ Previous</button>
+            <span className="muted small num">{i >= 0 ? `mistake ${i + 1} of ${mistakes.length}` : plural(mistakes.length, "mistake")}</span>
+            <button type="button" className="btn ghost" disabled={next == null} onClick={() => next != null && onMistake(next)}
+              title="Your next mistake in this game">Next ›</button>
+          </span>
+        )}
+      </div>
+      <div className="seg cmp-pick" role="group" aria-label="Board shown">
+        {(["you", "best"] as const).map((key) => (
+          <button key={key} type="button" aria-pressed={show === key} onClick={() => setShow(key)}>
+            {key === "you" ? "You" : "Stockfish"} <span className="san">{cmp[key].tokens[0]}</span>{" "}
+            <span className="num">{scoreText(cmp[key].bar, me)}</span>
+          </button>
+        ))}
+      </div>
+      <div className="cmp-boards">{side("you")}{side("best")}</div>
+      {children}
+    </section>
   );
 }
 
@@ -242,34 +410,17 @@ function GameHead({ g, me, opp, onTurning, broken }: { g: Game; me: Side; opp: S
   );
 }
 
-function Explain({ g, me, cur, m, r, myWin, turning, fens, line, setLine }: {
-  g: Game; me: Side; cur: number; m?: Move; r?: MistakeRecord; myWin: number[]; turning: number | null; fens: string[];
-  line: Line | null; setLine: (l: Line | null) => void;
+function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, onCompare }: {
+  g: Game; me: Side; cur: number; m?: Move; r?: MistakeRecord; myWin: number[]; turning: number | null; cmp: Cmp | null;
+  comparing: boolean; onCompare: (step: number) => void;
 }) {
-  const mineMove = m?.side === me;
-  // Stockfish's best line for my move: the record's (checked deeper) if there is one, else the move's own.
-  const best = useMemo(() => {
-    if (!m || !mineMove || !m.best || m.best === m.uci || m.label === "best" || m.label === "book") return null;
-    const base = fens[cur - 1];
-    if (r) return { base, ucis: r.best_line, tokens: sanTokens(r.best_line_san), fens: replay(base, r.best_line) };
-    return { base, ucis: m.best_line, tokens: numberedLine(base, lineSan(base, m.best_line)), fens: replay(base, m.best_line) };
-  }, [m, mineMove, r, fens, cur]);
-  const reply = useMemo(() => (r ? { base: fens[cur], ucis: r.reply_line, tokens: sanTokens(r.reply_line_san),
-                                      fens: replay(fens[cur], r.reply_line) } : null), [r, fens, cur]);
-
   if (!m) {
     return <section className="card v-explain explain"><p>Start position. Your Win% <b className="num">{n1(myWin[0])}</b>.</p></section>;
   }
-  const chips = (key: string, l: { base: string; ucis: string[]; tokens: string[]; fens: string[] }, label: string) => {
-    const lineFens = l.fens;
-    const playable = l.tokens.length === l.ucis.length && lineFens.length === l.ucis.length;
-    return (
-      <LineChips tokens={l.tokens} playable={playable} label={label} active={line?.key === `${key}:${cur}` ? line.i : null}
-        onPick={(i) => setLine({ key: `${key}:${cur}`, fens: lineFens, ucis: l.ucis, tokens: l.tokens, i })} />
-    );
-  };
+  const mineMove = m.side === me;
   const before = myWin[cur - 1], after = myWin[cur];
-  const bestSan = r?.best_san ?? (best ? lineSan(best.base, best.ucis, 1)[0] : null);
+  const bestSan = cmp ? r?.best_san ?? lineSan(cmp.base, cmp.best.ucis, 1)[0] : null;
+  const bestScore = cmp ? scoreText(cmp.best.bar, me) : "", afterScore = cmp ? scoreText(cmp.you.bar, me) : "";
   return (
     <section className="card v-explain explain">
       <div className="lead">
@@ -292,18 +443,21 @@ function Explain({ g, me, cur, m, r, myWin, turning, fens, line, setLine }: {
         <div className="callout"><b>Threw away a win. </b>Your Win% had reached {n1(g.thrown.peak)}% in this game.</div>
       )}
       {r && <p>{r.explanation}</p>}
-      {best && (
+      {cmp && !comparing && (
         <>
-          <div className="label">
-            Stockfish's best{bestSan ? `: ${bestSan}` : ""}{r?.best_eval ? ` (${evalFor(r.best_eval, me)})` : ""}
+          <div className="label">Stockfish's best{bestSan ? `: ${bestSan}` : ""}{bestScore ? ` (${bestScore})` : ""}</div>
+          <LineChips tokens={cmp.best.tokens} playable={cmp.best.fens.length === cmp.best.tokens.length} active={null}
+            onPick={(i) => onCompare(i + 1)} label="Stockfish's best line" />
+          {cmp.you.tokens.length > 1 && (
+            <>
+              <div className="label">After your move{afterScore ? ` (${afterScore})` : ""}</div>
+              <LineChips tokens={cmp.you.tokens.slice(1)} playable={cmp.you.fens.length === cmp.you.tokens.length} active={null}
+                onPick={(i) => onCompare(i + 2)} label="Stockfish's line after your move" />
+            </>
+          )}
+          <div className="actions">
+            <button type="button" className="btn" onClick={() => onCompare(0)}>Compare side by side</button>
           </div>
-          {chips("best", best, "Stockfish's best line")}
-        </>
-      )}
-      {reply && reply.ucis.length > 0 && (
-        <>
-          <div className="label">After your move{r?.after_eval ? ` (${evalFor(r.after_eval, me)})` : ""}</div>
-          {chips("reply", reply, "Stockfish's line after your move")}
         </>
       )}
       {r && r.flags.length > 0 && (
@@ -313,11 +467,11 @@ function Explain({ g, me, cur, m, r, myWin, turning, fens, line, setLine }: {
   );
 }
 
-function LivePanel({ live, explore, me, over, onPlay, onUndo, onClose }: {
-  live: LiveState; explore: Explore; me: Side; over: string | null;
-  onPlay: (uci: string) => void; onUndo: () => void; onClose: () => void;
+function LivePanel({ live, lines, explore, me, over, onPlay, onAt, onClose }: {
+  live: LiveState; lines: LiveState["lines"]; explore: Explore; me: Side; over: string | null;
+  onPlay: (uci: string) => void; onAt: (at: number) => void; onClose: () => void;
 }) {
-  const fen = explore.moves.at(-1)?.fen ?? explore.base;
+  const fen = explore.at ? explore.moves[explore.at - 1].fen : explore.base;
   const played = numberedLine(explore.base, explore.moves.map((x) => x.san));
   return (
     <section className="card v-explain live-panel" aria-live="polite">
@@ -329,12 +483,15 @@ function LivePanel({ live, explore, me, over, onPlay, onUndo, onClose }: {
         Play any move on the board, for either side. The in-browser Stockfish shows its top lines, scored from your side. Live
         results are never saved.
       </p>
-      <div className="chips">
+      <div className="chips played" role="group" aria-label="Moves played in Explore">
         <span className="muted small">From {explore.from}:</span>
-        {played.length ? played.map((t, i) => <span key={i} className="pill san">{t}</span>) : <span className="muted small">no moves yet</span>}
+        {played.length ? played.map((t, i) => (
+          <button key={i} type="button" className={`san${i >= explore.at ? " redo" : ""}`} aria-pressed={i === explore.at - 1}
+            onClick={() => onAt(i + 1)}>{t}</button>
+        )) : <span className="muted small">no moves yet</span>}
       </div>
       <div className="actions">
-        <button type="button" className="btn ghost" onClick={onUndo} disabled={!explore.moves.length}>Take back</button>
+        <button type="button" className="btn ghost" onClick={() => onAt(explore.at - 1)} disabled={!explore.at}>Take back</button>
         <button type="button" className="btn ghost" onClick={onClose}>Back to the game</button>
       </div>
       {over ? (
@@ -345,7 +502,7 @@ function LivePanel({ live, explore, me, over, onPlay, onUndo, onClose }: {
         <p className="muted">Starting the engine…</p>
       ) : (
         <div className="live-lines">
-          {live.lines.map((l) => {
+          {lines.map((l) => {
             const sans = numberedLine(fen, lineSan(fen, l.pv, 10));
             return (
               <button key={l.multipv} type="button" className="live-line" onClick={() => onPlay(l.pv[0])}
@@ -354,7 +511,7 @@ function LivePanel({ live, explore, me, over, onPlay, onUndo, onClose }: {
               </button>
             );
           })}
-          {!live.lines.length && <p className="muted">Thinking…</p>}
+          {!lines.length && <p className="muted">Thinking…</p>}
         </div>
       )}
       {live.nps != null && live.status !== "loading" && (

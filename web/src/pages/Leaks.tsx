@@ -123,26 +123,36 @@ function LeakDetail({ tag }: { tag: string }) {
 
 const RESULT = { loss: "lost", win: "won", draw: "drew" } as const;
 
-/** One mistake: the position before my move, my move vs Stockfish's best; the chips step through its line. */
+/** One mistake: the position before my move, with my move and Stockfish's best as arrows. Either line steps
+    through on the board, with its chips or ◀ ▶. */
 export function PositionCard({ r, game }: { r: MistakeRecord; game?: GameSummary }) {
-  const [step, setStep] = useState<number | null>(null);
-  const fens = useMemo(() => replay(r.fen, r.best_line), [r]);
-  const tokens = useMemo(() => sanTokens(r.best_line_san), [r]);
-  const playable = tokens.length === r.best_line.length && fens.length === r.best_line.length;
-  const inLine = step != null && playable;
-  const arrows = inLine ? [] : [
+  const [which, setWhich] = useState<"best" | "you">("best");
+  const [step, setStep] = useState(0);   // moves of the line on the board
+  const lines = useMemo(() => {
+    const you = [r.uci, ...r.reply_line];
+    return {
+      best: { ucis: r.best_line, tokens: sanTokens(r.best_line_san), fens: replay(r.fen, r.best_line) },
+      you: { ucis: you, tokens: [moveName(r.ply, r.san), ...sanTokens(r.reply_line_san)], fens: replay(r.fen, you) },
+    };
+  }, [r]);
+  const l = lines[which];
+  const playable = l.tokens.length > 0 && l.tokens.length === l.ucis.length && l.fens.length === l.ucis.length;
+  const k = playable ? Math.min(step, l.fens.length) : 0;
+  const arrows = k ? [] : [
     ...(r.best && r.best !== r.uci ? [{ uci: r.best, kind: "best" as const }] : []),
     { uci: r.uci, kind: "you" as const },
   ];
+  const name = which === "best" ? "Stockfish's best line" : "Your move, then Stockfish's line";
+  const pick = (w: "best" | "you") => { setWhich(w); setStep(0); };
   return (
     <article className="pos">
       <Board
         id={`pos-${r.id}`}
-        fen={inLine ? fens[step] : r.fen}
+        fen={k ? l.fens[k - 1] : r.fen}
         orientation={r.colour}
         arrows={arrows}
-        highlight={inLine ? { uci: r.best_line[step], kind: "best" } : { uci: r.uci, kind: "you" }}
-        label={inLine ? `Stockfish's line after ${tokens[step]}` : `You played ${r.san}; Stockfish's best was ${r.best_san ?? "not recorded"}`}
+        highlight={k ? { uci: l.ucis[k - 1], kind: which } : { uci: r.uci, kind: "you" }}
+        label={k ? `${name} after ${l.tokens[k - 1]}` : `You played ${r.san}; Stockfish's best was ${r.best_san ?? "not recorded"}`}
       />
       <div className="line1">
         <span className="san"><b>{moveName(r.ply, r.san)}</b> <Nag severity={r.severity} /></span>
@@ -152,16 +162,23 @@ export function PositionCard({ r, game }: { r: MistakeRecord; game?: GameSummary
         {r.best_san && <>Best {moveName(r.ply, r.best_san)} ({evalFor(r.best_eval, r.colour)}) · </>}
         {game ? `vs ${game.opponent} · ` : ""}{day(r.ts)}{game ? ` · ${RESULT[game.result]}` : ""}
       </div>
-      {tokens.length > 0 && (
-        <>
-          <div className="line2">
-            <button type="button" className="linkish" onClick={() => setStep(null)} aria-pressed={!inLine}>Stockfish's line:</button>
-          </div>
-          <LineChips tokens={tokens} playable={playable} active={inLine ? step : null} onPick={setStep} max={6}
-            label="Stockfish's line" />
-        </>
-      )}
-      <Link to={`/games/${r.game}?ply=${r.ply}`}>Open in game viewer →</Link>
+      <div className="pos-nav">
+        <span className="seg" role="group" aria-label="Line on the board">
+          <button type="button" aria-pressed={which === "best"} onClick={() => pick("best")}>Stockfish's best</button>
+          <button type="button" aria-pressed={which === "you"} onClick={() => pick("you")}>Your move</button>
+        </span>
+        <span className="pos-steps">
+          <button type="button" aria-label="Back a move" title="Back a move" disabled={k === 0} onClick={() => setStep(k - 1)}>◀</button>
+          <button type="button" aria-label="Forward a move" title="Forward a move" disabled={!playable || k === l.fens.length}
+            onClick={() => setStep(k + 1)}>▶</button>
+        </span>
+      </div>
+      <LineChips tokens={l.tokens} playable={playable} active={k ? k - 1 : null} onPick={(i) => setStep(i + 1)}
+        max={Math.max(6, k)} label={name} />
+      <div className="pos-links">
+        <Link to={`/games/${r.game}?ply=${r.ply}&compare=1`}>Compare side by side →</Link>
+        <Link to={`/games/${r.game}?ply=${r.ply}`}>Open the game →</Link>
+      </div>
     </article>
   );
 }
