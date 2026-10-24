@@ -20,7 +20,8 @@ function Card() {
   // The games an update is fetching; they're in once the site's data has them (the Worker stops listing them).
   const [expected, setExpected] = useState<string[]>([]);
 
-  const refresh = useCallback(() => updateStatus().then((s) => { setStatus(s); setError(null); }, (e: Error) => setError(e.message)), []);
+  const refresh = useCallback(() => updateStatus().then((s) => { setStatus(s); setError(null); },
+                                                       (e: Error) => setError(`Couldn't check: ${e.message}`)), []);
   useEffect(() => { void refresh(); }, [refresh]);
 
   const now = Date.now() / 1000;
@@ -55,7 +56,7 @@ function Card() {
       else if (r.reason === "none") setNote("No new games on chess.com yet. A game can take a few minutes to appear there.");
       else if (r.reason === "no-token") setNote("The update service isn't set up yet (docs/DEPLOY.md).");
     } catch (e) {
-      setError((e as Error).message);
+      setError(`Couldn't start it: ${(e as Error).message}`);
     } finally {
       setBusy(false);
     }
@@ -74,7 +75,7 @@ function Card() {
   return (
     <section className="card update" aria-label="New games">
       <div className="card-head">
-        <p>{line}{error && <span className="muted"> Couldn't check: {error}</span>}</p>
+        <p>{line}{error && <span className="muted"> {error}</span>}</p>
         <div className="actions">
           {ready ? <button type="button" className="btn" onClick={() => location.reload()}>Show them</button>
             : <button type="button" className={waiting ? "btn" : "btn ghost"} onClick={() => void press()} disabled={busy || following}>

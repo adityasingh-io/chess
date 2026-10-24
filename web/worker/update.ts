@@ -87,7 +87,10 @@ export async function start(env: Env, now = Date.now() / 1000): Promise<Started>
   if (!s.waiting.length) return { started: false, reason: "none", status: s };
   if (s.run?.conclusion === "success" && now - s.run.finished < PUBLISHING_SECONDS) return { started: false, reason: "publishing", status: s };
   const r = await github(env, `/actions/workflows/${env.WORKFLOW}/dispatches`, { method: "POST", body: JSON.stringify({ ref: "main" }) });
-  if (!r.ok) throw new Error(`GitHub: HTTP ${r.status} starting the update`);
+  if (!r.ok) {
+    const why = ((await r.json().catch(() => null)) as { message?: string } | null)?.message;
+    throw new Error(`GitHub: HTTP ${r.status} starting the update${why ? ` (${why})` : ""}`);
+  }
   const run: Run = { status: "queued", conclusion: null, started: Math.floor(now), finished: Math.floor(now),
                      url: `https://github.com/${env.REPO}/actions/workflows/${env.WORKFLOW}` };
   return { started: true, status: { ...s, run } };
