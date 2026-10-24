@@ -370,6 +370,14 @@ test("tapping a move in an explanation shows the position before it on the board
   expect(onFrom()).not.toBeNull();
   await act(async () => { fireEvent.click(best); });
   expect(onFrom()).toBeNull();
+
+  // Shown, then a step away and back: the board shows the game again, not the move from before.
+  await act(async () => { fireEvent.click(best); });
+  expect(onFrom()).not.toBeNull();
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Next move (→)" })); });
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Previous move (←)" })); });
+  expect(onFrom()).toBeNull();
+  expect(screen.getAllByRole("button", { name: `Show ${r.best_san} on the board` })[0].getAttribute("aria-pressed")).toBe("false");
 }, 20_000);
 
 test("a puzzle from my game, once over, steps through my move's line as well as Stockfish's", async () => {

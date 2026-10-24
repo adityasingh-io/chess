@@ -18,6 +18,9 @@ export type PeekControl = {
 export function usePeek(context: string): PeekControl {
   const empty: State = { context, hover: null, pin: null, pinId: null };
   const [s, set] = useState<State>(empty);
+  // Forgotten, not just hidden: stepping with the keys or opening Compare from a chip ends a hover with no
+  // pointerleave, and a hidden one came back on the board on returning to that move.
+  if (s.context !== context) set(empty);
   const cur = s.context === context ? s : empty;
   const at = (x: State) => (x.context === context ? x : empty);
   return {
