@@ -4,6 +4,31 @@ export interface Export {
 [k: string]: unknown
 }
 /**
+ * One legal move where the trainer asks for mine, scored like a move in my games (pass 1, the position
+ * after it).
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "Alternative".
+ */
+export interface Alternative {
+uci: string
+san: string
+eval: (Eval | null)
+terminal: (("white" | "black" | "draw") | null)
+win: (number | null)
+why: string
+}
+/**
+ * Stockfish's score from White's point of view.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "Eval".
+ */
+export interface Eval {
+cp: (number | null)
+mate: (number | null)
+}
+/**
  * This interface was referenced by `Export`'s JSON-Schema
  * via the `definition` "EndgameGame".
  */
@@ -49,16 +74,6 @@ export interface EngineInfo {
 version: string
 pass1: string
 pass2: string
-}
-/**
- * Stockfish's score from White's point of view.
- * 
- * This interface was referenced by `Export`'s JSON-Schema
- * via the `definition` "Eval".
- */
-export interface Eval {
-cp: (number | null)
-mate: (number | null)
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -391,6 +406,24 @@ recent_games: number
 leaks: Leak[]
 }
 /**
+ * One move of a trainer line, with what's known about it.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "LineStep".
+ */
+export interface LineStep {
+san: string
+key: (string | null)
+eval: (Eval | null)
+terminal: (("white" | "black" | "draw") | null)
+win: (number | null)
+top: (boolean | null)
+share: (number | null)
+most_common: boolean
+opening: (string | null)
+reason: string
+}
+/**
  * This interface was referenced by `Export`'s JSON-Schema
  * via the `definition` "LossEntry".
  */
@@ -518,6 +551,7 @@ played_san: (string | null)
 drop: (number | null)
 opening: (string | null)
 url: (string | null)
+why: string
 }
 /**
  * How many puzzles each set has per tag, so pages can offer a drill without loading the sets.
@@ -551,6 +585,9 @@ export interface Repertoire {
 as_of: number
 pgn: (string | null)
 lines: RepertoireLine[]
+positions: {
+[k: string]: Alternative[]
+}
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -564,6 +601,7 @@ source: ("repertoire" | "leak")
 moves: string[]
 san: string[]
 start: number
+steps: LineStep[]
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema

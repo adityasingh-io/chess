@@ -296,6 +296,24 @@ try {
     const next = await ph.textContent(".puzzle-card h2");
     check("drill 390px: Next goes on to puzzle 2", next === "Puzzle 2 of 10", next);
     check("drill 390px: no page errors", errs.length === 0, errs.slice(0, 2).join(" | "));
+    // The trainer on a phone: a new leak line is shown first (the arrow and why); playing it learns the line.
+    {
+      const line = data("repertoire.json").lines.find((l) => l.source === "leak");
+      await ph.goto(`${base}/trainer`);
+      await ph.click(`.line-row button.t:has-text(${JSON.stringify(line.name)})`);
+      const why = await ph.waitForSelector(".step-why", { timeout: 6000 }).then((e) => e.textContent(), () => "");
+      const wide = await ph.evaluate(() => document.scrollingElement.scrollWidth - innerWidth);
+      check("trainer 390px: a new line shows its move and why, with no sideways scroll",
+        why.includes(`Why ${line.san[line.start]}`) && wide <= 0, `${why.slice(0, 80)} · overflow ${wide}px`);
+      const uci = line.moves[line.start];
+      await ph.click(`[id="line-${line.id}-square-${uci.slice(0, 2)}"]`);
+      await ph.click(`[id="line-${line.id}-square-${uci.slice(2, 4)}"]`);
+      const learned = await ph.waitForSelector(".puzzle-result", { timeout: 6000 }).then((e) => e.textContent(), () => null);
+      const rows = await ph.$$eval(".line-why li", (li) => li.length);
+      check("trainer 390px: playing the arrow's move learns it, then every move is listed with its reason",
+        learned === "Line learned." && rows === line.moves.length, `${learned} · ${rows} of ${line.moves.length} moves`);
+      if (shots) await ph.screenshot({ path: join(shots, "trainer-learned-390-dark.png"), fullPage: true });
+    }
     if (!process.argv.includes("--dev")) {
       const controlled = await ph.waitForFunction(() => !!navigator.serviceWorker?.controller, null, { timeout: 15000 }).then(() => true, () => false);
       // Installing caches the shell and the training data; give it a moment to finish.

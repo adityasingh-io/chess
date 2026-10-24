@@ -17,13 +17,14 @@ from pydantic.json_schema import models_json_schema
 from coach import schema as S
 from coach.config import Config
 from coach.model import GameModel, Ply, Record
-from coach.puzzles import lichess_puzzle, load_subset, my_puzzles, sans
-from coach.repertoire import leak_lines, line_id, read_pgn
+from coach.puzzles import lichess_puzzle, load_subset, my_puzzles
 from coach.reports import (
     POINTS, as_of, by_time, endgame_table, insights, leak_positions, leaks, loss_summary, opening_families,
     score, surprises, top_leaks, tree,
 )
-from coach.templates import explain, line_san, move_san
+from coach.trainer import repertoire_out
+from coach.templates import explain, line_san, move_san, why
+from coach.why import solution_why
 
 
 def r1(x: float | None) -> float | None:
@@ -198,24 +199,6 @@ def opening_out(cfg: Config, models: list[GameModel], colour: str, evals1: dict[
     )
 
 
-def repertoire_out(cfg: Config, models: list[GameModel], evals1: dict[str, dict], stamp: int) -> S.Repertoire:
-    path = cfg.root / cfg.repertoire.pgn
-    lines, seen = [], set()
-    for colour, name, moves in read_pgn(path):
-        lines.append((colour, name, "repertoire", moves, 0))
-    for colour, name, moves, start in leak_lines(cfg, models, evals1):
-        lines.append((colour, name, "leak", moves, start))
-    out = []
-    for colour, name, source, moves, start in lines:
-        lid = line_id(colour, moves)
-        if lid in seen:
-            continue
-        seen.add(lid)
-        out.append(S.RepertoireLine(id=lid, colour=colour, name=name, source=source, moves=moves,
-                                    san=sans(chess.STARTING_FEN, moves), start=start))
-    return S.Repertoire(as_of=stamp, pgn=cfg.repertoire.pgn if path.exists() else None, lines=out)
-
-
 @dataclass
 class Built:
     files: dict[str, BaseModel]
@@ -234,7 +217,9 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
     rated = [m for m in ordered if m.row["rated"] and m.row["my_rating"]]
     engine = S.EngineInfo(version=cfg.engine.version, pass1=cfg.engine.pass1.key, pass2=cfg.engine.pass2.key)
 
-    mine = S.PuzzleSet(as_of=stamp, source="mine", puzzles=[S.Puzzle(**p) for p in my_puzzles(cfg, ordered, evals2)])
+    by_record = {r.id: r for r in records}
+    mine = S.PuzzleSet(as_of=stamp, source="mine", puzzles=[S.Puzzle(**p, why=why(by_record[p["id"][2:]]))
+                                                            for p in my_puzzles(cfg, ordered, evals2)])
     per_game = Counter(p.game for p in mine.puzzles)
     games = {m.id: game_out(cfg, m, evals1, evals2, notes or {}, per_game[m.id]) for m in ordered}
     record_index = [r for g in games.values() for r in g.records]
@@ -282,7 +267,7 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
         "puzzles/mine.json": mine,
         "puzzles/lichess.json": lichess,
         "puzzles/index.json": S.PuzzleIndex(as_of=stamp, mine=tag_counts(mine), lichess=tag_counts(lichess)),
-        "repertoire.json": repertoire_out(cfg, models, evals1, stamp),
+        "repertoire.json": repertoire_out(cfg, models, evals1, explorer, stamp),
     }
     return Built(files, games)
 
@@ -290,10 +275,14 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
 def lichess_puzzles(cfg: Config) -> list[S.Puzzle]:
     """From the cached subset; without one (a fresh checkout), keep what was exported last time."""
     subset = load_subset(cfg)
-    if subset is not None:
-        return [S.Puzzle(**lichess_puzzle(row)) for row in subset]
     last = cfg.export_dir / "puzzles" / "lichess.json"
-    return S.PuzzleSet.model_validate_json(last.read_text()).puzzles if last.exists() else []
+    if subset is not None:
+        rows = [lichess_puzzle(row) for row in subset]
+    elif last.exists():
+        rows = json.loads(last.read_text())["puzzles"]
+    else:
+        return []
+    return [S.Puzzle(**{**p, "why": solution_why(p["fen"], p["solution"])}) for p in rows]
 
 
 def tag_counts(puzzles: S.PuzzleSet) -> dict[str, int]:

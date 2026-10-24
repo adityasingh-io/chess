@@ -52,6 +52,14 @@ def fetch_puzzles(cfg: Config, conn: sqlite3.Connection, console: Console, refre
     return fetch_subset(cfg, models, console, refresh)
 
 
+def fetch_trainer(cfg: Config, conn: sqlite3.Connection, console: Console) -> None:
+    """Score every move I could play where the trainer asks, and fetch the explorer stats along its lines."""
+    from coach import trainer
+
+    _, models, evals1, _ = load_inputs(cfg, conn)
+    trainer.analyse(cfg, conn, trainer.all_lines(cfg, models, evals1), console)
+
+
 def write_notes(cfg: Config, conn: sqlite3.Connection, console: Console) -> tuple[int, int]:
     """Ask Claude to reword the explanations of my costliest mistakes that have no cached note yet."""
     _, models, _, _ = load_inputs(cfg, conn)

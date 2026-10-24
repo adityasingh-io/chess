@@ -1,5 +1,70 @@
 {
  "$defs": {
+  "Alternative": {
+   "additionalProperties": false,
+   "description": "One legal move where the trainer asks for mine, scored like a move in my games (pass 1, the position\nafter it).",
+   "properties": {
+    "uci": {
+     "title": "Uci",
+     "type": "string"
+    },
+    "san": {
+     "title": "San",
+     "type": "string"
+    },
+    "eval": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Eval"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "terminal": {
+     "anyOf": [
+      {
+       "enum": [
+        "white",
+        "black",
+        "draw"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Terminal"
+    },
+    "win": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Win"
+    },
+    "why": {
+     "title": "Why",
+     "type": "string"
+    }
+   },
+   "required": [
+    "uci",
+    "san",
+    "eval",
+    "terminal",
+    "win",
+    "why"
+   ],
+   "title": "Alternative",
+   "type": "object"
+  },
   "EndgameGame": {
    "additionalProperties": false,
    "properties": {
@@ -1141,6 +1206,119 @@
    "title": "Leaks",
    "type": "object"
   },
+  "LineStep": {
+   "additionalProperties": false,
+   "description": "One move of a trainer line, with what's known about it.",
+   "properties": {
+    "san": {
+     "title": "San",
+     "type": "string"
+    },
+    "key": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Key"
+    },
+    "eval": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Eval"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "terminal": {
+     "anyOf": [
+      {
+       "enum": [
+        "white",
+        "black",
+        "draw"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Terminal"
+    },
+    "win": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Win"
+    },
+    "top": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Top"
+    },
+    "share": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Share"
+    },
+    "most_common": {
+     "title": "Most Common",
+     "type": "boolean"
+    },
+    "opening": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Opening"
+    },
+    "reason": {
+     "title": "Reason",
+     "type": "string"
+    }
+   },
+   "required": [
+    "san",
+    "key",
+    "eval",
+    "terminal",
+    "win",
+    "top",
+    "share",
+    "most_common",
+    "opening",
+    "reason"
+   ],
+   "title": "LineStep",
+   "type": "object"
+  },
   "LossEntry": {
    "additionalProperties": false,
    "properties": {
@@ -1780,6 +1958,10 @@
       }
      ],
      "title": "Url"
+    },
+    "why": {
+     "title": "Why",
+     "type": "string"
     }
    },
    "required": [
@@ -1798,7 +1980,8 @@
     "played_san",
     "drop",
     "opening",
-    "url"
+    "url",
+    "why"
    ],
    "title": "Puzzle",
    "type": "object"
@@ -2246,12 +2429,23 @@
      },
      "title": "Lines",
      "type": "array"
+    },
+    "positions": {
+     "additionalProperties": {
+      "items": {
+       "$ref": "#/$defs/Alternative"
+      },
+      "type": "array"
+     },
+     "title": "Positions",
+     "type": "object"
     }
    },
    "required": [
     "as_of",
     "pgn",
-    "lines"
+    "lines",
+    "positions"
    ],
    "title": "Repertoire",
    "type": "object"
@@ -2300,6 +2494,13 @@
     "start": {
      "title": "Start",
      "type": "integer"
+    },
+    "steps": {
+     "items": {
+      "$ref": "#/$defs/LineStep"
+     },
+     "title": "Steps",
+     "type": "array"
     }
    },
    "required": [
@@ -2309,7 +2510,8 @@
     "source",
     "moves",
     "san",
-    "start"
+    "start",
+    "steps"
    ],
    "title": "RepertoireLine",
    "type": "object"

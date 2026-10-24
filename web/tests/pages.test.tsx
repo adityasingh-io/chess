@@ -6,6 +6,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { posKey, replay } from "../src/lib/chess";
 import { evalFor, sanTokens } from "../src/lib/format";
+import { grade, Rating } from "../src/lib/progress";
 import { ENDGAME_TYPE, OUTCOME } from "../src/lib/names";
 import { routes } from "../src/router";
 import { Chess } from "chess.js";
@@ -178,8 +179,10 @@ test("insights show the exported group scores, leak rates and time losses", asyn
   }
   const rates = ins.leak_rates as { recent: Record<string, number>; previous: Record<string, number> };
   const hung = screen.getByRole("link", { name: /^Hung a piece/ });
-  expect(within(hung).getByText(rates.recent.hung_piece.toFixed(2))).toBeTruthy();
-  expect(within(hung).getByText(rates.previous.hung_piece.toFixed(2))).toBeTruthy();
+  // Both rates are shown; they can be equal, so count matches instead of expecting one each.
+  const recent = rates.recent.hung_piece.toFixed(2), previous = rates.previous.hung_piece.toFixed(2);
+  expect(within(hung).getAllByText(recent)).toHaveLength(recent === previous ? 2 : 1);
+  if (recent !== previous) expect(within(hung).getByText(previous)).toBeTruthy();
   const losses = ins.time_losses as { count: number };
   expect(screen.getByText(`${losses.count} games in all`)).toBeTruthy();
 }, 20_000);
@@ -210,25 +213,51 @@ test("a leak's drill starts with my newest puzzle of that kind, and solving it s
     if (i + 2 < z.solution.length) await screen.findByText("Good. Keep going.", {}, { timeout: 3000 });
   }
   expect(await screen.findByText("Solved, with help.", {}, { timeout: 5000 })).toBeTruthy();
+  // Once it's over, what the solution does on the board.
+  expect(screen.getByText(z.why)).toBeTruthy();
   const p = progress();
   expect(p.items[z.id].kind).toBe("puzzle");
   expect(p.attempts[0].grade).toBe(2);   // one wrong move: Hard
   expect(p.items[z.id].card.due).toBeGreaterThan(Date.now());
 }, 30_000);
 
-test("the trainer plays a leak line up to the leak position and asks for Stockfish's move", async () => {
+test("a new leak line is shown first: the arrow, Stockfish's move and why, then the whole line", async () => {
   localStorage.clear();
   const line = data<Repertoire>("repertoire.json").lines.find((l) => l.source === "leak")!;
   await open("/trainer");
   const row = await screen.findByRole("button", { name: new RegExp(`^${line.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`) }, SLOW);
   await act(async () => { fireEvent.click(row); });
-  expect(await screen.findByText("You've gone wrong here before. Stockfish's move?", {}, SLOW)).toBeTruthy();
+  expect(await screen.findByText(/the arrow shows it/, {}, SLOW)).toBeTruthy();
+  const step = line.steps[line.start];
+  expect(screen.getByText(`Why ${step.san}`)).toBeTruthy();
+  if (step.reason) expect(screen.getAllByText(step.reason).length).toBeGreaterThan(0);
   const board = `line-${line.id}`;
   const expected = line.moves[line.start];
   await tap(board, expected.slice(0, 2));
   await tap(board, expected.slice(2, 4));
-  expect(await screen.findByText(/Line played without a slip|Done, with/, {}, { timeout: 5000 })).toBeTruthy();
+  expect(await screen.findByText("Line learned.", {}, { timeout: 5000 })).toBeTruthy();
+  expect(screen.getByRole("list", { name: "The whole line, move by move" }).children).toHaveLength(line.moves.length);
   expect(progress().items[`r-${line.id}`].kind).toBe("line");
+}, 30_000);
+
+test("from memory, a slip shows Stockfish's stored score for it and what happens along its line", async () => {
+  localStorage.clear();
+  const rep = data<Repertoire>("repertoire.json");
+  const line = rep.lines.find((l) => l.source === "leak")!;
+  const step = line.steps[line.start];
+  const alt = rep.positions[step.key!].find((a) => a.uci !== line.moves[line.start] && a.uci.length === 4 && a.why && a.eval && a.win != null)!;
+  grade(`r-${line.id}`, "line", Rating.Good);   // drilled before, so it's asked from memory
+  await open("/trainer");
+  const row = await screen.findByRole("button", { name: new RegExp(`^${line.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`) }, SLOW);
+  await act(async () => { fireEvent.click(row); });
+  expect(await screen.findByText("You've gone wrong here before. Stockfish's move?", {}, SLOW)).toBeTruthy();
+  const board = `line-${line.id}`;
+  await tap(board, alt.uci.slice(0, 2));
+  await tap(board, alt.uci.slice(2, 4));
+  expect(await screen.findByText(/isn't the line's move/)).toBeTruthy();
+  expect(screen.getByText(alt.why)).toBeTruthy();
+  const miss = document.querySelector(".puzzle-miss")!;
+  expect(miss.textContent).toContain(evalFor(alt.eval, line.colour));
 }, 30_000);
 
 test("settings show the progress counts and that sync is off in this build", async () => {

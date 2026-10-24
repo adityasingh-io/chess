@@ -430,6 +430,7 @@ class Puzzle(Model):
     drop: float | None
     opening: str | None        # family (mine) or OpeningTags (Lichess)
     url: str | None            # Lichess puzzle page
+    why: str                   # shown once it's over: what the solution does on the board (measured, why.py)
 
 
 class PuzzleSet(Model):
@@ -445,6 +446,31 @@ class PuzzleIndex(Model):
     lichess: dict[str, int]
 
 
+class Alternative(Model):
+    """One legal move where the trainer asks for mine, scored like a move in my games (pass 1, the position
+    after it)."""
+    uci: str
+    san: str
+    eval: Eval | None          # Stockfish's score after it; None when it ends the game or isn't analysed yet
+    terminal: Literal["white", "black", "draw"] | None   # the move ends the game
+    win: float | None          # my Win% after it
+    why: str                   # what it does on the board along Stockfish's line after it (measured, why.py)
+
+
+class LineStep(Model):
+    """One move of a trainer line, with what's known about it."""
+    san: str
+    key: str | None            # where the drill asks for this move: the position, a key into Repertoire.positions
+    eval: Eval | None          # Stockfish's score after the move (pass 1)
+    terminal: Literal["white", "black", "draw"] | None
+    win: float | None          # my Win% after the move
+    top: bool | None           # asked moves: no other legal move has a higher stored score
+    share: float | None        # percent of games at my level with this move here (Lichess explorer)
+    most_common: bool          # the explorer's most played move here
+    opening: str | None        # the named opening the move reaches, when the name changes
+    reason: str                # what the move does on the board (measured, why.py); empty when nothing measured
+
+
 class RepertoireLine(Model):
     id: str                    # stable across builds: from the colour and the moves
     colour: Colour             # the side I play
@@ -453,12 +479,14 @@ class RepertoireLine(Model):
     moves: list[str]           # UCI from the start position
     san: list[str]
     start: int                 # plies played for me before the drill asks (a leak line asks only at its end)
+    steps: list[LineStep]      # one per move
 
 
 class Repertoire(Model):
     as_of: int
     pgn: str | None            # the PGN the lines were read from (None when there isn't one yet)
     lines: list[RepertoireLine]
+    positions: dict[str, list[Alternative]]   # every legal move where a drill asks for mine, best first
 
 
 FILES = {

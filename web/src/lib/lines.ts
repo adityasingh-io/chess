@@ -16,7 +16,7 @@ export function useLines(): Line[] {
   return useMemo(() => [
     ...rep.lines,
     ...activeLines(p).map((l): Line => ({ id: l.id, colour: l.colour, name: l.name, source: "tree", moves: l.moves,
-      san: lineSan(START, l.moves), start: 0 })),
+      san: lineSan(START, l.moves), start: 0, steps: [] })),
   ], [rep, p]);
 }
 

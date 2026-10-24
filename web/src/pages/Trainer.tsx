@@ -1,14 +1,21 @@
-// Repertoire trainer: play my side of each line from memory while the board plays the other side. Lines
-// come from the repertoire PGN, from leak positions in my games (moves to the position, then Stockfish's
-// best) and from lines I add in the opening tree. Each line is an FSRS card, kept on this device.
+// Repertoire trainer: play my side of each line while the board plays the other side. A new line is shown
+// first (learn: the arrow gives each move and why); after that it's played from memory. Lines come from the
+// repertoire PGN, from leak positions in my games (moves to the position, then Stockfish's best) and from
+// lines I add in the opening tree. Each line is an FSRS card, kept on this device. Every score is stored
+// Stockfish output (or the live engine, labelled, for a move nothing stored covers) and every reason is
+// measured on the board by the pipeline (src/coach/why.py).
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Board } from "../components/Board";
 import { numberedLine, replay, sideToMove, tryMove, uciParts, type Side } from "../lib/chess";
-import { plural } from "../lib/format";
+import { useRepertoire } from "../lib/data";
+import { useLiveEngine } from "../lib/engine";
+import { evalFor, moveName, pct, plural, signed } from "../lib/format";
 import { cardId, dueLines, newLines, START, useLines, type Line } from "../lib/lines";
 import { useMoveInput } from "../lib/moveInput";
 import { grade, Rating, removeLine, useProgress, type Progress } from "../lib/progress";
+import { winOf } from "../lib/winpct";
+import type { Alternative, Eval, LineStep } from "../types/export";
 
 const REPLY_MS = 420;
 const SESSION = 8;
@@ -29,7 +36,7 @@ export default function Trainer() {
     <>
       <div className="page-head">
         <h1>Repertoire trainer</h1>
-        <p className="muted">Play your side of each line from memory; the board plays the other side. Lines you miss come back sooner.</p>
+        <p className="muted">A new line is shown first, with an arrow and a reason for every move. After that you play your side from memory and the board plays the other side. Lines you miss come back sooner.</p>
       </div>
       <section className="card">
         <div className="trainer-start">
@@ -90,53 +97,101 @@ function LineRow({ line, p, onDrill }: { line: Line; p: Progress; onDrill: () =>
   );
 }
 
+type Result = { mistakes: number; learn: boolean };
+
 function Session({ lines, onClose }: { lines: Line[]; onClose: () => void }) {
+  const p = useProgress();
+  // Lines I've never drilled are shown first; decided once, so grading one doesn't flip the mode mid-session.
+  const [fresh] = useState(() => new Set(lines.filter((l) => !p.items[cardId(l)]).map((l) => l.id)));
   const [i, setI] = useState(0);
-  const [results, setResults] = useState<number[]>([]);
+  const [again, setAgain] = useState(0);   // "Go through it again": replay the line shown, without grading
+  const [results, setResults] = useState<Result[]>([]);
   if (i >= lines.length) {
-    const clean = results.filter((m) => m === 0).length;
+    const learned = results.filter((r) => r.learn).length, recalled = results.filter((r) => !r.learn);
+    const clean = recalled.filter((r) => r.mistakes === 0).length;
     return (
       <>
         <div className="page-head"><h1>Repertoire trainer</h1></div>
         <section className="card session-done">
           <h2>Done</h2>
-          <p><b className="num">{clean}</b> of {plural(lines.length, "line")} played without a slip.</p>
+          {learned > 0 && <p>Learned <b className="num">{plural(learned, "new line")}</b>; {learned === 1 ? "it comes" : "they come"} back for a review from tomorrow.</p>}
+          {recalled.length > 0 && <p><b className="num">{clean}</b> of {plural(recalled.length, "line")} played from memory without a slip.</p>}
           <button type="button" className="btn" onClick={onClose}>Back to the lines</button>
         </section>
       </>
     );
   }
   const line = lines[i];
+  const learn = fresh.has(line.id) || again > 0;
   return (
     <>
       <div className="page-head">
         <h1>{line.name}</h1>
-        <p className="muted">Line {i + 1} of {lines.length} · you play {line.colour === "white" ? "White" : "Black"}</p>
+        <p className="muted">
+          Line {i + 1} of {lines.length} · you play {line.colour === "white" ? "White" : "Black"} ·{" "}
+          {learn ? "learn it: the arrow shows each move" : "from memory"}
+        </p>
       </div>
       <section className="card">
-        <LineDrill key={line.id} line={line} onDone={(mistakes) => {
-          grade(cardId(line), "line", mistakes === 0 ? Rating.Good : mistakes === 1 ? Rating.Hard : Rating.Again, [line.source]);
-          setResults((r) => [...r, mistakes]);
-        }} onNext={() => setI(i + 1)} onClose={onClose} last={i + 1 === lines.length} />
+        <LineDrill key={`${line.id}:${again}`} line={line} learn={learn} onDone={(mistakes) => {
+          if (again) return;
+          // A line just learned comes back tomorrow (Hard); from memory, slips bring it back sooner.
+          const g = learn ? (mistakes ? Rating.Again : Rating.Hard) : mistakes === 0 ? Rating.Good : mistakes === 1 ? Rating.Hard : Rating.Again;
+          grade(cardId(line), "line", g, [line.source]);
+          setResults((r) => [...r, { mistakes, learn }]);
+        }} onNext={() => { setAgain(0); setI(i + 1); }} onAgain={() => setAgain((a) => a + 1)} onClose={onClose}
+          last={i + 1 === lines.length} />
       </section>
     </>
   );
 }
 
-export function LineDrill({ line, onDone, onNext, onClose, last }: {
-  line: Line; onDone: (mistakes: number) => void; onNext: () => void; onClose: () => void; last: boolean;
+/** "+0.4", or how the move ends the game. */
+function scoreText(ev: Eval | null, terminal: string | null, me: Side) {
+  if (terminal === "draw") return "a draw";
+  if (terminal) return terminal === me ? "checkmate" : "you get mated";
+  return evalFor(ev, me);
+}
+
+/** Stockfish's score, its preference, how often players at my level choose it, the opening it reaches,
+    and what the move does on the board. */
+function StepWhy({ step, me, mine, alts, title }: { step: LineStep; me: Side; mine: boolean; alts: Alternative[]; title: string }) {
+  const best = alts[0];
+  const facts = [
+    step.eval || step.terminal ? `Stockfish ${scoreText(step.eval, step.terminal, me)}` : null,
+    step.top === true ? "its top move here" : step.top === false && best ? `its top move is ${best.san} (${scoreText(best.eval, best.terminal, me)})` : null,
+    step.share != null ? `${pct(step.share)} of players at your level play it${step.most_common ? `, the most common ${mine ? "move" : "reply"}` : ""}` : null,
+  ].filter(Boolean);
+  return (
+    <div className="step-why">
+      <div className="label">{title}</div>
+      {step.reason && <p>{step.reason}</p>}
+      {facts.length > 0 && <p className="muted small">{facts.join(" · ")}.</p>}
+      {step.opening && <p className="small">Opening: <b>{step.opening}</b></p>}
+    </div>
+  );
+}
+
+type Miss = { uci: string; san: string; fen: string; step: number };
+
+export function LineDrill({ line, learn, onDone, onNext, onAgain, onClose, last }: {
+  line: Line; learn: boolean; onDone: (mistakes: number) => void; onNext: () => void; onAgain: () => void;
+  onClose: () => void; last: boolean;
 }) {
   const me: Side = line.colour;
+  const positions = useRepertoire().positions;
   const fens = useMemo(() => [START, ...replay(START, line.moves)], [line.moves]);
   // A leak line starts at the leak position; a repertoire line at the start (the board plays the first
   // move when it is the opponent's).
   const [step, setStep] = useState(line.start);
   const [mistakes, setMistakes] = useState(0);
-  const [miss, setMiss] = useState<string | null>(null);
+  const [miss, setMiss] = useState<Miss | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const reported = useRef(false);
   const done = step >= line.moves.length;
   const myTurn = !done && sideToMove(fens[step]) === me;
+  const info = (k: number) => line.steps[k] as LineStep | undefined;
+  const altsAt = (k: number) => (info(k)?.key ? positions[info(k)!.key!] ?? [] : []);
 
   const advance = (next: number, slips = mistakes) => {
     setStep(next);
@@ -157,7 +212,7 @@ export function LineDrill({ line, onDone, onNext, onClose, last }: {
     if (!mv) return false;
     if (mv.uci !== expected) {
       setMistakes((m) => m + 1);
-      setMiss(line.san[step]);
+      setMiss({ ...mv, step });
       return false;
     }
     setMiss(null);
@@ -168,12 +223,15 @@ export function LineDrill({ line, onDone, onNext, onClose, last }: {
   const tokens = numberedLine(START, line.san);
   const lastUci = step > 0 ? line.moves[step - 1] : null;
   const lastMine = step > 0 && sideToMove(fens[step - 1]) === me;
+  const lastInfo = step > 0 ? info(step - 1) : undefined;
+  const nextInfo = myTurn && learn ? info(step) : undefined;
+  const showArrow = myTurn && (learn || miss != null);
 
   return (
     <div className="puzzle">
       <div className="puzzle-board">
         <Board id={`line-${line.id}`} fen={fens[step]} orientation={me} label={`Repertoire line, ${me} to play`}
-          arrows={miss && myTurn ? [{ uci: line.moves[step], kind: "best" }] : []}
+          arrows={showArrow ? [{ uci: line.moves[step], kind: "best" }] : []}
           highlight={lastUci ? { uci: lastUci, kind: lastMine ? "you" : "them" } : null}
           selected={input.selected} dots={input.dots} onDrop={input.onDrop} onSquare={input.onSquare} />
       </div>
@@ -182,27 +240,108 @@ export function LineDrill({ line, onDone, onNext, onClose, last }: {
           <>
             <p className="puzzle-task">
               <span className={`turn ${me}`} aria-hidden="true" />
-              {myTurn ? (line.source === "leak" ? "You've gone wrong here before. Stockfish's move?" : "Your move in this line.") : "Their move…"}
+              {!myTurn ? "Their move…"
+                : learn ? <>Play <b className="san">{line.san[step]}</b>: the arrow shows it.</>
+                : line.source === "leak" ? "You've gone wrong here before. Stockfish's move?" : "Your move in this line."}
             </p>
-            {miss && <p className="puzzle-miss">Not that one. The line plays <b className="san">{miss}</b> (the arrow); play it to go on.</p>}
+            {miss && <Slip miss={miss} expected={info(miss.step)} san={line.san[miss.step]} alts={altsAt(miss.step)} me={me} />}
+            {nextInfo && !miss && <StepWhy step={nextInfo} me={me} mine alts={altsAt(step)} title={`Why ${line.san[step]}`} />}
+            {lastInfo && !miss && (
+              <StepWhy step={lastInfo} me={me} mine={lastMine} alts={altsAt(step - 1)}
+                title={`${moveName(step, line.san[step - 1])} · ${lastMine ? "your move" : "their move"}`} />
+            )}
           </>
         ) : (
           <p className={`puzzle-result ${mistakes ? "revealed" : "solved"}`}>
-            {mistakes === 0 ? "Line played without a slip." : `Done, with ${plural(mistakes, "slip")}. It comes back sooner.`}
+            {learn ? (mistakes ? `Shown, with ${plural(mistakes, "slip")}.` : "Line learned.")
+              : mistakes === 0 ? "Line played without a slip." : `Done, with ${plural(mistakes, "slip")}. It comes back sooner.`}
           </p>
         )}
-        <div className="chips played" role="group" aria-label="The line so far">
-          {tokens.slice(0, step).map((t, k) => <span key={k} className="san chip">{t}</span>)}
-          {!done && <span className="chip muted">…</span>}
-        </div>
+        {!done && (
+          <div className="chips played" role="group" aria-label="The line so far">
+            {tokens.slice(0, step).map((t, k) => <span key={k} className="san chip">{t}</span>)}
+            <span className="chip muted">…</span>
+          </div>
+        )}
+        {done && line.steps.length > 0 && <WholeLine line={line} me={me} positions={positions} />}
+        {done && !line.steps.length && (
+          <div className="chips played" role="group" aria-label="The line">
+            {tokens.map((t, k) => <span key={k} className="san chip">{t}</span>)}
+          </div>
+        )}
         <div className="puzzle-actions">
           {done ? (
-            <button type="button" className="btn" onClick={onNext}>{last ? "Finish" : "Next line"} →</button>
+            <>
+              <button type="button" className="btn ghost" onClick={onAgain}>Go through it again</button>
+              <button type="button" className="btn" onClick={onNext}>{last ? "Finish" : "Next line"} →</button>
+            </>
           ) : (
             <button type="button" className="btn ghost" onClick={onClose}>Stop</button>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+/** A move that isn't the line's: Stockfish's stored score for it next to the line's move, and what happens
+    along Stockfish's line after it. Without a stored score, the live engine scores it (labelled). */
+function Slip({ miss, expected, san, alts, me }: { miss: Miss; expected?: LineStep; san: string; alts: Alternative[]; me: Side }) {
+  const alt = alts.find((a) => a.uci === miss.uci);
+  const stored = alt && (alt.eval || alt.terminal) && alt.win != null;
+  const live = useLiveEngine(stored ? null : miss.fen);
+  const liveTop = live.lines[0];
+  const myWin = (ev: Eval) => { const w = winOf(ev); return w == null ? null : me === "white" ? w : 100 - w; };
+  const slipWin = stored ? alt!.win : liveTop ? myWin(liveTop.eval) : null;
+  const diff = slipWin != null && expected?.win != null ? slipWin - expected.win : null;
+  return (
+    <div className="puzzle-miss">
+      <p><b className="san">{miss.san}</b> isn't the line's move.</p>
+      {stored ? (
+        <p className="small">
+          Stockfish: <b className="san">{san}</b> {scoreText(expected?.eval ?? null, expected?.terminal ?? null, me)},
+          your <b className="san">{miss.san}</b> {scoreText(alt!.eval, alt!.terminal, me)}
+          {diff != null && <span className="num"> ({diff >= 0 ? "it scores at least as high" : `${signed(diff)} Win%`})</span>}.
+        </p>
+      ) : (
+        <p className="small">
+          <span className="live-badge">LIVE</span>{" "}
+          {liveTop ? <>Stockfish in this browser, depth {liveTop.depth}: your <b className="san">{miss.san}</b> {evalFor(liveTop.eval, me)}
+            {expected?.eval && <>, the line's <b className="san">{san}</b> {scoreText(expected.eval, expected.terminal, me)} (stored)</>}.</>
+            : "Stockfish in this browser is scoring it…"}
+        </p>
+      )}
+      {stored && alt!.why && <p className="small">{alt!.why}</p>}
+      <p className="small">The line plays <b className="san">{san}</b> (the arrow); play it to go on.</p>
+    </div>
+  );
+}
+
+/** The finished line, every move with its score, share and what it does. */
+function WholeLine({ line, me, positions }: { line: Line; me: Side; positions: { [key: string]: Alternative[] } }) {
+  const tokens = numberedLine(START, line.san);
+  let fen = START;
+  return (
+    <ol className="line-why" aria-label="The whole line, move by move">
+      {line.steps.map((s, k) => {
+        const mine = sideToMove(fen) === me;
+        fen = replay(fen, [line.moves[k]])[0];
+        const alts = s.key ? positions[s.key] ?? [] : [];
+        const best = alts[0];
+        const extra = [
+          s.eval || s.terminal ? `Stockfish ${scoreText(s.eval, s.terminal, me)}` : null,
+          s.top === false && best ? `top: ${best.san}` : null,
+          s.share != null ? `${pct(s.share)} at your level` : null,
+        ].filter(Boolean).join(" · ");
+        return (
+          <li key={k} className={mine ? "mine" : "theirs"}>
+            <b className="san">{tokens[k]}</b>
+            {extra && <span className="muted small num"> {extra}</span>}
+            {s.opening && <span className="small"> · {s.opening}</span>}
+            {s.reason && <div className="small">{s.reason}</div>}
+          </li>
+        );
+      })}
+    </ol>
   );
 }

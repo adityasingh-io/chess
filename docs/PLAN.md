@@ -126,8 +126,9 @@ this file wins.
   Lichess puzzles). A leak's "Drill these" takes up to five of my own puzzles with that tag, then Lichess
   puzzles of the mapped themes.
 - **Spaced repetition:** ts-fsrs with day steps only (a puzzle solved today never comes back today).
-  Clean solve → Good; one wrong move or a hint → Hard; revealed or two wrong → Again. Lines: no slip →
-  Good, one → Hard, more → Again. Progress (cards, an attempts log capped at 5,000, lines added from the
+  Clean solve → Good; one wrong move or a hint → Hard; revealed or two wrong → Again. Lines: the first
+  time a line is shown (learn) → Hard, so it's back the next day, or Again after a slip; from memory, no
+  slip → Good, one → Hard, more → Again. Progress (cards, an attempts log capped at 5,000, lines added from the
   tree, puzzle level) lives in `localStorage` as one JSON object, exported and imported from Settings.
   Import merges: per item the newer answer wins, attempts are pooled, lines keep their latest add or
   remove.
@@ -137,7 +138,23 @@ this file wins.
   than 50 explorer games remain. Editing the PGN is how the repertoire changes; the next `coach build`
   picks it up. Leak lines are the moves to each opening leak position from my games, then Stockfish's
   pass-1 best; the drill asks only that last move. "Drill this line" in the tree adds the current line,
-  and the tree lists any of my moves along it that aren't Stockfish's best.
+  and the tree lists any of my moves along it that aren't Stockfish's best. A line I've never drilled is
+  shown first: the arrow gives each of my moves, with Stockfish's score for it, whether it's Stockfish's
+  top move, how often players at my level play it (explorer), the opening it reaches and what it does on
+  the board; then it's played from memory. Wherever a drill asks for my move, every legal move is scored
+  with pass-1 settings on the position after it (as each move of a game is), so a slip shows its stored
+  score next to the line's move and what happens along Stockfish's line after it. Lines added from the
+  tree have no stored scores; a slip there is scored by the in-browser engine, labelled live. A finished
+  line lists every move with its score, share and reason.
+- **Explanations** (`src/coach/why.py`): measured on the board along Stockfish's stored lines, never
+  judged. For a move: what it takes (or takes back), develops, castles, promotes, checks or mates; what it
+  newly attacks (a piece worth more than the attacker, or undefended), opens an attack on, pins, or
+  protects (a piece that was attacked with no defender), and whether it moves a piece out of attack (one
+  attacked by something cheaper, or attacked with no defender, that isn't attacked after). For a line: what each side captures over its
+  first `pv_plies` moves, like-for-like captures cancelling, with the net material. A mistake's text adds
+  this for Stockfish's best move and line and for the move I played and Stockfish's reply; when both
+  lines end with the same material, it says the difference is in the position, which only Stockfish's
+  score measures. Puzzles show it for the solution once they're over.
 - **Dashboard training card:** puzzles due, a drill on the top leak that has puzzles, the opening lines
   due or to learn, and answers today against a goal of ten, with a streak of days.
 - **Sync:** Supabase, off unless the build has `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`

@@ -123,7 +123,9 @@ def check(note: str, f: Facts) -> str | None:
     for n in NUMBER.findall(SQUARE.sub(" ", rest)):
         if _num(n) not in allowed_numbers:
             return f"number {n} is not in the facts"
-    if NUMBER_WORDS.search(note):
+    # The template counts captured pieces in words ("two pawns"); only those words may appear.
+    allowed_words = {w.lower() for w in NUMBER_WORDS.findall(f.text)}
+    if any(w.lower() not in allowed_words for w in NUMBER_WORDS.findall(note)):
         return "a number written as a word"
     return None
 

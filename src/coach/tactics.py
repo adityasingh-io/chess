@@ -90,7 +90,7 @@ def discovered_targets(board: chess.Board, move: chess.Move) -> set[chess.Square
     return unveiled
 
 
-def _pins(board: chess.Board, side: chess.Color) -> list[tuple[chess.Square, chess.Square, chess.Square]]:
+def pins(board: chess.Board, side: chess.Color) -> list[tuple[chess.Square, chess.Square, chess.Square]]:
     """(pinner, pinned, behind) where an opposing piece can't move without exposing a higher value piece."""
     out = []
     for square in chess.SquareSet(board.occupied_co[side]):
@@ -104,7 +104,7 @@ def pin_targets(board: chess.Board, move: chess.Move) -> set[chess.Square]:
     """Pinned opposing pieces where the moved piece is the pinner or attacks the pinned piece."""
     side = not board.turn
     attacked = board.attacks(move.to_square)
-    return {pinned for pinner, pinned, _ in _pins(board, side) if pinner == move.to_square or pinned in attacked}
+    return {pinned for pinner, pinned, _ in pins(board, side) if pinner == move.to_square or pinned in attacked}
 
 
 def skewer_targets(board: chess.Board, move: chess.Move) -> set[chess.Square]:
@@ -119,7 +119,7 @@ def pin_blocks_recapture(key: KeyMove) -> bool:
     Checks the key move itself and each later capture by the same side, with the pins on the board then.
     """
     side = key.before.turn
-    if key.before.is_capture(key.move) and any(key.move.to_square in key.after.attacks(p) for _, p, _ in _pins(key.after, side)):
+    if key.before.is_capture(key.move) and any(key.move.to_square in key.after.attacks(p) for _, p, _ in pins(key.after, side)):
         return True
     board = key.after.copy(stack=False)
     for uci in key.rest:
@@ -127,7 +127,7 @@ def pin_blocks_recapture(key: KeyMove) -> bool:
         if move not in board.legal_moves:
             return False
         if board.turn == side and board.is_capture(move):
-            if any(move.to_square in board.attacks(p) for _, p, _ in _pins(board, side)):
+            if any(move.to_square in board.attacks(p) for _, p, _ in pins(board, side)):
                 return True
         board.push(move)
     return False

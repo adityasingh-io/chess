@@ -1,7 +1,8 @@
 // One puzzle: find the solver's moves in the stored solution, with the replies played for you. A move
 // counts when it is the solution's move, or when it mates (the rules end the game there, so nothing beats
 // it). Hint marks the piece to move; Show the solution plays the rest. Nothing here judges a move beyond
-// that: the solution is Stockfish's line (mine) or Lichess's (engine-verified).
+// that: the solution is Stockfish's line (mine) or Lichess's (engine-verified). Once it's over, `why` says
+// what the solution does on the board, measured by the pipeline (src/coach/why.py).
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { gameOver, numberedLine, replay, sideToMove, tryMove, uciParts } from "../lib/chess";
@@ -132,6 +133,7 @@ export function PuzzleBoard({ puzzle, onDone, onNext, nextLabel = "Next puzzle" 
               {status === "solved" ? (wrong || usedHint ? "Solved, with help." : "Solved.") : "Here's the solution."}
               {mate && " Checkmate — that ends it too."}
             </p>
+            {puzzle.why && <p className="puzzle-why">{puzzle.why}</p>}
             <div className="chips played" role="group" aria-label="Solution">
               <button type="button" aria-pressed={shownStep === 0} onClick={() => setView(0)}>Start</button>
               {tokens.map((t, i) => (

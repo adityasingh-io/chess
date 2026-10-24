@@ -8,6 +8,7 @@ from __future__ import annotations
 import chess
 
 from coach.model import Record
+from coach.why import mistake_why
 
 SUBTYPE_NAMES = {
     "fork": "a fork", "pin": "a pin", "skewer": "a skewer", "discovered_attack": "a discovered attack",
@@ -52,28 +53,36 @@ def eval_text(line: dict | None, white: bool, terminal: str | None = None) -> st
 
 
 def explain(r: Record) -> str:
+    """What kind of mistake it was and the scores, then what each line does on the board (why.py)."""
     move = r.ply.move
     me = r.ply.white
     san = move["san"]
     best = move_san(move["fen_before"], r.best_line[0] if r.best_line else None)
-    best_line = line_san(move["fen_before"], r.best_line)
-    reply = line_san(move["fen_after"], r.reply_line)
     best_eval = eval_text(r.before_top, me)
     after_eval = eval_text(r.after_top, me, r.after_terminal)
     better = f" Best was {best} ({best_eval})." if best else ""
     if r.primary == "allowed_mate":
         n = -(r.after_top["mate"] if me else -r.after_top["mate"])
-        return f"{san} allowed mate in {n}: Stockfish's line is {reply}.{better}"
-    if r.primary == "hung_piece":
-        return (f"{san} hung material: Stockfish's line is {reply}, and you end {r.net_after:+d} in material."
-                f"{better}")
-    if r.primary == "tactic":
-        return (f"{san} walked into {SUBTYPE_NAMES.get(r.subtype, 'a tactic')}: Stockfish's line is {reply}, "
-                f"and you end {r.net_after:+d} in material.{better}")
-    if r.primary == "missed_mate":
-        return f"You had {best_eval}: {best_line}. {san} gives {after_eval}."
-    if r.primary == "missed_win":
+        head = f"{san} allowed mate in {n}.{better}"
+    elif r.primary == "hung_piece":
+        head = f"{san} hung material: you end {r.net_after:+d} in material.{better}"
+    elif r.primary == "tactic":
+        head = f"{san} walked into {SUBTYPE_NAMES.get(r.subtype, 'a tactic')}: you end {r.net_after:+d} in material.{better}"
+    elif r.primary == "missed_mate":
+        head = f"You had {best_eval} with {best}. {san} gives {after_eval}."
+    elif r.primary == "missed_win":
         what = "won material outright" if r.subtype == "free_material" else f"won material with {SUBTYPE_NAMES.get(r.subtype, 'a tactic')}"
-        return f"{best} {what}: Stockfish's line is {best_line}, ending {r.net_best:+d} for you. {san} gives {after_eval}."
-    text = f"{san} dropped your Win% from {r.ply.win_before:.0f} to {r.ply.win_after:.0f}.{better}"
-    return f"{text} Stockfish's line: {best_line}." if best_line else text
+        head = f"{best} {what}, ending {r.net_best:+d} for you. {san} gives {after_eval}."
+    else:
+        head = f"{san} dropped your Win% from {r.ply.win_before:.0f} to {r.ply.win_after:.0f}.{better}"
+    measured = why(r)
+    return f"{head} {measured}" if measured else head
+
+
+def why(r: Record) -> str:
+    """What the best move and my move do on the board along Stockfish's two lines (why.py)."""
+    move, n = r.ply.move, r.ply.number
+    prev = r.game.plies[n - 2].move if n >= 2 else None
+    return mistake_why(move["fen_before"], move["uci"], r.best_line, r.reply_line,
+                       chess.WHITE if r.ply.white else chess.BLACK, max(len(r.best_line), len(r.reply_line)),
+                       (prev["fen_before"], prev["uci"]) if prev else None)
