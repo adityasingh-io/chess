@@ -1,0 +1,2543 @@
+{
+ "$defs": {
+  "EndgameGame": {
+   "additionalProperties": false,
+   "properties": {
+    "game": {
+     "title": "Game",
+     "type": "string"
+    },
+    "ts": {
+     "title": "Ts",
+     "type": "integer"
+    },
+    "result": {
+     "enum": [
+      "win",
+      "draw",
+      "loss"
+     ],
+     "title": "Result",
+     "type": "string"
+    },
+    "info": {
+     "$ref": "#/$defs/EndgameInfo"
+    }
+   },
+   "required": [
+    "game",
+    "ts",
+    "result",
+    "info"
+   ],
+   "title": "EndgameGame",
+   "type": "object"
+  },
+  "EndgameInfo": {
+   "additionalProperties": false,
+   "properties": {
+    "start_ply": {
+     "title": "Start Ply",
+     "type": "integer"
+    },
+    "type": {
+     "title": "Type",
+     "type": "string"
+    },
+    "win_start": {
+     "title": "Win Start",
+     "type": "number"
+    },
+    "outcome": {
+     "title": "Outcome",
+     "type": "string"
+    },
+    "spoiler_ply": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Spoiler Ply"
+    },
+    "spoiler_san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Spoiler San"
+    },
+    "spoiler_drop": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Spoiler Drop"
+    },
+    "spoiler_best_line_san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Spoiler Best Line San"
+    }
+   },
+   "required": [
+    "start_ply",
+    "type",
+    "win_start",
+    "outcome",
+    "spoiler_ply",
+    "spoiler_san",
+    "spoiler_drop",
+    "spoiler_best_line_san"
+   ],
+   "title": "EndgameInfo",
+   "type": "object"
+  },
+  "Endgames": {
+   "additionalProperties": false,
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "table": {
+     "additionalProperties": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object"
+     },
+     "title": "Table",
+     "type": "object"
+    },
+    "endgames": {
+     "items": {
+      "$ref": "#/$defs/EndgameGame"
+     },
+     "title": "Endgames",
+     "type": "array"
+    }
+   },
+   "required": [
+    "as_of",
+    "games",
+    "table",
+    "endgames"
+   ],
+   "title": "Endgames",
+   "type": "object"
+  },
+  "EngineInfo": {
+   "additionalProperties": false,
+   "properties": {
+    "version": {
+     "title": "Version",
+     "type": "string"
+    },
+    "pass1": {
+     "title": "Pass1",
+     "type": "string"
+    },
+    "pass2": {
+     "title": "Pass2",
+     "type": "string"
+    }
+   },
+   "required": [
+    "version",
+    "pass1",
+    "pass2"
+   ],
+   "title": "EngineInfo",
+   "type": "object"
+  },
+  "Eval": {
+   "additionalProperties": false,
+   "description": "Stockfish's score from White's point of view.",
+   "properties": {
+    "cp": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Cp"
+    },
+    "mate": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Mate"
+    }
+   },
+   "required": [
+    "cp",
+    "mate"
+   ],
+   "title": "Eval",
+   "type": "object"
+  },
+  "ExplorerMove": {
+   "additionalProperties": false,
+   "properties": {
+    "uci": {
+     "title": "Uci",
+     "type": "string"
+    },
+    "san": {
+     "title": "San",
+     "type": "string"
+    },
+    "share": {
+     "title": "Share",
+     "type": "number"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "uci",
+    "san",
+    "share",
+    "games"
+   ],
+   "title": "ExplorerMove",
+   "type": "object"
+  },
+  "ExplorerStats": {
+   "additionalProperties": false,
+   "properties": {
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "moves": {
+     "items": {
+      "$ref": "#/$defs/ExplorerMove"
+     },
+     "title": "Moves",
+     "type": "array"
+    }
+   },
+   "required": [
+    "games",
+    "moves"
+   ],
+   "title": "ExplorerStats",
+   "type": "object"
+  },
+  "Family": {
+   "additionalProperties": false,
+   "properties": {
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "wins": {
+     "title": "Wins",
+     "type": "integer"
+    },
+    "draws": {
+     "title": "Draws",
+     "type": "integer"
+    },
+    "losses": {
+     "title": "Losses",
+     "type": "integer"
+    },
+    "score": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Score"
+    },
+    "score_vs_rest": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Score Vs Rest"
+    },
+    "win_after_opening": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Win After Opening"
+    },
+    "accuracy": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Accuracy"
+    },
+    "game_ids": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Game Ids",
+     "type": "array"
+    },
+    "family": {
+     "title": "Family",
+     "type": "string"
+    },
+    "variations": {
+     "items": {
+      "$ref": "#/$defs/Variation"
+     },
+     "title": "Variations",
+     "type": "array"
+    }
+   },
+   "required": [
+    "games",
+    "wins",
+    "draws",
+    "losses",
+    "score",
+    "score_vs_rest",
+    "win_after_opening",
+    "accuracy",
+    "game_ids",
+    "family",
+    "variations"
+   ],
+   "title": "Family",
+   "type": "object"
+  },
+  "Game": {
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "url": {
+     "title": "Url",
+     "type": "string"
+    },
+    "start_ts": {
+     "title": "Start Ts",
+     "type": "integer"
+    },
+    "end_ts": {
+     "title": "End Ts",
+     "type": "integer"
+    },
+    "colour": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Colour",
+     "type": "string"
+    },
+    "opponent": {
+     "title": "Opponent",
+     "type": "string"
+    },
+    "my_rating": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "My Rating"
+    },
+    "opp_rating": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Opp Rating"
+    },
+    "result": {
+     "enum": [
+      "win",
+      "draw",
+      "loss"
+     ],
+     "title": "Result",
+     "type": "string"
+    },
+    "my_code": {
+     "title": "My Code",
+     "type": "string"
+    },
+    "termination": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Termination"
+    },
+    "time_control": {
+     "title": "Time Control",
+     "type": "string"
+    },
+    "rated": {
+     "title": "Rated",
+     "type": "boolean"
+    },
+    "initial_fen": {
+     "title": "Initial Fen",
+     "type": "string"
+    },
+    "start_win": {
+     "title": "Start Win",
+     "type": "number"
+    },
+    "opening": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/OpeningRef"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "accuracy": {
+     "additionalProperties": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "propertyNames": {
+      "enum": [
+       "white",
+       "black"
+      ]
+     },
+     "title": "Accuracy",
+     "type": "object"
+    },
+    "chesscom_accuracy": {
+     "additionalProperties": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "propertyNames": {
+      "enum": [
+       "white",
+       "black"
+      ]
+     },
+     "title": "Chesscom Accuracy",
+     "type": "object"
+    },
+    "moves": {
+     "items": {
+      "$ref": "#/$defs/Move"
+     },
+     "title": "Moves",
+     "type": "array"
+    },
+    "records": {
+     "items": {
+      "$ref": "#/$defs/Record"
+     },
+     "title": "Records",
+     "type": "array"
+    },
+    "loss": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/LossInfo"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "thrown": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/ThrownInfo"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "endgame": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/EndgameInfo"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    }
+   },
+   "required": [
+    "id",
+    "url",
+    "start_ts",
+    "end_ts",
+    "colour",
+    "opponent",
+    "my_rating",
+    "opp_rating",
+    "result",
+    "my_code",
+    "termination",
+    "time_control",
+    "rated",
+    "initial_fen",
+    "start_win",
+    "opening",
+    "accuracy",
+    "chesscom_accuracy",
+    "moves",
+    "records",
+    "loss",
+    "thrown",
+    "endgame"
+   ],
+   "title": "Game",
+   "type": "object"
+  },
+  "GameSummary": {
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "start_ts": {
+     "title": "Start Ts",
+     "type": "integer"
+    },
+    "colour": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Colour",
+     "type": "string"
+    },
+    "opponent": {
+     "title": "Opponent",
+     "type": "string"
+    },
+    "opp_rating": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Opp Rating"
+    },
+    "my_rating": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "My Rating"
+    },
+    "result": {
+     "enum": [
+      "win",
+      "draw",
+      "loss"
+     ],
+     "title": "Result",
+     "type": "string"
+    },
+    "my_code": {
+     "title": "My Code",
+     "type": "string"
+    },
+    "opening": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Opening"
+    },
+    "accuracy": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Accuracy"
+    },
+    "plies": {
+     "title": "Plies",
+     "type": "integer"
+    },
+    "inaccuracies": {
+     "title": "Inaccuracies",
+     "type": "integer"
+    },
+    "mistakes": {
+     "title": "Mistakes",
+     "type": "integer"
+    },
+    "blunders": {
+     "title": "Blunders",
+     "type": "integer"
+    },
+    "loss_cause": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Loss Cause"
+    },
+    "thrown": {
+     "title": "Thrown",
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "id",
+    "start_ts",
+    "colour",
+    "opponent",
+    "opp_rating",
+    "my_rating",
+    "result",
+    "my_code",
+    "opening",
+    "accuracy",
+    "plies",
+    "inaccuracies",
+    "mistakes",
+    "blunders",
+    "loss_cause",
+    "thrown"
+   ],
+   "title": "GameSummary",
+   "type": "object"
+  },
+  "GamesIndex": {
+   "additionalProperties": false,
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "games": {
+     "items": {
+      "$ref": "#/$defs/GameSummary"
+     },
+     "title": "Games",
+     "type": "array"
+    }
+   },
+   "required": [
+    "as_of",
+    "games"
+   ],
+   "title": "GamesIndex",
+   "type": "object"
+  },
+  "GroupStat": {
+   "additionalProperties": false,
+   "properties": {
+    "key": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "integer"
+      }
+     ],
+     "title": "Key"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "score": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Score"
+    },
+    "accuracy": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Accuracy"
+    }
+   },
+   "required": [
+    "key",
+    "games",
+    "score",
+    "accuracy"
+   ],
+   "title": "GroupStat",
+   "type": "object"
+  },
+  "Insights": {
+   "additionalProperties": false,
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "by_colour": {
+     "items": {
+      "$ref": "#/$defs/GroupStat"
+     },
+     "title": "By Colour",
+     "type": "array"
+    },
+    "by_opening": {
+     "items": {
+      "$ref": "#/$defs/GroupStat"
+     },
+     "title": "By Opening",
+     "type": "array"
+    },
+    "by_phase": {
+     "items": {
+      "$ref": "#/$defs/PhaseStat"
+     },
+     "title": "By Phase",
+     "type": "array"
+    },
+    "by_opponent_rating": {
+     "items": {
+      "$ref": "#/$defs/GroupStat"
+     },
+     "title": "By Opponent Rating",
+     "type": "array"
+    },
+    "by_hour": {
+     "items": {
+      "$ref": "#/$defs/GroupStat"
+     },
+     "title": "By Hour",
+     "type": "array"
+    },
+    "by_length": {
+     "items": {
+      "$ref": "#/$defs/GroupStat"
+     },
+     "title": "By Length",
+     "type": "array"
+    },
+    "by_previous_result": {
+     "items": {
+      "$ref": "#/$defs/GroupStat"
+     },
+     "title": "By Previous Result",
+     "type": "array"
+    },
+    "think_time": {
+     "items": {
+      "$ref": "#/$defs/ThinkStat"
+     },
+     "title": "Think Time",
+     "type": "array"
+    },
+    "time_losses": {
+     "additionalProperties": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "additionalProperties": {
+         "type": "integer"
+        },
+        "type": "object"
+       }
+      ]
+     },
+     "title": "Time Losses",
+     "type": "object"
+    },
+    "rating": {
+     "items": {
+      "$ref": "#/$defs/RatingPoint"
+     },
+     "title": "Rating",
+     "type": "array"
+    },
+    "leak_rates": {
+     "additionalProperties": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "anyOf": [
+          {
+           "type": "number"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "type": "object"
+       },
+       {
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       }
+      ]
+     },
+     "title": "Leak Rates",
+     "type": "object"
+    }
+   },
+   "required": [
+    "as_of",
+    "by_colour",
+    "by_opening",
+    "by_phase",
+    "by_opponent_rating",
+    "by_hour",
+    "by_length",
+    "by_previous_result",
+    "think_time",
+    "time_losses",
+    "rating",
+    "leak_rates"
+   ],
+   "title": "Insights",
+   "type": "object"
+  },
+  "Leak": {
+   "additionalProperties": false,
+   "properties": {
+    "tag": {
+     "title": "Tag",
+     "type": "string"
+    },
+    "kind": {
+     "enum": [
+      "primary",
+      "subtype",
+      "flag"
+     ],
+     "title": "Kind",
+     "type": "string"
+    },
+    "count": {
+     "title": "Count",
+     "type": "integer"
+    },
+    "per_game": {
+     "title": "Per Game",
+     "type": "number"
+    },
+    "recent": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Recent"
+    },
+    "previous": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Previous"
+    },
+    "win_lost": {
+     "title": "Win Lost",
+     "type": "number"
+    },
+    "records": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Records",
+     "type": "array"
+    }
+   },
+   "required": [
+    "tag",
+    "kind",
+    "count",
+    "per_game",
+    "recent",
+    "previous",
+    "win_lost",
+    "records"
+   ],
+   "title": "Leak",
+   "type": "object"
+  },
+  "LeakCard": {
+   "additionalProperties": false,
+   "properties": {
+    "key": {
+     "title": "Key",
+     "type": "string"
+    },
+    "fen": {
+     "title": "Fen",
+     "type": "string"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "avg_drop": {
+     "title": "Avg Drop",
+     "type": "number"
+    },
+    "score_gap": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Score Gap"
+    },
+    "you_play": {
+     "items": {
+      "$ref": "#/$defs/TreeMove"
+     },
+     "title": "You Play",
+     "type": "array"
+    },
+    "stockfish_best": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Stockfish Best"
+    },
+    "stockfish_best_san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Stockfish Best San"
+    },
+    "stockfish_eval": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Eval"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "level_best": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Level Best"
+    },
+    "level_best_san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Level Best San"
+    },
+    "level_share": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Level Share"
+    }
+   },
+   "required": [
+    "key",
+    "fen",
+    "games",
+    "avg_drop",
+    "score_gap",
+    "you_play",
+    "stockfish_best",
+    "stockfish_best_san",
+    "stockfish_eval",
+    "level_best",
+    "level_best_san",
+    "level_share"
+   ],
+   "title": "LeakCard",
+   "type": "object"
+  },
+  "Leaks": {
+   "additionalProperties": false,
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "recent_games": {
+     "title": "Recent Games",
+     "type": "integer"
+    },
+    "leaks": {
+     "items": {
+      "$ref": "#/$defs/Leak"
+     },
+     "title": "Leaks",
+     "type": "array"
+    }
+   },
+   "required": [
+    "as_of",
+    "games",
+    "recent_games",
+    "leaks"
+   ],
+   "title": "Leaks",
+   "type": "object"
+  },
+  "LossEntry": {
+   "additionalProperties": false,
+   "properties": {
+    "game": {
+     "title": "Game",
+     "type": "string"
+    },
+    "ts": {
+     "title": "Ts",
+     "type": "integer"
+    },
+    "cause": {
+     "title": "Cause",
+     "type": "string"
+    },
+    "subtype": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Subtype"
+    },
+    "flags": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Flags",
+     "type": "array"
+    },
+    "turning_ply": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Turning Ply"
+    },
+    "record": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Record"
+    }
+   },
+   "required": [
+    "game",
+    "ts",
+    "cause",
+    "subtype",
+    "flags",
+    "turning_ply",
+    "record"
+   ],
+   "title": "LossEntry",
+   "type": "object"
+  },
+  "LossInfo": {
+   "additionalProperties": false,
+   "properties": {
+    "cause": {
+     "title": "Cause",
+     "type": "string"
+    },
+    "subtype": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Subtype"
+    },
+    "flags": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Flags",
+     "type": "array"
+    },
+    "turning_ply": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Turning Ply"
+    },
+    "record": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Record"
+    }
+   },
+   "required": [
+    "cause",
+    "subtype",
+    "flags",
+    "turning_ply",
+    "record"
+   ],
+   "title": "LossInfo",
+   "type": "object"
+  },
+  "Losses": {
+   "additionalProperties": false,
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "total": {
+     "title": "Total",
+     "type": "integer"
+    },
+    "causes": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "title": "Causes",
+     "type": "object"
+    },
+    "causes_30_days": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "title": "Causes 30 Days",
+     "type": "object"
+    },
+    "losses": {
+     "items": {
+      "$ref": "#/$defs/LossEntry"
+     },
+     "title": "Losses",
+     "type": "array"
+    },
+    "thrown": {
+     "items": {
+      "$ref": "#/$defs/ThrownEntry"
+     },
+     "title": "Thrown",
+     "type": "array"
+    }
+   },
+   "required": [
+    "as_of",
+    "total",
+    "causes",
+    "causes_30_days",
+    "losses",
+    "thrown"
+   ],
+   "title": "Losses",
+   "type": "object"
+  },
+  "MistakesIndex": {
+   "additionalProperties": false,
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "records": {
+     "items": {
+      "$ref": "#/$defs/Record"
+     },
+     "title": "Records",
+     "type": "array"
+    }
+   },
+   "required": [
+    "as_of",
+    "records"
+   ],
+   "title": "MistakesIndex",
+   "type": "object"
+  },
+  "Move": {
+   "additionalProperties": false,
+   "properties": {
+    "ply": {
+     "title": "Ply",
+     "type": "integer"
+    },
+    "side": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Side",
+     "type": "string"
+    },
+    "san": {
+     "title": "San",
+     "type": "string"
+    },
+    "uci": {
+     "title": "Uci",
+     "type": "string"
+    },
+    "clock": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Clock"
+    },
+    "think": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Think"
+    },
+    "win": {
+     "title": "Win",
+     "type": "number"
+    },
+    "eval": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Eval"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "best": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Best"
+    },
+    "best_line": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Best Line",
+     "type": "array"
+    },
+    "label": {
+     "title": "Label",
+     "type": "string"
+    },
+    "accuracy": {
+     "title": "Accuracy",
+     "type": "number"
+    },
+    "phase": {
+     "enum": [
+      "opening",
+      "middlegame",
+      "endgame"
+     ],
+     "title": "Phase",
+     "type": "string"
+    },
+    "record": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Record"
+    }
+   },
+   "required": [
+    "ply",
+    "side",
+    "san",
+    "uci",
+    "clock",
+    "think",
+    "win",
+    "eval",
+    "best",
+    "best_line",
+    "label",
+    "accuracy",
+    "phase",
+    "record"
+   ],
+   "title": "Move",
+   "type": "object"
+  },
+  "OpeningRef": {
+   "additionalProperties": false,
+   "properties": {
+    "eco": {
+     "title": "Eco",
+     "type": "string"
+    },
+    "name": {
+     "title": "Name",
+     "type": "string"
+    },
+    "family": {
+     "title": "Family",
+     "type": "string"
+    },
+    "variation": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Variation"
+    },
+    "ply": {
+     "title": "Ply",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "eco",
+    "name",
+    "family",
+    "variation",
+    "ply"
+   ],
+   "title": "OpeningRef",
+   "type": "object"
+  },
+  "OpeningReport": {
+   "additionalProperties": false,
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "colour": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Colour",
+     "type": "string"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "score": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Score"
+    },
+    "families": {
+     "items": {
+      "$ref": "#/$defs/Family"
+     },
+     "title": "Families",
+     "type": "array"
+    },
+    "tree": {
+     "items": {
+      "$ref": "#/$defs/TreeNode"
+     },
+     "title": "Tree",
+     "type": "array"
+    },
+    "leaks": {
+     "items": {
+      "$ref": "#/$defs/LeakCard"
+     },
+     "title": "Leaks",
+     "type": "array"
+    },
+    "surprises": {
+     "items": {
+      "$ref": "#/$defs/Surprise"
+     },
+     "title": "Surprises",
+     "type": "array"
+    }
+   },
+   "required": [
+    "as_of",
+    "colour",
+    "games",
+    "score",
+    "families",
+    "tree",
+    "leaks",
+    "surprises"
+   ],
+   "title": "OpeningReport",
+   "type": "object"
+  },
+  "PhaseStat": {
+   "additionalProperties": false,
+   "properties": {
+    "key": {
+     "title": "Key",
+     "type": "string"
+    },
+    "moves": {
+     "title": "Moves",
+     "type": "integer"
+    },
+    "accuracy": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Accuracy"
+    },
+    "mistakes_per_game": {
+     "title": "Mistakes Per Game",
+     "type": "number"
+    }
+   },
+   "required": [
+    "key",
+    "moves",
+    "accuracy",
+    "mistakes_per_game"
+   ],
+   "title": "PhaseStat",
+   "type": "object"
+  },
+  "RatingPoint": {
+   "additionalProperties": false,
+   "properties": {
+    "ts": {
+     "title": "Ts",
+     "type": "integer"
+    },
+    "rating": {
+     "title": "Rating",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "ts",
+    "rating"
+   ],
+   "title": "RatingPoint",
+   "type": "object"
+  },
+  "Record": {
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "game": {
+     "title": "Game",
+     "type": "string"
+    },
+    "ply": {
+     "title": "Ply",
+     "type": "integer"
+    },
+    "ts": {
+     "title": "Ts",
+     "type": "integer"
+    },
+    "colour": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Colour",
+     "type": "string"
+    },
+    "fen": {
+     "title": "Fen",
+     "type": "string"
+    },
+    "san": {
+     "title": "San",
+     "type": "string"
+    },
+    "uci": {
+     "title": "Uci",
+     "type": "string"
+    },
+    "best": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Best"
+    },
+    "best_san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Best San"
+    },
+    "best_line": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Best Line",
+     "type": "array"
+    },
+    "best_line_san": {
+     "title": "Best Line San",
+     "type": "string"
+    },
+    "reply_line": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Reply Line",
+     "type": "array"
+    },
+    "reply_line_san": {
+     "title": "Reply Line San",
+     "type": "string"
+    },
+    "best_eval": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Eval"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "after_eval": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Eval"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "after_terminal": {
+     "anyOf": [
+      {
+       "enum": [
+        "white",
+        "black",
+        "draw"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "After Terminal"
+    },
+    "win_before": {
+     "title": "Win Before",
+     "type": "number"
+    },
+    "win_after": {
+     "title": "Win After",
+     "type": "number"
+    },
+    "drop": {
+     "title": "Drop",
+     "type": "number"
+    },
+    "severity": {
+     "enum": [
+      "inaccuracy",
+      "mistake",
+      "blunder"
+     ],
+     "title": "Severity",
+     "type": "string"
+    },
+    "phase": {
+     "enum": [
+      "opening",
+      "middlegame",
+      "endgame"
+     ],
+     "title": "Phase",
+     "type": "string"
+    },
+    "opening": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Opening"
+    },
+    "endgame_type": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Endgame Type"
+    },
+    "think": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Think"
+    },
+    "clock": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Clock"
+    },
+    "opp_rating": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Opp Rating"
+    },
+    "primary": {
+     "title": "Primary",
+     "type": "string"
+    },
+    "subtype": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Subtype"
+    },
+    "flags": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Flags",
+     "type": "array"
+    },
+    "tags": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Tags",
+     "type": "array"
+    },
+    "themes": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Themes",
+     "type": "array"
+    },
+    "confirmed": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Confirmed"
+    },
+    "source": {
+     "enum": [
+      "pass1",
+      "pass2"
+     ],
+     "title": "Source",
+     "type": "string"
+    },
+    "net_after": {
+     "title": "Net After",
+     "type": "integer"
+    },
+    "net_best": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Net Best"
+    },
+    "rule": {
+     "title": "Rule",
+     "type": "string"
+    },
+    "explanation": {
+     "title": "Explanation",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "game",
+    "ply",
+    "ts",
+    "colour",
+    "fen",
+    "san",
+    "uci",
+    "best",
+    "best_san",
+    "best_line",
+    "best_line_san",
+    "reply_line",
+    "reply_line_san",
+    "best_eval",
+    "after_eval",
+    "after_terminal",
+    "win_before",
+    "win_after",
+    "drop",
+    "severity",
+    "phase",
+    "opening",
+    "endgame_type",
+    "think",
+    "clock",
+    "opp_rating",
+    "primary",
+    "subtype",
+    "flags",
+    "tags",
+    "themes",
+    "confirmed",
+    "source",
+    "net_after",
+    "net_best",
+    "rule",
+    "explanation"
+   ],
+   "title": "Record",
+   "type": "object"
+  },
+  "Summary": {
+   "additionalProperties": false,
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "username": {
+     "title": "Username",
+     "type": "string"
+    },
+    "rating": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Rating"
+    },
+    "rating_goal": {
+     "title": "Rating Goal",
+     "type": "integer"
+    },
+    "goal_date": {
+     "title": "Goal Date",
+     "type": "string"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "analysed": {
+     "title": "Analysed",
+     "type": "integer"
+    },
+    "records": {
+     "title": "Records",
+     "type": "integer"
+    },
+    "losses": {
+     "title": "Losses",
+     "type": "integer"
+    },
+    "why_i_lost": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "title": "Why I Lost",
+     "type": "object"
+    },
+    "why_i_lost_30_days": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "title": "Why I Lost 30 Days",
+     "type": "object"
+    },
+    "top_leaks": {
+     "items": {
+      "$ref": "#/$defs/TopLeak"
+     },
+     "title": "Top Leaks",
+     "type": "array"
+    },
+    "thrown": {
+     "title": "Thrown",
+     "type": "integer"
+    },
+    "engine": {
+     "$ref": "#/$defs/EngineInfo"
+    }
+   },
+   "required": [
+    "as_of",
+    "username",
+    "rating",
+    "rating_goal",
+    "goal_date",
+    "games",
+    "analysed",
+    "records",
+    "losses",
+    "why_i_lost",
+    "why_i_lost_30_days",
+    "top_leaks",
+    "thrown",
+    "engine"
+   ],
+   "title": "Summary",
+   "type": "object"
+  },
+  "Surprise": {
+   "additionalProperties": false,
+   "properties": {
+    "game": {
+     "title": "Game",
+     "type": "string"
+    },
+    "ply": {
+     "title": "Ply",
+     "type": "integer"
+    },
+    "fen": {
+     "title": "Fen",
+     "type": "string"
+    },
+    "their_san": {
+     "title": "Their San",
+     "type": "string"
+    },
+    "their_share": {
+     "title": "Their Share",
+     "type": "number"
+    },
+    "explorer_games": {
+     "title": "Explorer Games",
+     "type": "integer"
+    },
+    "my_san": {
+     "title": "My San",
+     "type": "string"
+    },
+    "my_drop": {
+     "title": "My Drop",
+     "type": "number"
+    },
+    "record": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Record"
+    }
+   },
+   "required": [
+    "game",
+    "ply",
+    "fen",
+    "their_san",
+    "their_share",
+    "explorer_games",
+    "my_san",
+    "my_drop",
+    "record"
+   ],
+   "title": "Surprise",
+   "type": "object"
+  },
+  "ThinkStat": {
+   "additionalProperties": false,
+   "properties": {
+    "key": {
+     "title": "Key",
+     "type": "string"
+    },
+    "moves": {
+     "title": "Moves",
+     "type": "integer"
+    },
+    "blunder_rate": {
+     "title": "Blunder Rate",
+     "type": "number"
+    },
+    "mistake_or_worse_rate": {
+     "title": "Mistake Or Worse Rate",
+     "type": "number"
+    }
+   },
+   "required": [
+    "key",
+    "moves",
+    "blunder_rate",
+    "mistake_or_worse_rate"
+   ],
+   "title": "ThinkStat",
+   "type": "object"
+  },
+  "ThrownEntry": {
+   "additionalProperties": false,
+   "properties": {
+    "game": {
+     "title": "Game",
+     "type": "string"
+    },
+    "ts": {
+     "title": "Ts",
+     "type": "integer"
+    },
+    "result": {
+     "enum": [
+      "win",
+      "draw",
+      "loss"
+     ],
+     "title": "Result",
+     "type": "string"
+    },
+    "peak": {
+     "title": "Peak",
+     "type": "number"
+    },
+    "ply": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Ply"
+    },
+    "san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "San"
+    },
+    "drop": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Drop"
+    }
+   },
+   "required": [
+    "game",
+    "ts",
+    "result",
+    "peak",
+    "ply",
+    "san",
+    "drop"
+   ],
+   "title": "ThrownEntry",
+   "type": "object"
+  },
+  "ThrownInfo": {
+   "additionalProperties": false,
+   "properties": {
+    "peak": {
+     "title": "Peak",
+     "type": "number"
+    },
+    "ply": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Ply"
+    },
+    "san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "San"
+    },
+    "drop": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Drop"
+    }
+   },
+   "required": [
+    "peak",
+    "ply",
+    "san",
+    "drop"
+   ],
+   "title": "ThrownInfo",
+   "type": "object"
+  },
+  "TopLeak": {
+   "additionalProperties": false,
+   "properties": {
+    "tag": {
+     "title": "Tag",
+     "type": "string"
+    },
+    "kind": {
+     "title": "Kind",
+     "type": "string"
+    },
+    "count": {
+     "title": "Count",
+     "type": "integer"
+    },
+    "per_game": {
+     "title": "Per Game",
+     "type": "number"
+    },
+    "recent": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Recent"
+    },
+    "previous": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Previous"
+    },
+    "win_lost": {
+     "title": "Win Lost",
+     "type": "number"
+    }
+   },
+   "required": [
+    "tag",
+    "kind",
+    "count",
+    "per_game",
+    "recent",
+    "previous",
+    "win_lost"
+   ],
+   "title": "TopLeak",
+   "type": "object"
+  },
+  "TreeMove": {
+   "additionalProperties": false,
+   "properties": {
+    "uci": {
+     "title": "Uci",
+     "type": "string"
+    },
+    "san": {
+     "title": "San",
+     "type": "string"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "score": {
+     "title": "Score",
+     "type": "number"
+    },
+    "avg_drop": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Avg Drop"
+    }
+   },
+   "required": [
+    "uci",
+    "san",
+    "games",
+    "score",
+    "avg_drop"
+   ],
+   "title": "TreeMove",
+   "type": "object"
+  },
+  "TreeNode": {
+   "additionalProperties": false,
+   "properties": {
+    "key": {
+     "title": "Key",
+     "type": "string"
+    },
+    "fen": {
+     "title": "Fen",
+     "type": "string"
+    },
+    "my_turn": {
+     "title": "My Turn",
+     "type": "boolean"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "game_ids": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Game Ids",
+     "type": "array"
+    },
+    "score": {
+     "title": "Score",
+     "type": "number"
+    },
+    "moves": {
+     "items": {
+      "$ref": "#/$defs/TreeMove"
+     },
+     "title": "Moves",
+     "type": "array"
+    },
+    "stockfish_best": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Stockfish Best"
+    },
+    "stockfish_best_san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Stockfish Best San"
+    },
+    "stockfish_eval": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Eval"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "explorer": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/ExplorerStats"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    }
+   },
+   "required": [
+    "key",
+    "fen",
+    "my_turn",
+    "games",
+    "game_ids",
+    "score",
+    "moves",
+    "stockfish_best",
+    "stockfish_best_san",
+    "stockfish_eval",
+    "explorer"
+   ],
+   "title": "TreeNode",
+   "type": "object"
+  },
+  "Variation": {
+   "additionalProperties": false,
+   "properties": {
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "wins": {
+     "title": "Wins",
+     "type": "integer"
+    },
+    "draws": {
+     "title": "Draws",
+     "type": "integer"
+    },
+    "losses": {
+     "title": "Losses",
+     "type": "integer"
+    },
+    "score": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Score"
+    },
+    "score_vs_rest": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Score Vs Rest"
+    },
+    "win_after_opening": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Win After Opening"
+    },
+    "accuracy": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Accuracy"
+    },
+    "game_ids": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Game Ids",
+     "type": "array"
+    },
+    "variation": {
+     "title": "Variation",
+     "type": "string"
+    }
+   },
+   "required": [
+    "games",
+    "wins",
+    "draws",
+    "losses",
+    "score",
+    "score_vs_rest",
+    "win_after_opening",
+    "accuracy",
+    "game_ids",
+    "variation"
+   ],
+   "title": "Variation",
+   "type": "object"
+  }
+ },
+ "title": "Chess coach export"
+}
