@@ -115,15 +115,53 @@
      "title": "Result",
      "type": "string"
     },
+    "colour": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Colour",
+     "type": "string"
+    },
+    "opponent": {
+     "title": "Opponent",
+     "type": "string"
+    },
     "info": {
      "$ref": "#/$defs/EndgameInfo"
+    },
+    "spoiler_fen": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Spoiler Fen"
+    },
+    "spoiler_win": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Spoiler Win"
     }
    },
    "required": [
     "game",
     "ts",
     "result",
-    "info"
+    "colour",
+    "opponent",
+    "info",
+    "spoiler_fen",
+    "spoiler_win"
    ],
    "title": "EndgameGame",
    "type": "object"
@@ -203,6 +241,87 @@
     "spoiler_best_line_san"
    ],
    "title": "EndgameInfo",
+   "type": "object"
+  },
+  "EndgameTrend": {
+   "additionalProperties": false,
+   "properties": {
+    "recent": {
+     "$ref": "#/$defs/EndgameWindow"
+    },
+    "previous": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/EndgameWindow"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    }
+   },
+   "required": [
+    "recent",
+    "previous"
+   ],
+   "title": "EndgameTrend",
+   "type": "object"
+  },
+  "EndgameWindow": {
+   "additionalProperties": false,
+   "description": "A run of my endgames, by my Win% when each started (config.toml bands) and how it turned out.",
+   "properties": {
+    "endgames": {
+     "title": "Endgames",
+     "type": "integer"
+    },
+    "winning": {
+     "title": "Winning",
+     "type": "integer"
+    },
+    "converted": {
+     "title": "Converted",
+     "type": "integer"
+    },
+    "balanced": {
+     "title": "Balanced",
+     "type": "integer"
+    },
+    "held": {
+     "title": "Held",
+     "type": "integer"
+    },
+    "losing": {
+     "title": "Losing",
+     "type": "integer"
+    },
+    "saved": {
+     "title": "Saved",
+     "type": "integer"
+    },
+    "accuracy": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Accuracy"
+    }
+   },
+   "required": [
+    "endgames",
+    "winning",
+    "converted",
+    "balanced",
+    "held",
+    "losing",
+    "saved",
+    "accuracy"
+   ],
+   "title": "EndgameWindow",
    "type": "object"
   },
   "Endgames": {
@@ -994,6 +1113,16 @@
      },
      "title": "Leak Rates",
      "type": "object"
+    },
+    "endgames": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/EndgameTrend"
+      },
+      {
+       "type": "null"
+      }
+     ]
     }
    },
    "required": [
@@ -1008,7 +1137,8 @@
     "think_time",
     "time_losses",
     "rating",
-    "leak_rates"
+    "leak_rates",
+    "endgames"
    ],
    "title": "Insights",
    "type": "object"

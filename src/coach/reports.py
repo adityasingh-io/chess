@@ -285,7 +285,32 @@ def insights(cfg: Config, models: list[GameModel]) -> dict:
                         "by_month": dict(Counter(m.row["month"] for m in models if m.row["result"] == "loss" and m.row["my_code"] == "timeout"))},
         "rating": [{"ts": m.row["end_ts"], "rating": m.row["my_rating"]} for m in rated],
         "leak_rates": {"recent": rates(recent), "previous": rates(previous), "games": [len(recent), len(previous)]},
+        "endgames": endgame_trend(cfg, models),
     }
+
+
+def endgame_window(models: list[GameModel]) -> dict:
+    outcomes = Counter(m.endgame.outcome for m in models)
+    return {
+        "endgames": len(models),
+        "winning": sum(1 for m in models if m.endgame.band == "winning"),
+        "converted": outcomes["converted"],
+        "balanced": sum(1 for m in models if m.endgame.band == "balanced"),
+        "held": outcomes["held"],
+        "losing": sum(1 for m in models if m.endgame.band == "losing"),
+        "saved": outcomes["saved"],
+        "accuracy": mean(p.accuracy for m in models for p in m.plies[m.endgame.start:] if p.mine),
+    }
+
+
+def endgame_trend(cfg: Config, models: list[GameModel]) -> dict | None:
+    """My last recent_games endgames against the recent_games before them."""
+    n = cfg.analysis.insights.recent_games
+    ended = [m for m in by_time(models) if m.endgame]
+    if not ended:
+        return None
+    previous = ended[-2 * n:-n]
+    return {"recent": endgame_window(ended[-n:]), "previous": endgame_window(previous) if previous else None}
 
 
 def as_of(models: list[GameModel]) -> int:

@@ -7,7 +7,7 @@ import { Nag, Trend } from "../components/bits";
 import { useInsights, useSummary } from "../lib/data";
 import { grouped, n1, plural } from "../lib/format";
 import { FLAG, TYPE, tagName } from "../lib/names";
-import type { GroupStat } from "../types/export";
+import type { EndgameWindow, GroupStat } from "../types/export";
 
 const FEW = 5;                 // groups with fewer games are drawn faint: too few to read much into
 const OPENINGS_SHOWN = 8;
@@ -151,6 +151,7 @@ export default function Insights() {
             <MistakeRateChart data={think} />
           </section>
         </div>
+        {ins.endgames && <EndgameTrend recent={ins.endgames.recent} previous={ins.endgames.previous} />}
         <section className="card">
           <div className="card-head"><h2>By colour</h2></div>
           <GroupRows rows={colour} label="Score and accuracy by colour" />
@@ -193,6 +194,56 @@ export default function Insights() {
         </section>
       </div>
     </>
+  );
+}
+
+/** Share of a start band that ended well: converted, held or saved. */
+const share = (good: number, of: number) => (of ? (100 * good) / of : null);
+const ENDGAME_ROWS: { key: string; label: string; good: (w: EndgameWindow) => number; of: (w: EndgameWindow) => number; outcome: string }[] = [
+  { key: "converted", label: "Winning ones converted", good: (w) => w.converted, of: (w) => w.winning, outcome: "converted" },
+  { key: "held", label: "Balanced ones held", good: (w) => w.held, of: (w) => w.balanced, outcome: "held" },
+  { key: "saved", label: "Losing ones saved", good: (w) => w.saved, of: (w) => w.losing, outcome: "saved" },
+];
+
+/** My last endgames against the ones before: how often each start band ended well, and my accuracy in them. */
+function EndgameTrend({ recent, previous }: { recent: EndgameWindow; previous: EndgameWindow | null }) {
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h2>Are your endgames improving?</h2>
+        <Link to="/endgames" className="small">Endgames →</Link>
+      </div>
+      <div className="keys">
+        <span><i className="key-bar now" />Last {recent.endgames} endgames</span>
+        {previous && <span><i className="key-bar then" />The {previous.endgames} before</span>}
+      </div>
+      <p className="muted small" style={{ margin: 0 }}>By your Win% when the endgame started: 70 or more is winning, 30 or less losing.</p>
+      <div className="causes">
+        {ENDGAME_ROWS.map((r) => {
+          const now = share(r.good(recent), r.of(recent)), before = previous ? share(r.good(previous), r.of(previous)) : null;
+          return (
+            <Link key={r.key} to={`/endgames?outcome=${r.outcome}`} className="cause"
+              title={`${r.label}: ${r.good(recent)} of ${r.of(recent)} lately${previous ? `, ${r.good(previous)} of ${r.of(previous)} before` : ""}`}>
+              <span className="cname">{r.label}</span>
+              <span className="cval">
+                <b className="num">{now != null ? `${Math.round(now)}%` : "–"}</b>{" "}
+                <span className="muted num">{r.good(recent)} of {r.of(recent)}</span>
+                {before != null && <> <span className="muted num">· {Math.round(before)}% before</span></>}
+                {now != null && before != null && <> <Trend now={now} before={before} higherIsBetter /></>}
+              </span>
+              <span className="cbars" aria-hidden="true">
+                <i className="now" style={{ width: `${(now ?? 0).toFixed(1)}%` }} />
+                {before != null && <i className="then" style={{ width: `${before.toFixed(1)}%` }} />}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+      <p className="small" style={{ margin: 0 }}>
+        Accuracy in these endgames: <b className="num">{recent.accuracy != null ? n1(recent.accuracy) : "–"}</b>
+        {previous && <span className="muted"> · <span className="num">{previous.accuracy != null ? n1(previous.accuracy) : "–"}</span> before</span>}
+      </p>
+    </section>
   );
 }
 

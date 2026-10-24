@@ -1,20 +1,21 @@
 // Play it out: positions from my games played on against the in-browser Stockfish. Wins that got away
 // (the position before the move that threw each one), games I resigned or abandoned while still playable
-// (the position they ended in), and three textbook mates. Start positions and their Win% are stored pass-1
+// (the position they ended in), endgames I spoiled (the position before the spoiling move), and three
+// textbook mates. Start positions and their Win% are stored pass-1
 // facts; the other side's moves are Stockfish's, played live and never stored or shown as analysis; the
 // result is the rules' (checkmate, stalemate, repetition, fifty moves, insufficient material).
 import { Chess } from "chess.js";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useLocation, useSearchParams } from "react-router";
 import { Board } from "../components/Board";
 import { numberedLine, sideToMove, tryMove, uciParts, type Side } from "../lib/chess";
-import { useLosses } from "../lib/data";
+import { useEndgames, useLosses } from "../lib/data";
 import { moveName, n1, plural } from "../lib/format";
 import { useMoveInput } from "../lib/moveInput";
 import { useOpponent } from "../lib/opponent";
 import {
-  PLAYABLE, reached, readJson, readTally, resignedStarts, thrownStarts, WINNING, writeJson, writeTally,
-  type Kind, type Start, type Tally,
+  ENDGAME_LOSING, ENDGAME_WINNING, endgameStarts, PLAYABLE, reached, readJson, readTally, resignedStarts, thrownStarts,
+  WINNING, writeJson, writeTally, type Start, type Tally,
 } from "../lib/playout";
 
 const PAGE = 10;
@@ -26,20 +27,15 @@ export type Result = "win" | "draw" | "loss";
 type End = { result: Result; text: string };
 
 const MATES: Start[] = [
-  { id: "mate-queen", kind: "mate", fen: "8/8/8/3k4/8/8/8/Q3K3 w - - 0 1", colour: "white", title: "King and queen against king", win: null },
-  { id: "mate-rook", kind: "mate", fen: "8/8/8/3k4/8/8/8/R3K3 w - - 0 1", colour: "white", title: "King and rook against king", win: null },
-  { id: "mate-rooks", kind: "mate", fen: "8/8/8/3k4/8/8/8/R3K2R w - - 0 1", colour: "white", title: "Two rooks against king", win: null },
+  { id: "mate-queen", kind: "mate", fen: "8/8/8/3k4/8/8/8/Q3K3 w - - 0 1", colour: "white", title: "King and queen against king", win: null, need: "win" },
+  { id: "mate-rook", kind: "mate", fen: "8/8/8/3k4/8/8/8/R3K3 w - - 0 1", colour: "white", title: "King and rook against king", win: null, need: "win" },
+  { id: "mate-rooks", kind: "mate", fen: "8/8/8/3k4/8/8/8/R3K2R w - - 0 1", colour: "white", title: "Two rooks against king", win: null, need: "win" },
 ];
-const GOAL: { [k in Kind]: string } = {
-  thrown: "Checkmate Stockfish to win it.",
-  resigned: "Don't lose: a draw or a win saves it.",
-  mate: "Checkmate the lone king.",
-};
-const REACHED: { [k in Kind]: string } = {
-  thrown: "You won it again.",
-  resigned: "You saved a game you gave up.",
-  mate: "Done.",
-};
+const goal = (s: Start) =>
+  s.kind === "mate" ? "Checkmate the lone king." : s.need === "win" ? "Checkmate Stockfish to win it." : "Don't lose: a draw or a win saves it.";
+const done = (s: Start) =>
+  s.kind === "mate" ? "Done." : s.kind === "thrown" ? "You won it again." : s.kind === "resigned" ? "You saved a game you gave up."
+    : s.need === "win" ? "You converted it this time." : "You held it this time.";
 
 /** The rules' verdict on a finished game, from `me`'s side; null while it goes on. */
 export function verdict(g: Chess, me: Side): End | null {
@@ -57,12 +53,17 @@ export function verdict(g: Chess, me: Side): End | null {
 export default function PlayOut() {
   const losses = useLosses();
   const [params, setParams] = useSearchParams();
+  const { hash } = useLocation();
   const [skill, setSkillState] = useState(() => readJson<number>(SKILL_KEY, 10));
   const [tally, setTally] = useState(readTally);
+  const endgames = useEndgames();
   const thrown = thrownStarts(losses.thrown), resigned = resignedStarts(losses.losses);
-  // ?play=<id> opens one position (the dashboard and the game viewer link here).
-  const playing = [...thrown, ...resigned, ...MATES].find((s) => s.id === params.get("play")) ?? null;
+  const spoiled = endgameStarts(endgames.endgames, losses.thrown);
+  // ?play=<id> opens one position (the dashboard, the game viewer and the Endgames page link here).
+  const playing = [...thrown, ...resigned, ...spoiled, ...MATES].find((s) => s.id === params.get("play")) ?? null;
   const setPlaying = (s: Start | null) => setParams(s ? { play: s.id } : {});
+  // /play#endgames (from the Endgames page) opens at that list.
+  useEffect(() => { if (hash && !playing) document.getElementById(hash.slice(1))?.scrollIntoView?.({ block: "start" }); }, [hash, playing]);
   const setSkill = (s: number) => { setSkillState(s); writeJson(SKILL_KEY, s); };
   const record = (id: string, ok: boolean) => {
     const t = tally[id] ?? { tries: 0, reached: 0, last: 0 };
@@ -79,8 +80,8 @@ export default function PlayOut() {
       <div className="page-head">
         <h1>Play it out</h1>
         <p className="muted">
-          Positions from your games, played on against the in-browser Stockfish: wins that got away, and games you gave
-          up while they were still playable.
+          Positions from your games, played on against the in-browser Stockfish: wins that got away, games you gave
+          up while they were still playable, and endgames you spoiled.
         </p>
       </div>
       <section className="card">
@@ -97,19 +98,21 @@ export default function PlayOut() {
         what={`The position before the move that threw each win, where Stockfish had you at ${WINNING}% or more. Checkmate Stockfish to win it again.`} />
       <StartList title="Games you gave up" starts={resigned} tally={tally} onPlay={setPlaying} done="saved"
         what={`Losses you resigned or abandoned while Stockfish still had you at ${PLAYABLE}% or more, from where they ended. A draw or a win saves it.`} />
+      <StartList id="endgames" title="Endgames you spoiled" starts={spoiled} tally={tally} onPlay={setPlaying} done="redone"
+        what={`From just before the move that spoiled each one. Where Stockfish had you at ${ENDGAME_WINNING}% or more, win it; between ${ENDGAME_LOSING}% and ${ENDGAME_WINNING}%, a draw or a win holds it, unless it's also a win that got away. Ones already lost before that move are left out.`} />
       <StartList title="Mating practice" starts={MATES} tally={tally} onPlay={setPlaying} done="done"
         what="The lone king against Stockfish. Checkmate it before the fifty-move rule, without stalemating it." />
     </>
   );
 }
 
-function StartList({ title, what, starts, tally, onPlay, done }: {
-  title: string; what: string; starts: Start[]; tally: { [id: string]: Tally }; onPlay: (s: Start) => void; done: string;
+function StartList({ id, title, what, starts, tally, onPlay, done }: {
+  id?: string; title: string; what: string; starts: Start[]; tally: { [id: string]: Tally }; onPlay: (s: Start) => void; done: string;
 }) {
   const [shown, setShown] = useState(PAGE);
   const ok = starts.filter((s) => tally[s.id]?.reached).length;
   return (
-    <section className="card">
+    <section className="card" id={id}>
       <div className="card-head">
         <h2>{title}</h2>
         {starts.length > 0 && <span className="muted small">{ok} of {plural(starts.length, "position")} {done}</span>}
@@ -137,6 +140,7 @@ function StartRow({ start, tally, done, onPlay }: { start: Start; tally?: Tally;
       <span className="s">
         {start.win != null ? <>{side} · Stockfish had you at <span className="num">{n1(start.win)}%</span></> : `You're ${side}`}
         {start.thrown && <> · the game was a {start.thrown.result}</>}
+        {start.endgame && <> · {start.need === "win" ? "win it" : "hold it"} · the game was a {start.endgame.result}</>}
       </span>
       <span className="r">
         {tally?.reached ? <span className="pill due">{done}</span> : tally?.tries ? <span className="pill">tried {tally.tries}×</span> : null}
@@ -160,7 +164,7 @@ function Play({ start, skill, onEnd, onBack }: { start: Start; skill: number; on
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const finish = (e: End) => {
-    const ok = reached(start.kind, e.result);
+    const ok = reached(start.need, e.result);
     setEnd({ ...e, ok });
     onEnd(ok);
   };
@@ -214,7 +218,7 @@ function Play({ start, skill, onEnd, onBack }: { start: Start; skill: number; on
   };
 
   const input = useMoveInput(fen, myTurn, onMove);
-  const t = start.thrown, l = start.loss;
+  const t = start.thrown, l = start.loss, eg = start.endgame;
   const side = me === "white" ? "White" : "Black";
   return (
     <>
@@ -233,18 +237,19 @@ function Play({ start, skill, onEnd, onBack }: { start: Start; skill: number; on
             <p className="small" style={{ margin: 0 }}>
               Stockfish had you at <b className="num">{n1(start.win)}%</b> here (stored analysis).
               {l && " This is where you gave the game up."}
+              {eg && " This is just before the move that spoiled the endgame."}
             </p>
           )}
           {!end && (
             <p className="puzzle-task">
               <span className={`turn ${me}`} aria-hidden="true" />
-              {thinking ? "Stockfish is thinking…" : `You're ${side}, to move. ${GOAL[start.kind]}`}
+              {thinking ? "Stockfish is thinking…" : `You're ${side}, to move. ${goal(start)}`}
             </p>
           )}
           {opponent.failed && <p className="small bad-text" role="alert">The in-browser engine failed to load.</p>}
           {end && (
             <p className={`puzzle-result ${end.ok ? "solved" : "revealed"}`}>
-              {end.text}{end.ok && ` ${REACHED[start.kind]}`}
+              {end.text}{end.ok && ` ${done(start)}`}
             </p>
           )}
           {end && t && t.ply && (
@@ -256,6 +261,13 @@ function Play({ start, skill, onEnd, onBack }: { start: Start; skill: number; on
           )}
           {end && l && (
             <p className="small"><Link to={`/games/${l.game}`}>Open the game →</Link></p>
+          )}
+          {end && eg && (
+            <p className="small">
+              In the game you played <b className="san">{moveName(eg.info.spoiler_ply!, eg.info.spoiler_san ?? "?")}</b> here
+              {eg.info.spoiler_drop != null && <span className="num"> (−{n1(eg.info.spoiler_drop)} Win%)</span>}, and it ended in a {eg.result}.{" "}
+              <Link to={`/games/${eg.game}?ply=${eg.info.spoiler_ply}&compare=1`}>Open it in the game →</Link>
+            </p>
           )}
           {sans.length > 0 && (
             <p className="small san playout-moves" aria-label="Moves played">{numberedLine(start.fen, sans).join(" ")}</p>

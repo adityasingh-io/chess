@@ -10,7 +10,8 @@ import { grade, normalise, Rating, setProgress } from "../src/lib/progress";
 import { ENDGAME_TYPE, OUTCOME } from "../src/lib/names";
 import { routes } from "../src/router";
 import { Chess } from "chess.js";
-import type { Endgames, Game, GamesIndex, Insights, Leaks, Losses, OpeningReport, PuzzleSet, Repertoire, Summary } from "../src/types/export";
+import { endgameStarts } from "../src/lib/playout";
+import type { Endgames, Game, GamesIndex, Insights, Leaks, Losses, OpeningReport, PuzzleIndex, PuzzleSet, Repertoire, Summary } from "../src/types/export";
 
 const data = <T,>(p: string): T => JSON.parse(readFileSync(join(__dirname, "../public/data", p), "utf8"));
 const summary = data<Summary>("summary.json");
@@ -170,6 +171,20 @@ test("the endgame table matches the export and a cell filters the list", async (
   expect(screen.getByText(words(rook.length))).toBeTruthy();
 }, 20_000);
 
+test("Endgames → Practice: a drill per endgame type with the exported counts, and the spoiled ones to play out", async () => {
+  const index = data<PuzzleIndex>("puzzles/index.json");
+  const starts = endgameStarts(data<Endgames>("endgames.json").endgames, losses.thrown);
+  const router = await open("/endgames");
+  const rook = await screen.findByRole("link", { name: /^Rook endgames/ }, SLOW);
+  expect(rook.getAttribute("href")).toBe("/puzzles?drill=endgame_rook&from=endgames");
+  expect(within(rook).getByText(`${index.mine.endgame_rook ?? 0} of yours · ${index.lichess.endgame_rook} from Lichess`)).toBeTruthy();
+  const play = screen.getByRole("link", { name: /^Play out your spoiled endgames/ });
+  expect(within(play).getByText(`${starts.length} positions against Stockfish, ${starts.length} not yet redone`)).toBeTruthy();
+  await act(async () => { await router.navigate("/puzzles?drill=endgame_rook&from=endgames"); });
+  expect(await screen.findByRole("heading", { name: "Drill: Rook endgames" }, SLOW)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "← Back to endgames" }).getAttribute("href")).toBe("/endgames");
+}, 20_000);
+
 test("insights show the exported group scores, leak rates and time losses", async () => {
   const ins = data<Insights>("insights.json");
   await open("/insights");
@@ -187,6 +202,11 @@ test("insights show the exported group scores, leak rates and time losses", asyn
   if (recent !== previous) expect(within(hung).getByText(previous)).toBeTruthy();
   const losses = ins.time_losses as { count: number };
   expect(screen.getByText(`${losses.count} games in all`)).toBeTruthy();
+  // Endgames: how often each start band ended well, lately against before.
+  const w = ins.endgames!.recent;
+  const converted = screen.getByRole("link", { name: /^Winning ones converted/ });
+  expect(within(converted).getByText(`${w.converted} of ${w.winning}`)).toBeTruthy();
+  expect(screen.getByText(`Last ${w.endgames} endgames`)).toBeTruthy();
 }, 20_000);
 
 test("Play on: a move on a Compare board plays on from its line, and Esc goes back to the lines", async () => {
@@ -463,6 +483,22 @@ test("play it out lists stored winning and given-up positions, and ?play opens o
   expect(within(side).getByText(`${t.win_before!.toFixed(1)}%`)).toBeTruthy();
   expect(within(side).getByText(new RegExp(`You're ${t.colour === "white" ? "White" : "Black"}, to move`))).toBeTruthy();
 }, 20_000);
+
+test("play it out lists spoiled endgames before the spoiling move, each with its goal", async () => {
+  const starts = endgameStarts(data<Endgames>("endgames.json").endgames, losses.thrown);
+  await open("/play");
+  expect(await screen.findByText(`0 of ${starts.length} positions redone`, {}, SLOW)).toBeTruthy();
+  for (const need of ["win", "draw"] as const) {
+    const s = starts.find((x) => x.need === need && x.id.startsWith("endgame-"));   // the rest are also thrown wins, opened as those
+    if (!s) continue;
+    cleanup();
+    await open(`/play?play=${s.id}`);
+    const side = (await screen.findAllByText(/Stockfish had you at/, {}, SLOW))[0].closest(".puzzle-side") as HTMLElement;
+    expect(within(side).getByText(`${s.win!.toFixed(1)}%`)).toBeTruthy();
+    expect(within(side).getByText(need === "win" ? /Checkmate Stockfish to win it/ : /a draw or a win saves it/)).toBeTruthy();
+    expect(within(side).getByText(/just before the move that spoiled the endgame/)).toBeTruthy();
+  }
+}, 30_000);
 
 test("the dashboard's last game is the newest one, and ?game retries its puzzles in order", async () => {
   const g = data<GamesIndex>("games/index.json").games.find((x) => x.puzzles > 0)!;

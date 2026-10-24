@@ -54,7 +54,11 @@ export interface EndgameGame {
 game: string
 ts: number
 result: ("win" | "draw" | "loss")
+colour: ("white" | "black")
+opponent: string
 info: EndgameInfo
+spoiler_fen: (string | null)
+spoiler_win: (number | null)
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -69,6 +73,30 @@ spoiler_ply: (number | null)
 spoiler_san: (string | null)
 spoiler_drop: (number | null)
 spoiler_best_line_san: (string | null)
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "EndgameTrend".
+ */
+export interface EndgameTrend {
+recent: EndgameWindow
+previous: (EndgameWindow | null)
+}
+/**
+ * A run of my endgames, by my Win% when each started (config.toml bands) and how it turned out.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "EndgameWindow".
+ */
+export interface EndgameWindow {
+endgames: number
+winning: number
+converted: number
+balanced: number
+held: number
+losing: number
+saved: number
+accuracy: (number | null)
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -357,6 +385,7 @@ leak_rates: {
 [k: string]: number | null
 } | number[]
 }
+endgames: (EndgameTrend | null)
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema

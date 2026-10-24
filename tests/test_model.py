@@ -175,11 +175,11 @@ def test_endgame_outcomes(recorded):
             continue
         win, result, outcome = m.endgame.win_start, m.row["result"], m.endgame.outcome
         if win >= e.winning:
-            assert outcome == ("converted" if result == "win" else "spoiled")
+            assert outcome == ("converted" if result == "win" else "spoiled") and m.endgame.band == "winning"
         elif win > e.losing:
-            assert outcome == ("spoiled" if result == "loss" else "held")
+            assert outcome == ("spoiled" if result == "loss" else "held") and m.endgame.band == "balanced"
         else:
-            assert outcome == ("lost_as_expected" if result == "loss" else "saved")
+            assert outcome == ("lost_as_expected" if result == "loss" else "saved") and m.endgame.band == "losing"
 
 
 def test_endgame_material_count():

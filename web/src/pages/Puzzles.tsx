@@ -23,7 +23,7 @@ export const gradeOf = (o: Outcome) =>
 
 export default function Puzzles() {
   const [params, setParams] = useSearchParams();
-  const drill = params.get("drill"), game = params.get("game");
+  const drill = params.get("drill"), game = params.get("game"), fromEndgames = params.get("from") === "endgames";
   const tab: Tab = drill ? "drill" : game ? "game" : ((params.get("tab") as Tab) ?? "mine");
   const tag = drill ?? game ?? params.get("tag") ?? "";
   const replay = tab === "missed" ? params.get("id") ?? (params.get("all") === "1" ? "all" : null) : null;
@@ -38,7 +38,9 @@ export default function Puzzles() {
       <div className="page-head">
         <h1>{drill ? `Drill: ${tagName(drill)}` : game ? "This game's mistakes" : "Puzzles"}</h1>
         <p className="muted">
-          {drill
+          {drill && fromEndgames
+            ? "Positions from your games that start in this kind of endgame first, then Lichess puzzles of the same kind."
+            : drill
             ? "Your own positions with this mistake first, then Lichess puzzles of the same kind."
             : game ? "The positions from this game where one move was clearly best, in the order you reached them."
             : "Positions from your games where one move is clearly best, and Lichess puzzles that train the same patterns. Answers schedule each puzzle's next review."}
@@ -52,7 +54,8 @@ export default function Puzzles() {
             </button>
           ))}
         </span>
-        {drill && <Link className="small" to={`/leaks/${drill}`}>← Back to the leak</Link>}
+        {drill && (fromEndgames ? <Link className="small" to="/endgames">← Back to endgames</Link>
+          : <Link className="small" to={`/leaks/${drill}`}>← Back to the leak</Link>)}
         {game && <Link className="small" to={`/games/${game}`}>← Back to the game</Link>}
         {replay && <Link className="small" to="/puzzles?tab=missed">← Back to the missed puzzles</Link>}
       </div>

@@ -17,7 +17,7 @@ from pydantic.json_schema import models_json_schema
 from coach import schema as S
 from coach.config import Config
 from coach.model import GameModel, Ply, Record
-from coach.puzzles import lichess_puzzle, load_subset, my_puzzles
+from coach.puzzles import endgame_tags, lichess_puzzle, load_subset, my_puzzles
 from coach.reports import (
     POINTS, as_of, by_time, endgame_table, insights, leak_positions, leaks, loss_summary, opening_families,
     score, surprises, top_leaks, tree,
@@ -265,7 +265,10 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
         "endgames.json": S.Endgames(
             as_of=stamp, games=sum(1 for m in models if m.endgame),
             table={k: dict(v) for k, v in endgame_table(models).items()},
-            endgames=[S.EndgameGame(game=m.id, ts=m.row["start_ts"], result=m.row["result"], info=games[m.id].endgame)
+            endgames=[S.EndgameGame(game=m.id, ts=m.row["start_ts"], result=m.row["result"], colour=m.row["my_color"],
+                                    opponent=m.row["opp_username"], info=games[m.id].endgame,
+                                    spoiler_fen=m.endgame.spoiler.move["fen_before"] if m.endgame.spoiler else None,
+                                    spoiler_win=r1(m.endgame.spoiler.win_before) if m.endgame.spoiler else None)
                       for m in ordered if m.endgame],
         ),
         "insights.json": S.Insights(as_of=stamp, **_rounded(insights(cfg, models))),
@@ -287,8 +290,12 @@ def lichess_puzzles(cfg: Config) -> list[S.Puzzle]:
         rows = json.loads(last.read_text())["puzzles"]
     else:
         return []
-    return [S.Puzzle(**{"played_line": [], "played_line_san": [], **p, "why": solution_why(p["fen"], p["solution"])})
-            for p in rows]
+    out = []
+    for p in rows:
+        tags = [t for t in p["tags"] if not t.startswith("endgame_")]
+        out.append(S.Puzzle(**{"played_line": [], "played_line_san": [], **p, "tags": [*tags, *endgame_tags(cfg, p["fen"])],
+                               "why": solution_why(p["fen"], p["solution"])}))
+    return out
 
 
 def tag_counts(puzzles: S.PuzzleSet) -> dict[str, int]:

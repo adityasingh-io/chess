@@ -8,7 +8,7 @@
 // multi-threaded once this worker controls the page; hosts that send the headers get the same values.
 const BUILD = self.__BUILD__;
 const FILES = self.__FILES__;
-const DATA = ["summary.json", "insights.json", "losses.json", "games/index.json", "leaks.json", "puzzles/index.json", "puzzles/mine.json", "puzzles/lichess.json", "repertoire.json"];
+const DATA = ["summary.json", "insights.json", "losses.json", "games/index.json", "leaks.json", "endgames.json", "puzzles/index.json", "puzzles/mine.json", "puzzles/lichess.json", "repertoire.json"];
 const SHELL = `shell-${BUILD}`, RUNTIME = "runtime-v1";
 const scope = new URL(self.registration.scope);
 const at = (path) => new URL(path, scope).href;

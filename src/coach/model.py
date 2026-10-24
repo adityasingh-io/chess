@@ -404,6 +404,7 @@ class Endgame:
     win_start: float         # my Win% there
     outcome: str
     spoiler: Ply | None      # my endgame move with the largest Win% drop, for spoiled endgames
+    band: str = ""           # winning, balanced or losing, by win_start
 
 
 @dataclass
@@ -504,16 +505,16 @@ def _endgame(cfg: Config, model: GameModel, start: int, board: chess.Board) -> E
     win = model.my_win[start]
     result = model.row["result"]
     if win >= e.winning:
-        outcome = "converted" if result == "win" else "spoiled"
+        band, outcome = "winning", "converted" if result == "win" else "spoiled"
     elif win > e.losing:
-        outcome = "spoiled" if result == "loss" else "held"
+        band, outcome = "balanced", "spoiled" if result == "loss" else "held"
     else:
-        outcome = "lost_as_expected" if result == "loss" else "saved"
+        band, outcome = "losing", "lost_as_expected" if result == "loss" else "saved"
     spoiler = None
     if outcome == "spoiled":
         mine = [p for p in model.plies[start:] if p.mine]
         spoiler = max(mine, key=lambda p: p.drop, default=None)
-    return Endgame(start, endgame_type(board), win, outcome, spoiler)
+    return Endgame(start, endgame_type(board), win, outcome, spoiler, band)
 
 
 def think_thresholds(cfg: Config, models: list[GameModel]) -> dict[str, float]:

@@ -1,10 +1,12 @@
 // Endgames: every game that reached one, by its type and my Win% when it started, and how it turned out.
 // Spoiled endgames show the move that spoiled them and Stockfish's line, and open in the viewer there.
+// Practice: endgame puzzles by type (mine first, then Lichess's), and my spoiled endgames to play out again.
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { useEndgames, useGameSummaries, useSummary } from "../lib/data";
+import { useEndgames, useGameSummaries, useLosses, usePuzzleIndex, useSummary } from "../lib/data";
 import { day, grouped, moveName, n1, plural, sanTokens } from "../lib/format";
 import { ENDGAME_TYPE, ENDGAME_TYPE_DESC, OUTCOME, OUTCOME_DESC, OUTCOMES, RESULT_WORD } from "../lib/names";
+import { endgameStarts, readTally } from "../lib/playout";
 
 const PAGE = 20;
 const LINE_PLIES = 6;          // the rest of Stockfish's line is in the compare view
@@ -83,6 +85,7 @@ export default function Endgames() {
           Types, by the material when the endgame starts: {types.map((t) => `${ENDGAME_TYPE[t] ?? t} (${(ENDGAME_TYPE_DESC[t] ?? "").toLowerCase()})`).join(", ")}.
         </p>
       </section>
+      <Practice types={types} />
       <section className="card" aria-live="polite">
         <div className="card-head">
           <h2>{outcome === "all" ? "All endgames" : OUTCOME[outcome] ?? outcome}{type ? ` · ${ENDGAME_TYPE[type] ?? type}` : ""}</h2>
@@ -127,5 +130,47 @@ export default function Endgames() {
         )}
       </section>
     </>
+  );
+}
+
+const DRILL_TYPES = ["rook", "queen", "minor", "pawn", "mixed"];
+
+/** Endgame puzzles by type, the types my games reach most first, and the spoiled endgames to play out again. */
+function Practice({ types }: { types: string[] }) {
+  const index = usePuzzleIndex();
+  const e = useEndgames();
+  const losses = useLosses();
+  const starts = useMemo(() => endgameStarts(e.endgames, losses.thrown), [e, losses]);
+  const tally = readTally();
+  const left = starts.filter((s) => !tally[s.id]?.reached).length;
+  const count = (tag: string) => (index.mine[tag] ?? 0) + (index.lichess[tag] ?? 0);
+  const order = [...types, ...DRILL_TYPES.filter((t) => !types.includes(t))].filter((t) => count(`endgame_${t}`));
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Practice</h2></div>
+      <p className="muted small" style={{ margin: 0 }}>
+        Puzzles that start in each type of endgame: your own positions first, then Lichess puzzles. Answers schedule each
+        puzzle's next review, as on the Puzzles page.
+      </p>
+      <div className="rows">
+        {order.map((t) => {
+          const tag = `endgame_${t}`, mine = index.mine[tag] ?? 0;
+          return (
+            <Link key={t} className="row" to={`/puzzles?drill=${tag}&from=endgames`}>
+              <span className="t">{ENDGAME_TYPE[t] ?? t} endgames</span>
+              <span className="s num">{grouped(mine)} of yours · {grouped(index.lichess[tag] ?? 0)} from Lichess</span>
+              <span className="r" aria-hidden="true">›</span>
+            </Link>
+          );
+        })}
+        {starts.length > 0 && (
+          <Link className="row" to="/play#endgames">
+            <span className="t">Play out your spoiled endgames</span>
+            <span className="s">{plural(starts.length, "position")} against Stockfish, {grouped(left)} not yet redone</span>
+            <span className="r" aria-hidden="true">›</span>
+          </Link>
+        )}
+      </div>
+    </section>
   );
 }

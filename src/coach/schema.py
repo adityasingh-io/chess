@@ -345,7 +345,11 @@ class EndgameGame(Model):
     game: str
     ts: int
     result: Result
+    colour: Colour
+    opponent: str
     info: EndgameInfo
+    spoiler_fen: str | None    # spoiled: the position before the spoiling move (full FEN)
+    spoiler_win: float | None  # and my Win% there (pass 1)
 
 
 class Endgames(Model):
@@ -381,6 +385,23 @@ class RatingPoint(Model):
     rating: int
 
 
+class EndgameWindow(Model):
+    """A run of my endgames, by my Win% when each started (config.toml bands) and how it turned out."""
+    endgames: int
+    winning: int               # started winning
+    converted: int             # and won
+    balanced: int
+    held: int                  # and drew or won
+    losing: int
+    saved: int                 # and drew or won
+    accuracy: float | None     # my move accuracy in those endgames
+
+
+class EndgameTrend(Model):
+    recent: EndgameWindow      # my last recent_games endgames
+    previous: EndgameWindow | None   # the recent_games before them
+
+
 class Insights(Model):
     as_of: int
     by_colour: list[GroupStat]
@@ -394,6 +415,7 @@ class Insights(Model):
     time_losses: dict[str, int | dict[str, int]]
     rating: list[RatingPoint]
     leak_rates: dict[str, dict[str, float | None] | list[int]]
+    endgames: EndgameTrend | None
 
 
 class TopLeak(Model):

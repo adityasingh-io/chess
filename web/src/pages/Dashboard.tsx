@@ -1,8 +1,8 @@
 import { Link } from "react-router";
 import { RatingChart } from "../components/charts";
 import { Trend } from "../components/bits";
-import { readTally, resignedId, resignedStarts, thrownId, thrownStarts } from "../lib/playout";
-import { useGamesIndex, useGameSummaries, useInsights, useLeaks, useLosses, usePuzzleIndex, useSummary } from "../lib/data";
+import { endgameStarts, readTally, resignedId, resignedStarts, thrownId, thrownStarts } from "../lib/playout";
+import { useEndgames, useGamesIndex, useGameSummaries, useInsights, useLeaks, useLosses, usePuzzleIndex, useSummary } from "../lib/data";
 import { dueIds } from "../lib/drill";
 import { dueLines, newLines, useLines } from "../lib/lines";
 import { streak, useProgress } from "../lib/progress";
@@ -69,7 +69,9 @@ function Training() {
   const top = s.top_leaks.find((l) => (index.mine[l.tag] ?? 0) + (index.lichess[l.tag] ?? 0) > 0);
   const tally = readTally();
   const losses = useLosses();
-  const toPlay = [...thrownStarts(losses.thrown), ...resignedStarts(losses.losses)].filter((t) => !tally[t.id]?.reached).length;
+  const endgames = useEndgames();
+  const starts = [...thrownStarts(losses.thrown), ...resignedStarts(losses.losses), ...endgameStarts(endgames.endgames, losses.thrown)];
+  const toPlay = new Set(starts.filter((t) => !tally[t.id]?.reached).map((t) => t.id)).size;
   const { today, days } = streak(p);
   return (
     <section className="card span-2" aria-label="Today's training">
@@ -104,7 +106,7 @@ function Training() {
         <Link to="/play" className="train">
           <span className="label">Play it out</span>
           <b className="num">{toPlay}</b>
-          <span className="muted small">wins that got away and games you gave up, to play on</span>
+          <span className="muted small">wins that got away, games you gave up and endgames you spoiled, to play on</span>
         </Link>
       </div>
     </section>

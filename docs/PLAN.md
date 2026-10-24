@@ -137,16 +137,22 @@ this file wins.
   families with their variations, leak cards (each can show itself in the tree) and surprises, which open in
   Compare at my reply.
 - **Endgames** (Phase 4): a type × outcome table whose cells filter the list below. Spoiled endgames open
-  in Compare at the spoiling move; the others at the endgame's first move.
+  in Compare at the spoiling move; the others at the endgame's first move. *Practice* (added 2026-10-25):
+  a drill per endgame type (`/puzzles?drill=endgame_<type>`: up to five of my puzzles that start in that
+  type of endgame, then Lichess ones), and a link to the spoiled ones in Play it out. A puzzle's endgame
+  tag is measured from its start position with the same rule and types as games (`endgame_pawn`, `_rook`,
+  `_minor`, `_queen`, `_mixed`).
 - **Insights** (Phase 4): rating, leak rates for the last 20 games against the 20 before, accuracy and
   mistakes by phase, mistake share by think time, score and accuracy by colour, previous result, opponent
   rating, game length (in moves, from the exported ply buckets), hour and opening, and time losses per
-  month. Groups under 5 games are drawn faint.
+  month. Groups under 5 games are drawn faint. *Are your endgames improving?* (added 2026-10-25): for my
+  last 20 endgames against the 20 before, the share of winning starts converted, balanced ones held and
+  losing ones saved (the Endgames bands), and my accuracy from the endgame's first move on.
 - **Phone navigation** (changed in Phase 5): the bottom bar holds the training loop, Home, Leaks, Puzzles,
   Games and More; More lists Openings, the repertoire trainer, Endgames, Insights and Settings. The top bar
   on wider screens shows every page.
-- **Puzzles** (Phase 5): from my games (`puzzles/mine.json`, 264) and a Lichess subset
-  (`puzzles/lichess.json`, about 4,700), with `puzzles/index.json` counting each set per tag so pages can
+- **Puzzles** (Phase 5): from my games (`puzzles/mine.json`, 268) and a Lichess subset
+  (`puzzles/lichess.json`, about 5,200), with `puzzles/index.json` counting each set per tag so pages can
   offer a drill without loading the sets. My puzzles start before my mistake; their solutions are
   Stockfish's pass-2 line, extended while my move stays clearly best (gap ≥ 20), up to 6 plies, ending on
   my move; missed-win puzzles use the human-findable line. A wrong move at a step where Stockfish's move
@@ -154,7 +160,8 @@ this file wins.
   after their first move. Selection: rated 400–1400, popularity ≥ 80, at least 500 plays; per theme a
   quota weighted by how often my records carry the tags that map to it (at least 150 each), plus 20% by my
   six most played families' `OpeningTags`; inside each group the most popular first, spread over 100-point
-  rating bands. Tags stay hidden until a puzzle is over (they name the motif).
+  rating bands. On top, at least 100 of each Lichess endgame theme (pawn, rook, queen, queen and rook,
+  bishop, knight; `lichess_endgame_min`), so every endgame type has a drill. Tags stay hidden until a puzzle is over (they name the motif).
 - **Sessions:** ten puzzles. Due reviews first (longest overdue first), then puzzles never tried; my own
   newest game first, Lichess ones nearest my puzzle level (Elo-style, starts at 900, K = 40, moved only by
   Lichess puzzles). A leak's "Drill these" takes up to five of my own puzzles with that tag, then Lichess
@@ -199,22 +206,27 @@ this file wins.
   (`supabase/migrations/0001_progress.sql`). A sync pulls, merges and pushes; it runs at start, when the
   device comes back online and five seconds after a change. Setup steps: [DEPLOY.md](DEPLOY.md).
 - **Installable and offline:** a web manifest and a service worker written at build time. Install caches
-  the app shell, every built file and the training data (summary, games index, leaks, puzzles,
-  repertoire). Pages and data are network-first with the cache as fallback; built assets and engine files
+  the app shell, every built file and the training data (summary, insights, losses, games index, leaks,
+  endgames, puzzles, repertoire). Pages and data are network-first with the cache as fallback; built assets and engine files
   are cache-first.
 - **Play it out** (`/play`, added after Phase 6 from what the data shows: 174 games reached 80% and
-  weren't won, 155 of them lost; 47 of 303 losses were resigned or abandoned at 40% or more). Three lists,
+  weren't won, 155 of them lost; 47 of 303 losses were resigned or abandoned at 40% or more). Four lists,
   each played on against the in-browser Stockfish at full strength or its own Skill Level 10 or 3:
   - *Wins that got away:* the position before the move that threw each win, when my stored Win% there is
     at least 80. Goal: a win.
   - *Games you gave up:* the position each `gave_up` loss ended in (Stockfish moves first if the game ended
     on its turn). Goal: not losing, so a draw or a win.
+  - *Endgames you spoiled* (added 2026-10-25): the position before each spoiling move, when my stored
+    Win% there is above 30. Goal: a win from 70 or more, else a draw or a win; a position that is also a
+    win that got away is the same start, with that list's goal. Opened from Endgames → Practice
+    (`/play#endgames`).
   - *Mating practice:* queen, rook and two rooks against a lone king. Goal: a win.
 
   Stockfish's moves are played, never shown as analysis or stored. The rules decide the result
   (checkmate, stalemate, threefold repetition, fifty moves, insufficient material). Tries and goals
   reached stay on the device. The viewer links here from a thrown win and from a game given up;
-  `losses.json` carries each start position and its Win%.
+  `losses.json` carries each start position and its Win%, `endgames.json` the spoiled endgames' (each
+  spoiled game's position before the spoiling move and my Win% there).
 - **Last game and retrying a game:** the dashboard shows the newest game (result, accuracy, label counts,
   why I lost) with links to review it, retry its mistakes (`/puzzles?game=<id>`: my puzzles from that game
   in move order), and play its thrown win again or play on from where I gave it up. Game summaries and game files carry their puzzle count.

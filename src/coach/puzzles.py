@@ -29,7 +29,7 @@ from rich.console import Console
 from coach import puzzledb
 from coach.analysis import gap
 from coach.config import Config
-from coach.model import GameModel, Record, best_line
+from coach.model import GameModel, Record, best_line, endgame_type, is_endgame
 
 # My tags and the Lichess themes that train the same thing (BRIEF.md mapping; mates for both mate types).
 MATES = ["mateIn1", "mateIn2", "mateIn3", "backRankMate"]
@@ -50,6 +50,8 @@ TAG_THEMES: dict[str, list[str]] = {
 # Flags that only label Lichess puzzles (for filtering); they don't pick any.
 FLAG_THEMES = {"opening": "opening", "endgame": "endgame"}
 BUCKET_THEMES = ["hangingPiece", *MOTIFS, *MATES]
+# Picked on top of those (lichess_endgame_min each), so every type of endgame has puzzles to drill.
+ENDGAME_THEMES = ["pawnEndgame", "rookEndgame", "queenEndgame", "queenRookEndgame", "bishopEndgame", "knightEndgame"]
 
 
 def legal_prefix(fen: str, ucis: list[str]) -> list[str]:
@@ -97,6 +99,13 @@ def my_solution(cfg: Config, r: Record, evals2: dict[str, dict]) -> tuple[list[s
     return line[:end], [True] * ((end + 1) // 2)
 
 
+def endgame_tags(cfg: Config, fen: str) -> list[str]:
+    """`endgame_<type>` when the puzzle starts in an endgame, by the same material rules as the Endgames page."""
+    if not is_endgame(fen, cfg.analysis.phases.endgame_non_pawn):
+        return []
+    return [f"endgame_{endgame_type(chess.Board(fen))}"]
+
+
 def my_puzzles(cfg: Config, models: list[GameModel], evals2: dict[str, dict]) -> list[dict]:
     out = []
     for m in models:
@@ -110,7 +119,8 @@ def my_puzzles(cfg: Config, models: list[GameModel], evals2: dict[str, dict]) ->
             played = legal_prefix(fen, [r.ply.move["uci"], *r.reply_line])
             out.append(dict(
                 id=f"m-{r.id}", source="mine", fen=fen, last_move=previous.move["uci"] if previous else None,
-                solution=solution, solution_san=sans(fen, solution), unique=unique, tags=r.tags, themes=r.themes,
+                solution=solution, solution_san=sans(fen, solution), unique=unique, tags=[*r.tags, *endgame_tags(cfg, fen)],
+                themes=r.themes,
                 rating=None, game=m.id, ply=r.ply.number, played_san=r.ply.move["san"], drop=round(r.ply.drop, 1),
                 played_line=played, played_line_san=sans(fen, played),
                 opening=m.opening.family if m.opening else None, url=None,
@@ -131,14 +141,15 @@ def lichess_tags(themes: Iterable[str]) -> list[str]:
 
 
 def quotas(cfg: Config, records: list[Record]) -> tuple[dict[str, int], int]:
-    """Puzzles per theme (at least theme_min, the rest shared by how often my records match the theme)
-    and the number picked by opening."""
+    """Puzzles per theme (at least theme_min, the rest shared by how often my records match the theme, then
+    endgame_min of each endgame theme on top) and the number picked by opening."""
     p = cfg.puzzles
     weight = Counter(t for r in records for t in r.themes if t in BUCKET_THEMES)
     by_opening = round(p.lichess_count * p.lichess_opening_share)
     rest = max(0, p.lichess_count - by_opening - p.lichess_theme_min * len(BUCKET_THEMES))
     total = sum(weight.values()) or 1
-    return {t: p.lichess_theme_min + round(rest * weight[t] / total) for t in BUCKET_THEMES}, by_opening
+    mine = {t: p.lichess_theme_min + round(rest * weight[t] / total) for t in BUCKET_THEMES}
+    return {**mine, **{t: p.lichess_endgame_min for t in ENDGAME_THEMES}}, by_opening
 
 
 def top_families(models: list[GameModel], n: int) -> list[str]:

@@ -14,7 +14,12 @@ export const FLAG: { [tag: string]: string } = {
   threw_away_win: "Threw away a win", opening: "In the opening", endgame: "In the endgame",
   fast: "Fast blunder", time_trouble: "In time trouble", after_loss: "Right after a loss",
 };
-const NAME: { [tag: string]: string } = { ...TYPE, ...SUB, ...FLAG };
+// Puzzles that start in an endgame, by its type (the Endgames page's types, from the material on the board).
+export const ENDGAME_TAG: { [tag: string]: string } = {
+  endgame_pawn: "Pawn endgames", endgame_rook: "Rook endgames", endgame_minor: "Minor-piece endgames",
+  endgame_queen: "Queen endgames", endgame_mixed: "Mixed endgames",
+};
+const NAME: { [tag: string]: string } = { ...TYPE, ...SUB, ...FLAG, ...ENDGAME_TAG };
 export const tagName = (tag: string) => NAME[tag] ?? tag.replace(/_/g, " ");
 
 export const DESC: { [tag: string]: string } = {
@@ -37,6 +42,11 @@ export const DESC: { [tag: string]: string } = {
   fast: "A mistake or blunder played faster than 3 out of 4 of your moves at that time control.",
   time_trouble: "Your clock was below 10% of the starting time.",
   after_loss: "The game started within 30 minutes of a lost game ending.",
+  endgame_pawn: "The puzzle starts in an endgame with kings and pawns only.",
+  endgame_rook: "The puzzle starts in an endgame with rooks and pawns.",
+  endgame_minor: "The puzzle starts in an endgame with knights or bishops and pawns.",
+  endgame_queen: "The puzzle starts in an endgame with queens on the board.",
+  endgame_mixed: "The puzzle starts in an endgame with any other mix of pieces.",
 };
 
 export const KIND_TITLE = { primary: "What went wrong", subtype: "Tactic patterns", flag: "When it happens" } as const;

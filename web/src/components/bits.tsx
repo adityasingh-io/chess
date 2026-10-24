@@ -3,9 +3,9 @@ import type { Peek } from "./Board";
 import { peekProps, type PeekControl } from "./RefText";
 
 /** Per-game trend: count in the last N games against the N before. */
-export function Trend({ now, before }: { now: number; before: number }) {
-  const cls = now < before ? "better" : now > before ? "worse" : "flat";
-  const text = cls === "better" ? "↓ fewer" : cls === "worse" ? "↑ more" : "= same";
+export function Trend({ now, before, higherIsBetter = false }: { now: number; before: number; higherIsBetter?: boolean }) {
+  const cls = now === before ? "flat" : (now > before) === higherIsBetter ? "better" : "worse";
+  const text = now === before ? "= same" : higherIsBetter ? (now > before ? "↑ up" : "↓ down") : now < before ? "↓ fewer" : "↑ more";
   return <span className={`trend ${cls}`}>{text}</span>;
 }
 

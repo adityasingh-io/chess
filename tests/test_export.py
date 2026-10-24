@@ -39,6 +39,32 @@ def test_losses_cover_every_loss(recorded):
     assert losses.total == lost == sum(losses.causes.values()) == len(losses.losses)
 
 
+def test_spoiled_endgames_start_before_the_spoiling_move(recorded):
+    r = recorded
+    built = build(r.cfg, r.models, len(r.games), r.evals1, r.evals2, {})
+    by_id = {m.id: m for m in r.models}
+    entries = built.files["endgames.json"].endgames
+    assert entries and any(e.spoiler_fen for e in entries)
+    for e in entries:
+        m = by_id[e.game]
+        assert e.colour == m.row["my_color"] and e.opponent == m.row["opp_username"]
+        if e.info.outcome == "spoiled" and e.info.spoiler_ply:
+            ply = m.plies[e.info.spoiler_ply - 1]
+            assert ply.mine and e.spoiler_fen == ply.move["fen_before"] and e.spoiler_win == round(ply.win_before, 1)
+        else:
+            assert e.spoiler_fen is None and e.spoiler_win is None
+
+
+def test_endgame_trend_counts_the_latest_endgames(recorded):
+    r = recorded
+    trend = build(r.cfg, r.models, len(r.games), r.evals1, r.evals2, {}).files["insights.json"].endgames
+    ended = sorted((m for m in r.models if m.endgame), key=lambda m: m.row["start_ts"])[-r.cfg.analysis.insights.recent_games:]
+    w = trend.recent
+    assert w.endgames == len(ended) == w.winning + w.balanced + w.losing
+    assert w.converted == sum(m.endgame.outcome == "converted" for m in ended) <= w.winning
+    assert w.held <= w.balanced and w.saved <= w.losing
+
+
 def test_explanations_use_stored_moves(recorded):
     r = recorded
     built = build(r.cfg, r.models, len(r.games), r.evals1, r.evals2, {})

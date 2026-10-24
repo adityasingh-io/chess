@@ -202,6 +202,7 @@ class Puzzles:
     lichess_theme_min: int
     lichess_opening_share: float
     lichess_families: int
+    lichess_endgame_min: int
 
 
 @dataclass(frozen=True)

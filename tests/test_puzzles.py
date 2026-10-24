@@ -8,7 +8,7 @@ from pathlib import Path
 import chess
 
 from coach.analysis import gap
-from coach.puzzles import lichess_puzzle, lichess_tags, my_puzzles, select
+from coach.puzzles import ENDGAME_THEMES, BUCKET_THEMES, endgame_tags, lichess_puzzle, lichess_tags, my_puzzles, quotas, select
 from coach.repertoire import line_id, named_line, read_pgn
 
 PUZZLES = json.loads((Path(__file__).parent / "fixtures" / "puzzles.json").read_text())["puzzles"]
@@ -52,6 +52,23 @@ def test_lichess_puzzle_starts_after_the_first_move():
     assert p["fen"] == board.fen() and p["last_move"] == moves[0] and p["solution"] == moves[1:]
     assert p["id"] == f"l-{row['PuzzleId']}" and p["url"].endswith(row["PuzzleId"])
     assert "discovered_attack" in p["tags"] and "tactic" in p["tags"]
+
+
+def test_endgame_tags_by_the_material_on_the_board(recorded):
+    cfg = recorded.cfg
+    assert endgame_tags(cfg, "8/5k2/3r4/8/8/2R5/2K5/8 w - - 0 1") == ["endgame_rook"]
+    assert endgame_tags(cfg, "8/5k2/3p4/8/8/2P5/2K5/8 w - - 0 1") == ["endgame_pawn"]
+    assert endgame_tags(cfg, "r3k3/8/8/8/8/8/8/R2QK3 w - - 0 1") == []   # White has 14 points of pieces
+    for p in my_puzzles(cfg, recorded.models, recorded.evals2):
+        assert [t for t in p["tags"] if t.startswith("endgame_")] == endgame_tags(cfg, p["fen"])
+
+
+def test_endgame_themes_are_picked_on_top(recorded):
+    cfg = recorded.cfg
+    quota, _ = quotas(cfg, [r for m in recorded.models for r in m.records])
+    assert {t: quota[t] for t in ENDGAME_THEMES} == {t: cfg.puzzles.lichess_endgame_min for t in ENDGAME_THEMES}
+    # The themes my mistakes match still share lichess_count between them and the openings.
+    assert sum(quota[t] for t in BUCKET_THEMES) <= cfg.puzzles.lichess_count
 
 
 def test_lichess_tags_follow_the_mapping():
