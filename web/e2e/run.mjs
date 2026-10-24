@@ -79,6 +79,11 @@ try {
     { path: "/games", name: "games", ready: ".game-row" },
     { path: `/games/${LONG_GAME}`, name: "viewer", ready: ".moves .mv" },
     { path: `/games/${LONG_GAME}?ply=${longGame.records[0].ply}&compare=1`, name: "compare", ready: ".cmp-side .board" },
+    { path: "/openings/white", name: "openings-white", ready: ".tree-board .board" },
+    { path: "/openings/black", name: "openings-black", ready: ".tree-board .board" },
+    { path: "/endgames", name: "endgames", ready: ".eg" },
+    { path: "/insights", name: "insights", ready: ".grows" },
+    { path: "/more", name: "more", ready: ".rows" },
   ];
   for (const theme of ["dark", "light"]) {
     for (const width of [390, 1280]) {
@@ -124,6 +129,28 @@ try {
   const recentLosses = Object.values(summary.why_i_lost_30_days).reduce((a, b) => a + b, 0);
   const keyText = await page.textContent(".keys");
   check("dashboard: 30-day loss count matches", keyText.includes(`(${recentLosses} `), keyText);
+  for (const colour of ["white", "black"]) {
+    const report = data(`openings/${colour}.json`);
+    await page.goto(`${base}/openings/${colour}`);
+    await page.waitForSelector(".tree-info .facts");
+    const facts = await page.textContent(".tree-info .facts");
+    check(`openings ${colour}: root games and score match`, facts.includes(`${report.tree[0].games} games`) &&
+      facts.includes(`${report.tree[0].score.toFixed(1)}%`), facts);
+    const fams = await page.$$eval(".fam", (els) => els.length);
+    check(`openings ${colour}: every family listed`, fams === report.families.length, `${fams} vs ${report.families.length}`);
+    const leaks = await page.$$eval(".positions .pos", (els) => els.length);
+    check(`openings ${colour}: every leak card shown`, leaks === report.leaks.length, `${leaks} vs ${report.leaks.length}`);
+  }
+  const endgames = data("endgames.json");
+  await page.goto(`${base}/endgames`);
+  await page.waitForSelector(".eg");
+  const all = await page.textContent(".eg tr.total td:last-child");
+  check("endgames: total matches", Number(all) === endgames.endgames.length, `${all} vs ${endgames.endgames.length}`);
+  const insights = data("insights.json");
+  await page.goto(`${base}/insights`);
+  await page.waitForSelector(".grows");
+  const lost = await page.textContent("text=games in all");
+  check("insights: time-loss count matches", lost.includes(`${insights.time_losses.count} games`), lost);
 
   // The long game: step through every ply with the keyboard and time each step until its frame is painted
   // (a rAF callback runs before the paint, a task queued from it runs after).

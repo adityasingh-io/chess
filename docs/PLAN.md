@@ -96,6 +96,20 @@ this file wins.
 - **One set of arrows:** ◀ ▶ ⏮ ⏭ and the arrow keys step whatever the board shows: the game, the compared
   lines, or the moves played in Explore (where ◀ takes a move back and ▶ plays it again). Esc goes back to
   the game.
+- **Openings** (Phase 4): one tree per colour, the line kept in the URL (`?line=d2d4,d7d5`). Each position
+  shows what I play (games, score, average Win% change), Stockfish's best with its score, what Lichess
+  players rated 1000–1399 in rapid choose, and the games that reached it; each game opens in the viewer at
+  that position (`?pos=`, matched by the first four FEN fields). ▶ follows my most played move. Below it:
+  families with their variations, leak cards (each can show itself in the tree) and surprises, which open in
+  Compare at my reply.
+- **Endgames** (Phase 4): a type × outcome table whose cells filter the list below. Spoiled endgames open
+  in Compare at the spoiling move; the others at the endgame's first move.
+- **Insights** (Phase 4): rating, leak rates for the last 20 games against the 20 before, accuracy and
+  mistakes by phase, mistake share by think time, score and accuracy by colour, previous result, opponent
+  rating, game length (in moves, from the exported ply buckets), hour and opening, and time losses per
+  month. Groups under 5 games are drawn faint.
+- **Phone navigation:** the bottom bar holds five tabs (Home, Leaks, Games, Openings, More); More lists
+  Endgames and Insights. The top bar on wider screens shows every page.
 - **Exports are committed.** The `.gitignore` rule `data/` also matched `web/public/data`, so Phase 2's
   exports never reached git. It is now `/data/`.
 

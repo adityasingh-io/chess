@@ -8,7 +8,7 @@ const ICON = {
   leak: "M12 3c3 4.2 6 7.6 6 11a6 6 0 0 1-12 0c0-3.4 3-6.8 6-11z",
   games: "M4 4h16v16H4zM4 12h16M12 4v16",
   tree: "M6 3v18M6 9c6 0 10 2 10 6v6M6 9c3 0 5-2 5-6",
-  puzzle: "M12 3a9 9 0 1 0 0 18 9 9 0 1 0 0-18zM12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8z",
+  more: "M5 12h.01M12 12h.01M19 12h.01",
 };
 const Icon = ({ d }: { d: string }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -16,29 +16,40 @@ const Icon = ({ d }: { d: string }) => (
   </svg>
 );
 
-// Openings and puzzles arrive in later phases; their tabs show where they will go.
-const TABS = [
-  { to: "/", short: "Home", long: "Dashboard", icon: ICON.home, end: true },
-  { to: "/leaks", short: "Leaks", long: "Leaks", icon: ICON.leak },
-  { to: "/games", short: "Games", long: "Games", icon: ICON.games },
-  { later: "Arrives in phase 4", short: "Openings", long: "Openings", icon: ICON.tree },
-  { later: "Arrives in phase 5", short: "Puzzles", long: "Puzzles", icon: ICON.puzzle },
+// The top bar has room for every section; the phone's bottom bar keeps four and puts the rest under More.
+// Puzzles arrive in phase 5; its tab shows where it will go.
+type Tab = { to?: string; long: string; end?: boolean; later?: string };
+const TOP: Tab[] = [
+  { to: "/", long: "Dashboard", end: true }, { to: "/leaks", long: "Leaks" }, { to: "/games", long: "Games" },
+  { to: "/openings", long: "Openings" }, { to: "/endgames", long: "Endgames" }, { to: "/insights", long: "Insights" },
+  { later: "Arrives in phase 5", long: "Puzzles" },
+];
+const BOTTOM = [
+  { to: "/", short: "Home", icon: ICON.home, end: true }, { to: "/leaks", short: "Leaks", icon: ICON.leak },
+  { to: "/games", short: "Games", icon: ICON.games }, { to: "/openings", short: "Openings", icon: ICON.tree },
+  { to: "/more", short: "More", icon: ICON.more, also: ["/endgames", "/insights"] },
+];
+export const MORE = [
+  { to: "/endgames", name: "Endgames", what: "How your endgames turn out, by type, and the moves that spoiled them" },
+  { to: "/insights", name: "Insights", what: "Score and accuracy by colour, opponent, time of day and more; think time; trends" },
 ];
 
-function Tabs({ top }: { top: boolean }) {
-  return TABS.map((t) =>
-    t.to ? (
-      <NavLink key={t.long} to={t.to} end={t.end}>
-        {!top && <Icon d={t.icon} />}
-        {top ? t.long : t.short}
-      </NavLink>
-    ) : (
-      <span key={t.long} className="later" title={t.later} aria-disabled="true">
-        {!top && <Icon d={t.icon} />}
-        {top ? t.long : t.short}
-      </span>
-    ),
-  );
+function TopTabs() {
+  return TOP.map((t) => t.to ? (
+    <NavLink key={t.long} to={t.to} end={t.end}>{t.long}</NavLink>
+  ) : (
+    <span key={t.long} className="later" title={t.later} aria-disabled="true">{t.long}</span>
+  ));
+}
+
+function BottomTabs() {
+  const { pathname } = useLocation();
+  return BOTTOM.map((t) => (
+    <NavLink key={t.short} to={t.to} end={t.end}
+      className={({ isActive }) => (isActive || t.also?.some((p) => pathname.startsWith(p)) ? "active" : "")}>
+      <Icon d={t.icon} />{t.short}
+    </NavLink>
+  ));
 }
 
 function Who() {
@@ -95,7 +106,7 @@ export function AppShell() {
           <Link className="brand" to="/">
             <span className="brand-mark" aria-hidden="true"><i /><i /><i /><i /></span>Coach
           </Link>
-          <nav className="tabs-top" aria-label="Sections"><Tabs top /></nav>
+          <nav className="tabs-top" aria-label="Sections"><TopTabs /></nav>
           <Boundary fallback={<span className="who" />}><Suspense fallback={<span className="who" />}><Who /></Suspense></Boundary>
           <ThemeButton />
         </div>
@@ -107,7 +118,7 @@ export function AppShell() {
           </Suspense>
         </Boundary>
       </main>
-      <nav className="tabbar" aria-label="Sections"><Tabs top={false} /></nav>
+      <nav className="tabbar" aria-label="Sections"><BottomTabs /></nav>
       <ScrollRestoration />
     </>
   );

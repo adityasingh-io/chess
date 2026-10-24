@@ -4,9 +4,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
+import { posKey, replay } from "../src/lib/chess";
 import { evalFor, sanTokens } from "../src/lib/format";
+import { ENDGAME_TYPE, OUTCOME } from "../src/lib/names";
 import { routes } from "../src/router";
-import type { Game, Leaks, Losses, Summary } from "../src/types/export";
+import type { Endgames, Game, Insights, Leaks, Losses, OpeningReport, Summary } from "../src/types/export";
 
 const data = <T,>(p: string): T => JSON.parse(readFileSync(join(__dirname, "../public/data", p), "utf8"));
 const summary = data<Summary>("summary.json");
@@ -101,4 +103,60 @@ test("a leak position steps through either line", async () => {
   expect(within(chips()).getByRole("button", { pressed: true }).textContent).toBe(tokens[1]);
   fireEvent.click(within(card).getByRole("button", { name: "Stockfish's best" }));
   expect(within(chips()).queryByRole("button", { pressed: true })).toBeNull();
+}, 20_000);
+
+const pctText = (x: number | null) => (x == null ? "–" : `${x.toFixed(1)}%`);
+
+test("the opening tree shows the exported counts and steps into a child position", async () => {
+  const report = data<OpeningReport>("openings/white.json");
+  const root = report.tree[0];
+  await open("/openings/white");
+  const tree = await screen.findByRole("region", { name: "Your opening tree as White" }, SLOW);
+  expect(within(tree).getByText(`${root.games} games`)).toBeTruthy();
+  expect(within(tree).getByText(`your score ${pctText(root.score)}`)).toBeTruthy();
+  // The first row of the moves table is my most played move with its games and score.
+  const top = root.moves[0];
+  const row = within(tree).getAllByRole("row").find((r) => r.textContent?.includes(top.san))!;
+  expect(within(row).getByText(String(top.games))).toBeTruthy();
+  expect(within(row).getByText(pctText(top.score))).toBeTruthy();
+  // ▶ follows my most played move; the position after it is a tree node with its own count.
+  await act(async () => { fireEvent.click(within(tree).getByRole("button", { name: "Forward along your most played move" })); });
+  const child = report.tree.find((n) => n.key === posKey(replay(root.fen, [top.uci])[0]))!;
+  expect(within(tree).getByText(`${child.games} games`)).toBeTruthy();
+  expect(within(tree).getByRole("button", { name: /^1\. / , pressed: true })).toBeTruthy();
+  expect(document.querySelectorAll(".fam")).toHaveLength(report.families.length);
+}, 20_000);
+
+test("the endgame table matches the export and a cell filters the list", async () => {
+  const e = data<Endgames>("endgames.json");
+  await open("/endgames");
+  expect(await screen.findByRole("button", { name: `All outcomes, every type: ${e.endgames.length}` }, SLOW)).toBeTruthy();
+  for (const [type, row] of Object.entries(e.table)) {
+    for (const [outcome, n] of Object.entries(row)) {
+      expect(screen.getByRole("button", { name: `${OUTCOME[outcome]}, ${ENDGAME_TYPE[type]}: ${n}` })).toBeTruthy();
+    }
+  }
+  const words = (n: number) => `${n} game${n === 1 ? "" : "s"}, newest first`;
+  const spoiled = e.endgames.filter((x) => x.info.outcome === "spoiled");
+  expect(screen.getByText(words(spoiled.length))).toBeTruthy();
+  const rook = e.endgames.filter((x) => x.info.type === "rook");
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: `All outcomes, Rook: ${rook.length}` })); });
+  expect(screen.getByText(words(rook.length))).toBeTruthy();
+}, 20_000);
+
+test("insights show the exported group scores, leak rates and time losses", async () => {
+  const ins = data<Insights>("insights.json");
+  await open("/insights");
+  const colour = await screen.findByRole("table", { name: "Score and accuracy by colour" }, SLOW);
+  for (const c of ins.by_colour) {
+    const row = within(colour).getByRole("row", { name: new RegExp(`^As ${c.key === "white" ? "White" : "Black"}`) });
+    expect(within(row).getByText(String(c.games))).toBeTruthy();
+    expect(within(row).getByText(pctText(c.score))).toBeTruthy();
+  }
+  const rates = ins.leak_rates as { recent: Record<string, number>; previous: Record<string, number> };
+  const hung = screen.getByRole("link", { name: /^Hung a piece/ });
+  expect(within(hung).getByText(rates.recent.hung_piece.toFixed(2))).toBeTruthy();
+  expect(within(hung).getByText(rates.previous.hung_piece.toFixed(2))).toBeTruthy();
+  const losses = ins.time_losses as { count: number };
+  expect(screen.getByText(`${losses.count} games in all`)).toBeTruthy();
 }, 20_000);

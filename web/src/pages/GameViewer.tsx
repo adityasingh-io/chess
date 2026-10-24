@@ -6,7 +6,7 @@ import { EvalChart, ThinkChart, type ThinkBar } from "../components/charts";
 import { LineChips, Nag } from "../components/bits";
 import { useGame } from "../lib/data";
 import { clock, dateTime, evalFor, grouped, moveName, n1, plural, sanTokens, signed, timeControl } from "../lib/format";
-import { gameOver, lineSan, numberedLine, outcome, replay, sideToMove, targets, tryMove, uciParts, type Side } from "../lib/chess";
+import { gameOver, lineSan, numberedLine, outcome, posKey, replay, sideToMove, targets, tryMove, uciParts, type Side } from "../lib/chess";
 import { useLiveEngine, type LiveState } from "../lib/engine";
 import { winOf, winOfOutcome } from "../lib/winpct";
 import { FLAG, LABEL, RESULT_WORD, SEV, SEVERITIES, SHORT, TYPE, tagName } from "../lib/names";
@@ -17,8 +17,9 @@ export default function GameViewerRoute() {
   const [params] = useSearchParams();
   const ply = params.get("ply");
   const compare = params.get("compare") === "1";
+  const pos = params.get("pos");   // a position key: open at the first move that reaches it
   return (
-    <GameViewer key={`${id}:${ply ?? ""}:${compare}`} id={id} startCompare={compare}
+    <GameViewer key={`${id}:${ply ?? ""}:${compare}:${pos ?? ""}`} id={id} startCompare={compare} startPos={pos}
       startPly={ply != null && /^\d+$/.test(ply) ? Number(ply) : null} />
   );
 }
@@ -74,7 +75,9 @@ const NAV = {
   explore: ["Take back every move (Home)", "Take back a move (←)", "Play the next move again (→)", "Play every move again (End)"],
 };
 
-function GameViewer({ id, startPly, startCompare }: { id: string; startPly: number | null; startCompare: boolean }) {
+function GameViewer({ id, startPly, startCompare, startPos }: {
+  id: string; startPly: number | null; startCompare: boolean; startPos: string | null;
+}) {
   const g = useGame(id);
   const me = g.colour, opp: Side = me === "white" ? "black" : "white";
   const fens = useMemo(() => [g.initial_fen, ...replay(g.initial_fen, g.moves.map((m) => m.uci))], [g]);
@@ -88,7 +91,10 @@ function GameViewer({ id, startPly, startCompare }: { id: string; startPly: numb
     [g, fens, me, recAt]);
 
   const clamp = useCallback((k: number) => Math.max(0, Math.min(n, k)), [n]);
-  const [cur, setCur] = useState(() => clamp(startPly ?? turning ?? 0));
+  const [cur, setCur] = useState(() => {
+    const at = startPos ? fens.findIndex((f) => posKey(f) === startPos) : -1;
+    return clamp(at >= 0 ? at : startPly ?? turning ?? 0);
+  });
   const [flip, setFlip] = useState(false);
   const [compare, setCompare] = useState<number | null>(startCompare ? 0 : null);   // step through both lines
   const [show, setShow] = useState<"you" | "best">("you");                         // the board shown on a phone

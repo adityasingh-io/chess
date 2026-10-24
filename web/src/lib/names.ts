@@ -53,3 +53,24 @@ export const NAG: { [s: string]: string } = { inaccuracy: "?!", mistake: "?", bl
 export const LABEL: { [s: string]: string } = { book: "Book move", best: "Best move", excellent: "Excellent", good: "Good", ...SEV };
 
 export const RESULT_WORD = { win: "Won", loss: "Lost", draw: "Drew" } as const;
+
+// Endgames: the type by material when the endgame starts, and the outcome from my Win% then and the result
+// (bands from config.toml: winning ≥ 70, losing ≤ 30).
+export const ENDGAME_TYPE: { [t: string]: string } = {
+  pawn: "Pawn", rook: "Rook", minor: "Minor piece", queen: "Queen", mixed: "Mixed",
+};
+export const ENDGAME_TYPE_DESC: { [t: string]: string } = {
+  pawn: "Kings and pawns only", rook: "Rooks and pawns", minor: "Knights or bishops and pawns", queen: "Queens on the board",
+  mixed: "Anything else",
+};
+export const OUTCOMES = ["converted", "held", "saved", "spoiled", "lost_as_expected"] as const;
+export const OUTCOME: { [o: string]: string } = {
+  converted: "Converted", held: "Held", saved: "Saved", spoiled: "Spoiled", lost_as_expected: "Lost as expected",
+};
+export const OUTCOME_DESC: { [o: string]: string } = {
+  converted: "Win% 70 or more when the endgame started, and you won.",
+  held: "Win% between 30 and 70 at the start, and you drew or won.",
+  saved: "Win% 30 or less at the start, and you drew or won.",
+  spoiled: "Win% 70 or more at the start and you didn't win, or between 30 and 70 and you lost.",
+  lost_as_expected: "Win% 30 or less at the start, and you lost.",
+};

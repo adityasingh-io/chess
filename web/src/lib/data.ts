@@ -2,7 +2,7 @@
 // can read it with React's use() under a Suspense boundary.
 import { use } from "react";
 import type {
-  Game, GamesIndex, Insights, Leaks, Losses, MistakesIndex, Record as MistakeRecord, Summary,
+  Endgames, Game, GamesIndex, Insights, Leaks, Losses, MistakesIndex, OpeningReport, Record as MistakeRecord, Summary,
 } from "../types/export";
 
 const BASE = `${import.meta.env.BASE_URL}data/`;
@@ -29,6 +29,8 @@ export const useLeaks = () => use(load<Leaks>("leaks.json"));
 export const useLosses = () => use(load<Losses>("losses.json"));
 export const useInsights = () => use(load<Insights>("insights.json"));
 export const useGamesIndex = () => use(load<GamesIndex>("games/index.json"));
+export const useEndgames = () => use(load<Endgames>("endgames.json"));
+export const useOpenings = (colour: "white" | "black") => use(load<OpeningReport>(`openings/${colour}.json`));
 export const useGame = (id: string) => use(load<Game>(`games/${encodeURIComponent(id)}.json`));
 
 // The mistakes index is the largest file (a few MB); only leak detail pages read it.

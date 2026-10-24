@@ -205,3 +205,98 @@ export function ThinkChart({ cur, n, bars, onPick }: { cur: number; n: number; b
   );
 }
 export type { ThinkBar };
+
+// ---------- insights ----------
+
+/** Score by the hour a game started. Hours with fewer than `few` games are drawn faint. */
+export type HourPoint = { hour: number; games: number; score: number | null; accuracy: number | null };
+const HourTip = tip<HourPoint>((p) => [
+  p.games ? `${n1(p.score ?? 0)}%` : "No games",
+  `${String(p.hour).padStart(2, "0")}:00–${String(p.hour).padStart(2, "0")}:59 · ${p.games} ${p.games === 1 ? "game" : "games"}${p.accuracy != null ? ` · accuracy ${n1(p.accuracy)}` : ""}`,
+]);
+
+export function HourChart({ data, few }: { data: HourPoint[]; few: number }) {
+  const [ref, w] = useWidth<HTMLDivElement>();
+  const c = useColors();
+  const H = 180;
+  return (
+    <div className="chart-box" ref={ref} style={{ height: H }} role="img" aria-label="Your score by the hour your games started">
+      {w > 0 && (
+        <BarChart width={w} height={H} data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} accessibilityLayer={false}
+          barCategoryGap="18%">
+          <CartesianGrid vertical={false} stroke={c.line} />
+          <XAxis dataKey="hour" tick={tick(c)} tickLine={false} axisLine={{ stroke: c.line }} interval={w < 560 ? 5 : 2} />
+          <YAxis domain={[0, 100]} ticks={[0, 50, 100]} width={36} tick={tick(c)} tickLine={false} axisLine={false}
+            tickFormatter={(v: number) => `${v}%`} />
+          <ReferenceLine y={50} stroke={c.muted} strokeDasharray="3 3" />
+          <Bar dataKey="score" isAnimationActive={false} radius={[3, 3, 0, 0]}>
+            {data.map((d) => <Cell key={d.hour} fill={c.bar} fillOpacity={d.games >= few ? 1 : 0.35} />)}
+          </Bar>
+          <Tooltip content={HourTip} cursor={{ fill: c.soft }} isAnimationActive={false} />
+        </BarChart>
+      )}
+    </div>
+  );
+}
+
+/** Mistakes by think time: blunders and the other mistakes stacked, as a share of moves. */
+export type RateRow = { label: string; moves: number; blunders: number; mistakes: number; total: number };
+const RateTip = tip<RateRow>((r) => [`${n1(r.total)}% of moves`, `${r.label} seconds · ${r.moves.toLocaleString("en-GB")} moves · blunders ${n1(r.blunders)}%`]);
+
+/** A round axis: about `count` steps of 1, 2 or 5 × 10ⁿ from 0 to just above `max`. */
+function niceTicks(max: number, count = 4) {
+  const raw = Math.max(max, 1) / count, mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw)!;
+  const top = Math.ceil(Math.max(max, 1) / step) * step;
+  return { top, ticks: Array.from({ length: Math.round(top / step) + 1 }, (_, i) => +(i * step).toFixed(6)) };
+}
+
+export function MistakeRateChart({ data }: { data: RateRow[] }) {
+  const [ref, w] = useWidth<HTMLDivElement>();
+  const c = useColors();
+  const H = 190;
+  const { top, ticks } = niceTicks(Math.max(0, ...data.map((d) => d.total)));
+  return (
+    <div className="chart-box" ref={ref} style={{ height: H }} role="img"
+      aria-label="Share of your moves that were mistakes or blunders, by how long you thought">
+      {w > 0 && (
+        <BarChart width={w} height={H} data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} accessibilityLayer={false}
+          barCategoryGap="22%">
+          <CartesianGrid vertical={false} stroke={c.line} />
+          <XAxis dataKey="label" tick={tick(c)} tickLine={false} axisLine={{ stroke: c.line }} interval={0} />
+          <YAxis domain={[0, top]} ticks={ticks} width={36} tick={tick(c)} tickLine={false} axisLine={false} tickFormatter={(v: number) => `${v}%`} />
+          <Bar dataKey="blunders" stackId="a" fill={c.blun} stroke={c.surface} strokeWidth={1.5} isAnimationActive={false} />
+          <Bar dataKey="mistakes" stackId="a" fill={c.mist} stroke={c.surface} strokeWidth={1.5} isAnimationActive={false}
+            radius={[3, 3, 0, 0]} />
+          <Tooltip content={RateTip} cursor={{ fill: c.soft }} isAnimationActive={false} />
+        </BarChart>
+      )}
+    </div>
+  );
+}
+
+/** A count per month (time losses). */
+export type MonthPoint = { month: string; label: string; n: number };
+const MonthTip = tip<MonthPoint>((p) => [String(p.n), p.label]);
+
+export function MonthChart({ data, what }: { data: MonthPoint[]; what: string }) {
+  const [ref, w] = useWidth<HTMLDivElement>();
+  const c = useColors();
+  const H = 150;
+  const { top, ticks } = niceTicks(Math.max(0, ...data.map((d) => d.n)), 3);
+  return (
+    <div className="chart-box" ref={ref} style={{ height: H }} role="img" aria-label={what}>
+      {w > 0 && (
+        <BarChart width={w} height={H} data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} accessibilityLayer={false}
+          barCategoryGap="22%">
+          <CartesianGrid vertical={false} stroke={c.line} />
+          <XAxis dataKey="label" tick={tick(c)} tickLine={false} axisLine={{ stroke: c.line }} interval={0}
+            tickFormatter={(l: string) => (w < 560 ? l.slice(0, 1) : l.slice(0, 3))} />
+          <YAxis domain={[0, top]} ticks={ticks} width={36} tick={tick(c)} tickLine={false} axisLine={false} />
+          <Bar dataKey="n" fill={c.bar} isAnimationActive={false} radius={[3, 3, 0, 0]} />
+          <Tooltip content={MonthTip} cursor={{ fill: c.soft }} isAnimationActive={false} />
+        </BarChart>
+      )}
+    </div>
+  );
+}

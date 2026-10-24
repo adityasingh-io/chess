@@ -8,6 +8,10 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Leaks = lazy(() => import("./pages/Leaks"));
 const Games = lazy(() => import("./pages/Games"));
 const GameViewer = lazy(() => import("./pages/GameViewer"));
+const Openings = lazy(() => import("./pages/Openings"));
+const Endgames = lazy(() => import("./pages/Endgames"));
+const Insights = lazy(() => import("./pages/Insights"));
+const More = lazy(() => import("./pages/More"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 export const routes = [
@@ -21,6 +25,11 @@ export const routes = [
       { path: "leaks/:tag", element: <Leaks /> },
       { path: "games", element: <Games /> },
       { path: "games/:id", element: <GameViewer /> },
+      { path: "openings", element: <Openings /> },
+      { path: "openings/:colour", element: <Openings /> },
+      { path: "endgames", element: <Endgames /> },
+      { path: "insights", element: <Insights /> },
+      { path: "more", element: <More /> },
       { path: "*", element: <NotFound /> },
     ],
   },

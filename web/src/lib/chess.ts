@@ -39,6 +39,10 @@ export function numberedLine(fen: string, sans: readonly string[]): string[] {
   });
 }
 
+/** A position's key as the pipeline writes it (python-chess EPD): the FEN without its move counters. chess.js,
+    like python-chess, writes the en passant square only when the capture is legal. */
+export const posKey = (fen: string) => fen.split(" ").slice(0, 4).join(" ");
+
 export const sideToMove = (fen: string): Side => (fen.split(" ")[1] === "b" ? "black" : "white");
 
 /** Try a move in Explore; a pawn reaching the last rank becomes a queen unless `promotion` says otherwise.

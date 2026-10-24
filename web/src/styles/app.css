@@ -317,3 +317,89 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .live-line b { font-size: .92rem; }
 .live-line span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .chips.played button.redo { opacity: .5; border-style: dashed; }
+
+/* Openings */
+.tree-card { gap: 14px; }
+.tree { display: grid; gap: 16px; }
+@media (min-width: 900px) { .tree { grid-template-columns: minmax(0, 440px) minmax(0, 1fr); align-items: start; } }
+.tree-board, .tree-info { display: grid; gap: 10px; min-width: 0; align-content: start; }
+.tree-nav { grid-template-columns: repeat(3, minmax(0, 1fr)) auto; }
+.tree-nav .later { padding: 8px 12px; font-size: .88rem; white-space: nowrap; }
+.crumbs button { font-size: .8rem; padding: 2px 7px; }
+.tree-facts { display: grid; gap: 4px; font-size: .9rem; }
+.key { display: inline-block; width: 14px; height: 4px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.key.best { background: var(--best); } .key.them { background: var(--them); } .key.you { background: var(--you); }
+.tm { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.tm th, .tm td { padding: 6px 5px; border-top: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.tm thead th { border-top: 0; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; white-space: normal; vertical-align: bottom; }
+.tm .n { text-align: right; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.tm tbody th { font-family: var(--font-num); font-weight: 600; }
+.tm tr.go { cursor: pointer; }
+.tm tr.go:hover { background: var(--soft); }
+.tm tr.end { color: var(--muted); }
+.tm button.san { border: 0; background: none; padding: 0; cursor: pointer; font-weight: 700; text-decoration: underline; text-decoration-color: var(--muted); text-underline-offset: 3px; }
+.tm .star { color: var(--best); margin-left: 5px; }
+.reached { display: grid; gap: 6px; }
+.fams { display: grid; }
+.fam { border-top: 1px solid var(--line); }
+.fam:first-child { border-top: 0; }
+.fam summary { list-style: none; cursor: pointer; padding: 10px 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; }
+.fam summary::-webkit-details-marker { display: none; }
+.fam > summary .fam-name::before { content: "▸"; display: inline-block; width: 1.1em; color: var(--muted); }
+.fam[open] > summary .fam-name::before { content: "▾"; }
+.fam-name { font-weight: 650; }
+.fam-stats { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: .84rem; color: var(--muted); }
+.fam-stats b { color: var(--ink); font-weight: 650; }
+.vs.up b { color: var(--good); } .vs.down b { color: var(--bad); }
+.fam-body { display: grid; gap: 8px; padding: 0 0 12px 1.1em; }
+.var { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.var .fam-name { font-weight: 550; }
+.pos-facts { margin: 0; display: grid; gap: 4px; font-size: .84rem; }
+.pos-facts div { display: grid; grid-template-columns: 6.2rem minmax(0, 1fr); gap: 6px; }
+.pos-facts dt { color: var(--muted); }
+.pos-facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.pos-facts dd.moves-list { display: grid; gap: 2px; }
+.pos .linkish { color: var(--ink); font-weight: 600; font-size: .86rem; justify-self: start; }
+
+/* Endgames */
+.eg { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.eg th, .eg td { padding: 6px 4px; border-top: 1px solid var(--line); text-align: left; vertical-align: middle; }
+.eg thead th { border-top: 0; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+.eg .n { text-align: right; width: 3.6rem; }
+.eg tbody th { font-weight: 400; }
+.eg .oname { font-weight: 650; display: block; }
+.eg .odesc { display: block; color: var(--muted); font-size: .76rem; line-height: 1.3; }
+.eg tr.bad .oname { color: var(--bad); }
+.eg tr.total th, .eg tr.total td { border-top: 2px solid var(--line); }
+.eg .cell { border: 1px solid transparent; background: var(--soft); border-radius: var(--radius-sm); min-width: 2.6rem; padding: 4px 6px; cursor: pointer; font-weight: 650; text-align: right; }
+.eg .cell[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.eg .cell[disabled] { background: transparent; color: var(--muted); cursor: default; font-weight: 400; }
+.row .s + .s { grid-column: 1; }
+
+/* Insights */
+.grows { display: grid; font-size: .9rem; }
+.grow { display: grid; grid-template-columns: minmax(0, 1.3fr) 2.8rem minmax(0, 1.4fr) 4.4rem; gap: 10px; align-items: center;
+  padding: 7px 0; border-top: 1px solid var(--line); }
+.grow.head { border-top: 0; padding-top: 0; font-size: .76rem; color: var(--muted); font-weight: 600; }
+.grow.head > :nth-child(3) { padding-left: 4px; }
+.grow .n { text-align: right; }
+.grow.few { opacity: .55; }
+.gname { overflow-wrap: anywhere; line-height: 1.25; }
+.gbar { display: grid; grid-template-columns: minmax(0, 1fr) 3.4em; gap: 8px; align-items: center; }
+.gbar b { text-align: right; font-weight: 650; font-size: .86rem; }
+.gbar .track { position: relative; height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; }
+.gbar .track i { position: absolute; inset: 0 auto 0 0; background: var(--bar); border-radius: 0 4px 4px 0; }
+.gbar .track::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: var(--surface); }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tile { display: grid; gap: 2px; align-content: start; padding: 12px; border-radius: var(--radius-sm); background: var(--soft); min-width: 0; }
+.tile .big-num { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+.tile .tile-2 { margin-top: 8px; font-size: 1.05rem; }
+.tile .tile-foot { margin-top: 6px; }
+.trend-group { display: grid; gap: 8px; }
+.trend-group + .trend-group { margin-top: 6px; }
+@media (max-width: 420px) {
+  .grow { grid-template-columns: minmax(0, 1fr) 2.3rem minmax(0, 1.1fr) 3.7rem; gap: 8px; font-size: .86rem; }
+  .grow.head { font-size: .72rem; }
+  .tile { padding: 10px 8px; }
+  .tile .big-num { font-size: 1.3rem; }
+}
