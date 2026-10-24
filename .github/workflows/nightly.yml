@@ -70,5 +70,6 @@ jobs:
             echo "No new data."
           else
             git commit -m "Nightly data update"
+            git pull --rebase origin main   # in case main moved during the run
             git push
           fi
