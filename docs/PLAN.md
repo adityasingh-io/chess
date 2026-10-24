@@ -32,6 +32,12 @@ this file wins.
 - **Explorer host** is `https://explorer.lichess.org/lichess` (the API docs moved it from
   `explorer.lichess.ovh`). Buckets per the docs: `0` = 0–999, `1000` = 1000–1199, …, `2500`+. OAuth2 with
   no scopes, so a token with no scopes ticked. Still to confirm against the live API in Phase 2.
+- **AI notes use short-lived Anthropic credentials, never a stored API key** (decided 2026-10-24; replaces
+  the brief's `ANTHROPIC_API_KEY`). On the Mac: an `ant auth login` profile, which the SDK reads and
+  refreshes by itself. In the nightly Action: Workload Identity Federation, which exchanges GitHub's OIDC
+  token for a short-lived access token, so no Anthropic secret is stored in GitHub either. The pipeline
+  builds the client with no key, and the feature is switched on in `config.toml`. The workspace keeps a
+  monthly spend limit. Nothing Anthropic goes in the frontend.
 
 ## Engine setup
 
