@@ -53,6 +53,12 @@ this file wins.
   a check, a capture or clearly best, for up to 3 of my moves.
 - Measured on this Mac (5 performance + 6 efficiency cores, 18 GB): about 0.65M nodes/s for one worker
   and 3.2M nodes/s across 10.
+- Full-year run (2026-10-24): 604 games, 28,647 pass-1 and 6,551 pass-2 positions. The Mac did the first
+  19,488 pass-1 positions in 2.8 h. Five rented 16-vCPU nodes (AMD EPYC 9555, official Linux Stockfish 19,
+  `--shard i/5`) did the rest in about 25 minutes at about 23M nodes/s each. Before use, each re-ran 22
+  positions the Mac had analysed and matched them exactly. Their results were merged into the cache, and
+  a local run found everything cached. Explorer stats: 1,262 positions in 50 minutes. A no-op `coach update`
+  takes about 11 s.
 
 ## How the brief is read
 
