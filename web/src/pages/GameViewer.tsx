@@ -325,6 +325,8 @@ function Compare({ id, cur, m, r, cmp, step, setStep, me, orientation, show, set
     const l = cmp[key];
     const k = Math.min(step, l.fens.length);
     const fen = k ? l.fens[k - 1] : cmp.base;
+    // Before the move both boards show the same position, so both bars show its score: Stockfish's best.
+    const bar = k ? l.bar : cmp.best.bar;
     const name = key === "you" ? "Your move" : "Stockfish's best";
     return (
       <div className={`cmp-side cmp-${key}`}>
@@ -335,8 +337,8 @@ function Compare({ id, cur, m, r, cmp, step, setStep, me, orientation, show, set
           <span className="num">{scoreText(l.bar, me)}</span>
         </div>
         <div className="board-row">
-          <EvalBar value={l.bar} orientation={orientation} me={me}
-            note={key === "you" ? "Stockfish's score after your move" : "Stockfish's score with its best move"} />
+          <EvalBar value={bar} orientation={orientation} me={me}
+            note={!k ? "Stockfish's score before the move" : key === "you" ? "Stockfish's score after your move" : "Stockfish's score with its best move"} />
           <Board id={`${id}-${key}`} fen={fen} orientation={orientation}
             arrows={k === 0 ? [{ uci: l.ucis[0], kind: key }] : []} highlight={k ? { uci: l.ucis[k - 1], kind: key } : null}
             label={k ? `${name} line after ${l.tokens[k - 1]}` : `Before ${moveName(cur, m.san)}: ${name.toLowerCase()} ${l.tokens[0]}`} />

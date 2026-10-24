@@ -98,15 +98,18 @@ test("compare steps my move's line and Stockfish's best together", async () => {
   const best = screen.getByRole("group", { name: "Stockfish's best line" });
   expect(document.querySelectorAll(".cmp-side .board")).toHaveLength(2);
   const pressed = (el: HTMLElement) => within(el).queryByRole("button", { pressed: true })?.textContent ?? null;
+  const bars = () => [...document.querySelectorAll(".cmp-side .evalbar")].map((b) => b.getAttribute("aria-label"));
   expect(pressed(you)).toBeNull();
+  // Before the move both boards show the same position, so both bars show its score.
+  expect(bars()[0]).toContain(evalFor(r.best_eval, r.colour));
+  expect(bars()[1]).toContain(evalFor(r.best_eval, r.colour));
   await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^Forward a move in both lines/ })); });
   await act(async () => { fireEvent.keyDown(window, { key: "ArrowRight" }); });
   expect(pressed(you)).toBe(sanTokens(r.reply_line_san)[0]);
   expect(pressed(best)).toBe(sanTokens(r.best_line_san)[1]);
-  // Each board's bar is Stockfish's stored score for its line.
-  const bars = document.querySelectorAll(".cmp-side .evalbar");
-  expect(bars[0].getAttribute("aria-label")).toContain(evalFor(r.after_eval, r.colour));
-  expect(bars[1].getAttribute("aria-label")).toContain(evalFor(r.best_eval, r.colour));
+  // Then each board's bar is Stockfish's stored score for its line.
+  expect(bars()[0]).toContain(evalFor(r.after_eval, r.colour));
+  expect(bars()[1]).toContain(evalFor(r.best_eval, r.colour));
   await act(async () => { fireEvent.keyDown(window, { key: "Escape" }); });
   expect(document.querySelector(".cmp")).toBeNull();
   expect(screen.getByText(`${r.ply} of ${g.moves.length}`, { exact: false })).toBeTruthy();
