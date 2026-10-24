@@ -31,7 +31,8 @@ this file wins.
   single-threaded. The full-net builds (~99 MB) exceed Cloudflare Pages' 25 MB file limit.
 - **Explorer host** is `https://explorer.lichess.org/lichess` (the API docs moved it from
   `explorer.lichess.ovh`). Buckets per the docs: `0` = 0–999, `1000` = 1000–1199, …, `2500`+. OAuth2 with
-  no scopes, so a token with no scopes ticked. Still to confirm against the live API in Phase 2.
+  no scopes, so a token with no scopes ticked. Confirmed against the live API on 2026-10-24: it takes a
+  burst of about 30 requests, then answers 429 and we wait a minute, so about 25 positions a minute.
 - **AI notes use short-lived Anthropic credentials, never a stored API key** (decided 2026-10-24; replaces
   the brief's `ANTHROPIC_API_KEY`). On the Mac: an `ant auth login` profile, which the SDK reads and
   refreshes by itself. In the nightly Action: Workload Identity Federation, which exchanges GitHub's OIDC
@@ -101,6 +102,8 @@ this file wins.
 21. Exports are reproducible: `as_of` is the newest game's end time, and a file is rewritten only when its
     content changes.
 22. `tagger-check` measures the first 20,000 puzzles of the Lichess puzzle stream (cached locally).
+23. A game resigned or abandoned before any move is modelled from its initial position, so a loss still gets
+    exactly one cause from Stockfish's stored Win% there. It has no opening, so opening reports leave it out.
 
 ## Phases
 

@@ -172,7 +172,7 @@ def explorer_keys(cfg: Config, models: list[GameModel], evals1: dict[str, dict])
 
 def opening_families(cfg: Config, models: list[GameModel], colour: str) -> list[dict]:
     """Per family and variation: games, score, score vs my other openings of the colour, Win% after move 12."""
-    mine = [m for m in models if m.row["my_color"] == colour]
+    mine = [m for m in models if m.row["my_color"] == colour and m.plies]  # a game with no moves has no opening
     after = 2 * cfg.analysis.phases.opening_moves
 
     def stats(group: list[GameModel]) -> dict:

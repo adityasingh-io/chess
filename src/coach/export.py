@@ -145,7 +145,7 @@ def explorer_out(stats: dict | None, fen: str) -> S.ExplorerStats | None:
 
 def opening_out(cfg: Config, models: list[GameModel], colour: str, evals1: dict[str, dict],
                 explorer: dict[str, dict], stamp: int) -> S.OpeningReport:
-    mine = [m for m in models if m.row["my_color"] == colour]
+    mine = [m for m in models if m.row["my_color"] == colour and m.plies]  # a game with no moves has no opening
     results = {m.id: m.row["result"] for m in models}
     nodes = tree(cfg, models, colour, evals1)
     colour_score = score(mine)

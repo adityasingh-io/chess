@@ -33,10 +33,14 @@ class Game:
     def i_am_white(self) -> bool:
         return self.row["my_color"] == "white"
 
+    @property
+    def white_moves_first(self) -> bool:
+        return self.moves[0]["side"] == "white" if self.moves else chess.Board(self.row["initial_fen"]).turn == chess.WHITE
+
     def position_keys(self) -> list[str]:
-        """The initial position, then the position after each ply."""
+        """The initial position, then the position after each ply (just the initial one if no move was played)."""
         if not self.moves:
-            return []
+            return [position_key(chess.Board(self.row["initial_fen"]))]
         return [self.moves[0]["key_before"], *(m["key_after"] for m in self.moves)]
 
 
@@ -253,5 +257,4 @@ def accuracy_of(game: Game, evals: dict[str, dict]) -> dict[str, float | None] |
     wps = white_win_pcts(game, evals)
     if wps is None:
         return None
-    white_first = game.moves[0]["side"] == "white"
-    return game_accuracy(wps, white_moves_first=white_first)
+    return game_accuracy(wps, white_moves_first=game.white_moves_first)

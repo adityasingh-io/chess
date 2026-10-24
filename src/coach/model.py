@@ -437,7 +437,7 @@ def build_game(cfg: Config, game: Game, evals1: dict[str, dict], openings: dict[
         label = "book" if book else "best" if move["uci"] == best else band(cfg, before - after)
         plies.append(Ply(move, white_win[i], white_win[i + 1], best, label, move_accuracy(before, after), phase, book))
 
-    model = GameModel(game, plies, white_win, game_accuracy(white_win, white_moves_first=game.moves[0]["side"] == "white"),
+    model = GameModel(game, plies, white_win, game_accuracy(white_win, white_moves_first=game.white_moves_first),
                       opening, opening_ply)
     if endgame_start is not None:
         model.endgame = _endgame(cfg, model, endgame_start, board_from_key(keys[endgame_start]))

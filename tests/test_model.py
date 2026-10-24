@@ -2,9 +2,18 @@
 
 import chess
 
-from coach.analysis import is_garbage_time
-from coach.model import LOSS_CAUSES, band, endgame_type, is_endgame, mate_for, top
+from coach.analysis import is_garbage_time, load_games, select_game_ids
+from coach.model import (
+    LOSS_CAUSES,
+    band,
+    build_all,
+    endgame_type,
+    is_endgame,
+    mate_for,
+    top,
+)
 from coach.positions import board_from_key
+from coach.reports import opening_families
 
 
 def test_every_game_is_modelled(recorded):
@@ -17,6 +26,21 @@ def test_every_loss_has_exactly_one_cause(recorded):
             assert m.loss is not None and m.loss.cause in LOSS_CAUSES
         else:
             assert m.loss is None
+
+
+def test_a_loss_with_no_moves_still_gets_one_cause(recorded):
+    """Abandoned before the first move: the rule reads my Win% off the stored result for the start position."""
+    conn, cfg = recorded.conn, recorded.cfg
+    row = dict(conn.execute("SELECT * FROM games WHERE id = '147999020662'").fetchone())
+    row.update(id="1", url="https://www.chess.com/game/live/1", ply_count=0, my_code="abandoned", result="loss")
+    conn.execute(f"INSERT INTO games ({', '.join(row)}) VALUES ({', '.join('?' * len(row))})", list(row.values()))
+    models = build_all(cfg, load_games(conn, select_game_ids(conn)), recorded.evals1, recorded.evals2, recorded.openings)
+
+    m = next(m for m in models if m.id == "1")
+    assert m.plies == [] and m.records == [] and len(m.my_win) == 1
+    assert m.loss.cause == ("gave_up" if m.my_win[0] >= cfg.analysis.losses.playable else "outplayed")
+    played = sum(1 for g in models if g.row["my_color"] == row["my_color"] and g.plies)
+    assert sum(f["games"] for f in opening_families(cfg, models, row["my_color"])) == played
 
 
 def test_turning_point_matches_its_record(recorded):
