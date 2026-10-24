@@ -16,6 +16,7 @@ const Puzzles = lazy(() => import("./pages/Puzzles"));
 const Trainer = lazy(() => import("./pages/Trainer"));
 const PlayOut = lazy(() => import("./pages/PlayOut"));
 const Settings = lazy(() => import("./pages/Settings"));
+const Coordinates = lazy(() => import("./pages/Coordinates"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 export const routes = [
@@ -38,6 +39,7 @@ export const routes = [
       { path: "trainer", element: <Trainer /> },
       { path: "play", element: <PlayOut /> },
       { path: "settings", element: <Settings /> },
+      { path: "coordinates", element: <Coordinates /> },
       { path: "*", element: <NotFound /> },
     ],
   },

@@ -1937,6 +1937,20 @@
      ],
      "title": "Drop"
     },
+    "played_line": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Played Line",
+     "type": "array"
+    },
+    "played_line_san": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Played Line San",
+     "type": "array"
+    },
     "opening": {
      "anyOf": [
       {
@@ -1979,6 +1993,8 @@
     "ply",
     "played_san",
     "drop",
+    "played_line",
+    "played_line_san",
     "opening",
     "url",
     "why"

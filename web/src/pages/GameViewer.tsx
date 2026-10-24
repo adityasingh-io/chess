@@ -1,13 +1,15 @@
 import { memo, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
-import { Board, type ArrowKind, type HighlightKind } from "../components/Board";
+import { Board, type ArrowKind, type HighlightKind, type Peek } from "../components/Board";
 import { EvalBar, type BarValue } from "../components/EvalBar";
 import { EvalChart, ThinkChart, type ThinkBar } from "../components/charts";
 import { LineChips, Nag } from "../components/bits";
+import { RefText, usePeek, type PeekControl } from "../components/RefText";
 import { resignedId, thrownId, WINNING } from "../lib/playout";
 import { useGame } from "../lib/data";
 import { clock, dateTime, evalFor, grouped, moveName, n1, plural, sanTokens, signed, timeControl } from "../lib/format";
-import { gameOver, lineSan, numberedLine, outcome, posKey, replay, sideToMove, targets, tryMove, uciParts, type Side } from "../lib/chess";
+import { gameOver, lineSan, moveBetween, numberedLine, outcome, passTurn, posKey, replay, sideToMove, targets, tryMove, uciParts, type Side } from "../lib/chess";
+import { bestKinds, myKinds, theirKinds, type RefLine } from "../lib/refs";
 import { useLiveEngine, type LiveState } from "../lib/engine";
 import { winOf, winOfOutcome } from "../lib/winpct";
 import { FLAG, LABEL, RESULT_WORD, SEV, SEVERITIES, SHORT, TYPE, tagName } from "../lib/names";
@@ -101,6 +103,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
   const [show, setShow] = useState<"you" | "best">("you");                         // the board shown on a phone
   const [explore, setExplore] = useState<Explore | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [threat, setThreat] = useState(false);   // the live engine's move for the side not to move
 
   const go = useCallback((k: number) => {
     setCur(clamp(k));
@@ -124,8 +127,10 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
   const exploreFen = explore ? (explore.at ? explore.moves[explore.at - 1].fen : explore.base) : null;
   const shownFen = exploreFen ?? gameFen;
   const over = exploreFen ? gameOver(exploreFen) : null;
-  const live = useLiveEngine(exploreFen && !over ? exploreFen : null);
+  const threatFen = threat && !explore && !comparing ? passTurn(gameFen) : null;
+  const live = useLiveEngine(exploreFen && !over ? exploreFen : threatFen);
   const liveLines = live.fen === exploreFen ? live.lines : [];
+  const threatLine = threatFen && live.fen === threatFen ? live.lines[0] ?? null : null;
 
   // ◀ ▶ ⏮ ⏭ and the arrow keys move through whatever the board shows: the game, the two lines being compared,
   // or the moves played in Explore.
@@ -146,6 +151,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
     else if (e.key === "Home") navTo(() => 0);
     else if (e.key === "End") navTo((_, e) => e);
     else if (e.key === "f" || e.key === "F") setFlip((f) => !f);
+    else if ((e.key === "x" || e.key === "X") && mode === "game") setThreat((t) => !t);
     else if (e.key === "Escape" && mode !== "game") leave();
     else return;
     e.preventDefault();
@@ -185,6 +191,8 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
     highlight = { uci: m.uci, kind: mine ? "you" : "them" };
     if (mine) arrows = cmp ? [{ uci: cmp.best.ucis[0], kind: "best" }, { uci: m.uci, kind: "you" }] : [{ uci: m.uci, kind: "you" }];
   }
+  if (threatLine) arrows = [...arrows, { uci: threatLine.pv[0], kind: "live" }];
+  const peek = usePeek(`${cur}:${mode}`);
   const orientation: Side = flip ? opp : me;
   const toMove = sideToMove(shownFen);
 
@@ -233,6 +241,12 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
       <button type="button" title={next} aria-label={next} disabled={at === end} onClick={() => navTo((a) => a + 1)}>▶</button>
       <button type="button" title={last} aria-label={last} disabled={at === end} onClick={() => navTo((_, e) => e)}>⏭</button>
       <button type="button" title="Flip the board (F)" aria-label="Flip the board" onClick={() => setFlip((f) => !f)}>⇅</button>
+      {mode === "game" && (
+        <button type="button" className="threat" aria-pressed={threat} disabled={!threat && !passTurn(gameFen)}
+          title={passTurn(gameFen) ? "What the other side would play if it were their move: the in-browser Stockfish, live, never saved (X)"
+            : "No threat to show while the side to move is in check"}
+          onClick={() => setThreat((t) => !t)}>Threat</button>
+      )}
       {mode === "compare" ? (
         <button type="button" className="leave" title="Back to the game (Esc)" onClick={leave}>Back to the game</button>
       ) : (
@@ -252,7 +266,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
         <div className="colA">
           {comparing ? (
             <Compare id={`game-${g.id}`} cur={cur} m={m!} r={r} cmp={cmp} step={compare} setStep={setCompare} me={me}
-              orientation={orientation} show={show} setShow={setShow} mistakes={mistakes} onMistake={(p) => openCompare(p)}>
+              orientation={orientation} show={show} setShow={setShow} mistakes={mistakes} onMistake={(p) => openCompare(p)} peek={peek.shown}>
               {navbtns}
             </Compare>
           ) : (
@@ -271,11 +285,12 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
                 <EvalBar value={bar} orientation={orientation} me={me} live={barLive}
                   note={barLive ? `live, depth ${live.depth}` : undefined} />
                 <Board id={`game-${g.id}`} fen={shownFen} orientation={orientation} arrows={arrows} highlight={highlight}
-                  selected={selected} dots={dots} onDrop={(from, to) => play(from, to)} onSquare={onSquare}
+                  selected={selected} dots={dots} onDrop={(from, to) => play(from, to)} onSquare={onSquare} peek={explore ? null : peek.shown}
                   label={explore ? "Explore board: play any move" : m ? `Position after ${moveName(cur, m.san)}` : "Start position"} />
               </div>
               {strip(orientation)}
               {navbtns}
+              {threatFen && <Threat fen={threatFen} line={threatLine} depth={live.depth} status={live.status} error={live.error} me={me} />}
             </div>
           )}
           <section className="card v-graph">
@@ -298,7 +313,8 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
               onAt={(k) => navTo(() => k)} onClose={leave} />
           ) : (
             <Explain g={g} me={me} cur={cur} m={m} r={r} myWin={myWin} turning={turning} cmp={cmp} comparing={comparing}
-              onCompare={(step) => openCompare(cur, step)} />
+              onCompare={(step) => openCompare(cur, step)} prev={cur >= 2 ? { fen: fens[cur - 2], uci: g.moves[cur - 2].uci } : null}
+              peek={peek} />
           )}
           <section className="card v-moves">
             <div className="card-head"><h2>Moves</h2><span className="muted small">← → to step · F to flip</span></div>
@@ -312,10 +328,10 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
 
 /** My move and Stockfish's best on two boards, stepped together. Side by side when there's room, otherwise
     one board at a time with a switch. */
-function Compare({ id, cur, m, r, cmp, step, setStep, me, orientation, show, setShow, mistakes, onMistake, children }: {
+function Compare({ id, cur, m, r, cmp, step, setStep, me, orientation, show, setShow, mistakes, onMistake, peek, children }: {
   id: string; cur: number; m: Move; r?: MistakeRecord; cmp: Cmp; step: number; setStep: (k: number) => void; me: Side;
   orientation: Side; show: "you" | "best"; setShow: (s: "you" | "best") => void; mistakes: number[];
-  onMistake: (ply: number) => void; children: ReactNode;
+  onMistake: (ply: number) => void; peek: Peek | null; children: ReactNode;
 }) {
   const ref = useRef<HTMLElement>(null);
   useEffect(() => { ref.current?.scrollIntoView?.({ block: "nearest" }); }, [cur]);
@@ -328,6 +344,9 @@ function Compare({ id, cur, m, r, cmp, step, setStep, me, orientation, show, set
     // Before the move both boards show the same position, so both bars show its score: Stockfish's best.
     const bar = k ? l.bar : cmp.best.bar;
     const name = key === "you" ? "Your move" : "Stockfish's best";
+    // A move named in the explanation shows on the board whose line it's from; a square on both.
+    const peeked = !peek || !("fen" in peek) ? peek
+      : (peek.fen === cmp.base ? (peek.kind === "you") === (key === "you") : l.fens.includes(peek.fen)) ? peek : null;
     return (
       <div className={`cmp-side cmp-${key}`}>
         <div className="cmp-cap">
@@ -339,7 +358,7 @@ function Compare({ id, cur, m, r, cmp, step, setStep, me, orientation, show, set
         <div className="board-row">
           <EvalBar value={bar} orientation={orientation} me={me}
             note={!k ? "Stockfish's score before the move" : key === "you" ? "Stockfish's score after your move" : "Stockfish's score with its best move"} />
-          <Board id={`${id}-${key}`} fen={fen} orientation={orientation}
+          <Board id={`${id}-${key}`} fen={fen} orientation={orientation} peek={peeked}
             arrows={k === 0 ? [{ uci: l.ucis[0], kind: key }] : []} highlight={k ? { uci: l.ucis[k - 1], kind: key } : null}
             label={k ? `${name} line after ${l.tokens[k - 1]}` : `Before ${moveName(cur, m.san)}: ${name.toLowerCase()} ${l.tokens[0]}`} />
         </div>
@@ -421,10 +440,19 @@ function GameHead({ g, me, opp, onTurning, broken }: { g: Game; me: Side; opp: S
   );
 }
 
-function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, onCompare }: {
+function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, onCompare, prev, peek }: {
   g: Game; me: Side; cur: number; m?: Move; r?: MistakeRecord; myWin: number[]; turning: number | null; cmp: Cmp | null;
-  comparing: boolean; onCompare: (step: number) => void;
+  comparing: boolean; onCompare: (step: number) => void; prev: { fen: string; uci: string } | null; peek: PeekControl;
 }) {
+  // The lines the explanation names moves from: the move before mine, Stockfish's best, mine and its answer.
+  const lines = useMemo<RefLine[]>(() => [
+    ...(prev ? [{ fen: prev.fen, ucis: [prev.uci], kind: theirKinds }] : []),
+    ...(cmp ? [{ fen: cmp.base, ucis: cmp.best.ucis, kind: bestKinds }, { fen: cmp.base, ucis: cmp.you.ucis, kind: myKinds }] : []),
+  ], [prev?.fen, prev?.uci, cmp]);
+  const at = (l: CmpLine, kind: (ply: number) => ArrowKind, offset = 0) => (i: number): Peek | null => {
+    const j = i + offset, fen = j === 0 ? cmp!.base : l.fens[j - 1];
+    return fen && l.ucis[j] ? { fen, uci: l.ucis[j], kind: kind(j) } : null;
+  };
   if (!m) {
     return <section className="card v-explain explain"><p>Start position. Your Win% <b className="num">{n1(myWin[0])}</b>.</p></section>;
   }
@@ -458,23 +486,23 @@ function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, onCompare }
           )}
         </div>
       )}
-      {r && <p>{r.note ?? r.explanation}</p>}
+      {r && <p><RefText id="why" text={r.note ?? r.explanation} lines={lines} me={me} peek={peek} /></p>}
       {r?.note && (
         <details className="worded">
           <summary>Worded by Claude from Stockfish's facts</summary>
-          <p>{r.explanation}</p>
+          <p><RefText id="facts" text={r.explanation} lines={lines} me={me} peek={peek} /></p>
         </details>
       )}
       {cmp && !comparing && (
         <>
           <div className="label">Stockfish's best{bestSan ? `: ${bestSan}` : ""}{bestScore ? ` (${bestScore})` : ""}</div>
           <LineChips tokens={cmp.best.tokens} playable={cmp.best.fens.length === cmp.best.tokens.length} active={null}
-            onPick={(i) => onCompare(i + 1)} label="Stockfish's best line" />
+            onPick={(i) => onCompare(i + 1)} label="Stockfish's best line" peek={peek} peekAt={at(cmp.best, bestKinds)} />
           {cmp.you.tokens.length > 1 && (
             <>
               <div className="label">After your move{afterScore ? ` (${afterScore})` : ""}</div>
               <LineChips tokens={cmp.you.tokens.slice(1)} playable={cmp.you.fens.length === cmp.you.tokens.length} active={null}
-                onPick={(i) => onCompare(i + 2)} label="Stockfish's line after your move" />
+                onPick={(i) => onCompare(i + 2)} label="Stockfish's line after your move" peek={peek} peekAt={at(cmp.you, myKinds, 1)} />
             </>
           )}
           <div className="actions">
@@ -486,6 +514,23 @@ function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, onCompare }
         <div className="chips">{r.flags.map((f) => <span key={f} className="pill">{FLAG[f] ?? f}</span>)}</div>
       )}
     </section>
+  );
+}
+
+/** The live engine's best move for the side not to move, as if it were their move: what they threaten. */
+function Threat({ fen, line, depth, status, error, me }: {
+  fen: string; line: LiveState["lines"][number] | null; depth: number; status: LiveState["status"]; error?: string; me: Side;
+}) {
+  const mv = line ? moveBetween(fen, replay(fen, [line.pv[0]])[0] ?? "") : null;
+  return (
+    <p className="threat-line small" aria-live="polite">
+      <span className="live-badge">LIVE</span>{" "}
+      {status === "error" ? error
+        : status === "loading" ? "Starting the engine…"
+        : mv ? <>If it were {sideToMove(fen) === me ? "your" : "their"} move, Stockfish would play <b className="san">{mv.san}</b>
+            {mv.mate ? ", checkmate" : ""} ({evalFor(line!.eval, me)}, depth {depth}). Never saved.</>
+        : "Looking for the threat…"}
+    </p>
   );
 }
 

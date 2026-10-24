@@ -57,7 +57,10 @@ Dashboard, leaks, games with a move-by-move viewer and live engine, openings tre
 insights, puzzles from my games and Lichess with spaced repetition, a repertoire trainer that shows a
 new line move by move before asking for it from memory, and "Play it out": wins that got away and games I
 gave up while still playable, played on against the in-browser Stockfish. Every mistake, puzzle and
-trainer move says what it does on the board, measured along Stockfish's lines. It installs
+trainer move says what it does on the board, measured along Stockfish's lines, and every move or square it
+names shows on the board on hover or tap. Settings has board options (square names on every square,
+hanging pieces, move sounds); the viewer can show the opponent's threat (live engine); a coordinates drill
+helps find squares quickly. It installs
 as an app and works offline; training progress stays on the device unless Supabase sync is set up.
 
 ## Deploy

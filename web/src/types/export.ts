@@ -549,6 +549,8 @@ game: (string | null)
 ply: (number | null)
 played_san: (string | null)
 drop: (number | null)
+played_line: string[]
+played_line_san: string[]
 opening: (string | null)
 url: (string | null)
 why: string

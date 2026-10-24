@@ -4,7 +4,8 @@ Stockfish chose every line and gave every score. This only describes what happen
 is played (python-chess, rules-level facts): what a move takes, attacks, pins or protects, whether it
 moves a piece out of attack, checks, castles, develops a piece or promotes, and what each side captures
 over the line. The sentences are templates filled from those facts; nothing here decides that a move is
-good or bad.
+good or bad. A mistake's text leads with the verdict: Stockfish's two scores, and what changes hands along
+each of its lines.
 """
 
 from __future__ import annotations
@@ -188,17 +189,57 @@ def outcome(t: Trade) -> str:
     return text
 
 
+def gist(t: Trade) -> str:
+    """What changes hands along a line, said of the move that starts it: 'wins a pawn', 'loses the queen',
+    'wins a rook for a knight', 'ends in checkmate', 'keeps the material level'."""
+    if t.mated is not None:
+        return "gets you checkmated" if t.mated else "ends in checkmate"
+    mine, theirs = sum(PIECE_VALUES[p] for p in t.mine), sum(PIECE_VALUES[p] for p in t.theirs)
+    if not t.mine and not t.theirs:
+        text = ""
+    elif not t.theirs:
+        text = f"wins {pieces(t.mine)}"
+    elif not t.mine:
+        text = f"loses {pieces(t.theirs)}"
+    elif mine > theirs:
+        text = f"wins {pieces(t.mine)} for {pieces(t.theirs)}"
+    elif mine < theirs:
+        text = f"gives up {pieces(t.theirs)} for {pieces(t.mine)}"
+    else:
+        text = f"trades {pieces(t.theirs)} for {pieces(t.mine)}"
+    if any(t.promoted):
+        text = f"{text} and promotes" if text else "promotes"
+    if not all(t.promoted):
+        text = f"{text} and lets them promote" if text else "lets them promote"
+    return text or "keeps the material level"
+
+
+def verdict(best: str, best_score: str, best_trade: Trade, played: str, played_score: str, played_trade: Trade) -> str:
+    """'In Stockfish's lines, fxe6+ (mate in 3) ends in checkmate; your Rxa7+ (+1.4) wins a pawn.' The scores are
+    Stockfish's; the rest is counted along its two lines."""
+    mates = best_trade.mated is not None or played_trade.mated is not None
+    if not mates and best_trade.net == played_trade.net:
+        return (f"In Stockfish's lines, {best} ({best_score}) and your {played} ({played_score}) end with the same "
+                "material, so the difference is in the position, which only Stockfish's score measures.")
+    text = (f"In Stockfish's lines, {best} ({best_score}) {gist(best_trade)}; "
+            f"your {played} ({played_score}) {gist(played_trade)}.")
+    if not mates and best_trade.net < played_trade.net:
+        text += f" {best} ends with less material, so what it gains is in the position, which only Stockfish's score measures."
+    return text
+
+
 def _san(board: chess.Board, uci: str) -> chess.Move | None:
     move = chess.Move.from_uci(uci)
     return move if move in board.legal_moves else None
 
 
 def reply_story(after: chess.Board, reply: list[str], line_from: chess.Board, line: list[str], me: chess.Color,
-                plies: int) -> str:
+                plies: int, tell: bool = True) -> str:
     """'Stockfish answers Qxe4, which takes the knight on e4, and in its line you win a rook for a knight (+2 in
-    material)'. `after` is the position the reply is played in; the trade is counted over `line` from `line_from`."""
+    material)'. `after` is the position the reply is played in; the trade is counted over `line` from `line_from`
+    (left out when `tell` is false: the verdict has said it)."""
     first = _san(after, reply[0]) if reply else None
-    told = outcome(trade(line_from, line, me, plies))
+    told = outcome(trade(line_from, line, me, plies)) if tell else ""
     if first is None:
         return f"in Stockfish's line {told}" if told else ""
     facts = move_facts(after, first)
@@ -207,12 +248,14 @@ def reply_story(after: chess.Board, reply: list[str], line_from: chess.Board, li
 
 
 def mistake_why(fen: str, played: str, best_line: list[str], reply_line: list[str], me: chess.Color,
-                plies: int, previous: tuple[str, str] | None = None) -> str:
+                plies: int, previous: tuple[str, str] | None = None, scores: tuple[str, str] | None = None) -> str:
     """What Stockfish's best move does and where its line goes, then the same for the move I played.
 
     Material is counted from the position before my move, so both lines start level. `previous` is (FEN
     before, UCI) of the opponent's move just before: if it captured and either move takes back on that
-    square, the text says what it took first, so taking back doesn't read as winning a piece.
+    square, the text says what it took first, so taking back doesn't read as winning a piece. With `scores`
+    (Stockfish's score for its best move and for mine, as text), the verdict leads and says what each line
+    wins or loses, so the moves after it only say what they do on the board.
     """
     board = chess.Board(fen)
     parts, trades = [], []
@@ -229,6 +272,15 @@ def mistake_why(fen: str, played: str, best_line: list[str], reply_line: list[st
 
     def traded(line: list[str], n: int) -> Trade:
         return trade(board, line, me, n)
+
+    mine = _san(board, played)
+    if scores and best is not None and mine is not None and best.uci() != played:
+        head = verdict(board.san(best), scores[0], traded(best_line, plies), board.san(mine), scores[1],
+                       traded([played, *reply_line], plies + 1))
+        facts = move_facts(board, best, took_on)
+        detail = [f"{board.san(best)} {join(facts)}." if facts else "",
+                  played_why(board, played, reply_line, me, plies, took_on, "your ", tell=False)]
+        return " ".join(p for p in [head, *parts, *detail] if p)
 
     if best is not None and best.uci() != played:
         facts = move_facts(board, best, took_on)
@@ -256,10 +308,11 @@ def mistake_why(fen: str, played: str, best_line: list[str], reply_line: list[st
 
 
 def played_why(board: chess.Board, played: str, reply: list[str], me: chess.Color, plies: int,
-               took_on: chess.Square | None = None, whose: str = "") -> str:
+               took_on: chess.Square | None = None, whose: str = "", tell: bool = True) -> str:
     """'Nf3 develops the knight; Stockfish answers d5, which ..., and in its line you win a pawn (+1 in material).'
 
-    `reply` is Stockfish's line after the move; the trade is counted over the move and up to `plies` of it.
+    `reply` is Stockfish's line after the move; the trade is counted over the move and up to `plies` of it
+    (and left out when `tell` is false).
     """
     move = _san(board, played)
     if move is None:
@@ -267,7 +320,7 @@ def played_why(board: chess.Board, played: str, reply: list[str], me: chess.Colo
     after = board.copy(stack=False)
     after.push(move)
     facts = move_facts(board, move, took_on)
-    story = reply_story(after, reply, board, [played, *reply], me, plies + 1)
+    story = reply_story(after, reply, board, [played, *reply], me, plies + 1, tell)
     san = board.san(move)
     if facts:
         return f"{whose.capitalize()}{san} {join(facts)}" + (f"; {story}." if story else ".")

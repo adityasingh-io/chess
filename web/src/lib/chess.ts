@@ -68,6 +68,54 @@ export function targets(fen: string, from: string): string[] {
   }
 }
 
+/** Pieces other than kings that the other side attacks and their own side doesn't defend, by colour. A count
+    of attackers and defenders on the board, like python-chess's: pins aren't considered. */
+export function hanging(fen: string): { square: string; side: Side }[] {
+  let board: Chess;
+  try { board = new Chess(fen); } catch { return []; }
+  const out: { square: string; side: Side }[] = [];
+  for (const row of board.board()) {
+    for (const p of row) {
+      if (!p || p.type === "k") continue;
+      const them = p.color === "w" ? "b" : "w";
+      if (board.isAttacked(p.square, them) && !board.isAttacked(p.square, p.color)) {
+        out.push({ square: p.square, side: p.color === "w" ? "white" : "black" });
+      }
+    }
+  }
+  return out;
+}
+
+/** The legal move that leads from `before` to `after`, if one does (stepping one move along a game or a line).
+    Compares piece placement, side to move and castling rights. */
+export function moveBetween(before: string, after: string) {
+  const key = (f: string) => f.split(" ").slice(0, 3).join(" ");
+  try {
+    const board = new Chess(before);
+    for (const m of board.moves({ verbose: true })) {
+      board.move(m);
+      const same = key(board.fen()) === key(after);
+      board.undo();
+      if (same) return { san: m.san, capture: m.isCapture() || m.isEnPassant(), castle: m.isKingsideCastle() || m.isQueensideCastle(),
+        check: m.san.endsWith("+"), mate: m.san.endsWith("#"), promotion: m.isPromotion() };
+    }
+  } catch { /* not a position chess.js reads */ }
+  return null;
+}
+
+/** The same position with the other side to move, for "what would they play if it were their move?" (the
+    threat). Null when the side to move is in check: passing would leave the king in check. */
+export function passTurn(fen: string): string | null {
+  try {
+    if (new Chess(fen).inCheck()) return null;
+    const f = fen.split(" ");
+    const next = new Chess([f[0], f[1] === "w" ? "b" : "w", f[2], "-", "0", f[5] ?? "1"].join(" "));
+    return next.fen();
+  } catch {
+    return null;
+  }
+}
+
 /** Game over in this position, by the rules (no engine needed): "Checkmate", "Stalemate", "Draw" or null. */
 export function gameOver(fen: string): string | null {
   const board = new Chess(fen);

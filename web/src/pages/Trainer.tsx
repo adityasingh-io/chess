@@ -7,6 +7,7 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Board } from "../components/Board";
+import { RefText, usePeek, type PeekControl } from "../components/RefText";
 import { numberedLine, replay, sideToMove, tryMove, uciParts, type Side } from "../lib/chess";
 import { useRepertoire } from "../lib/data";
 import { useLiveEngine } from "../lib/engine";
@@ -14,6 +15,7 @@ import { evalFor, moveName, pct, plural, signed } from "../lib/format";
 import { cardId, dueLines, newLines, START, useLines, type Line } from "../lib/lines";
 import { useMoveInput } from "../lib/moveInput";
 import { grade, Rating, removeLine, useProgress, type Progress } from "../lib/progress";
+import { myKinds, type RefLine } from "../lib/refs";
 import { winOf } from "../lib/winpct";
 import type { Alternative, Eval, LineStep } from "../types/export";
 
@@ -155,7 +157,9 @@ function scoreText(ev: Eval | null, terminal: string | null, me: Side) {
 
 /** Stockfish's score, its preference, how often players at my level choose it, the opening it reaches,
     and what the move does on the board. */
-function StepWhy({ step, me, mine, alts, title }: { step: LineStep; me: Side; mine: boolean; alts: Alternative[]; title: string }) {
+function StepWhy({ step, me, mine, alts, title, peek }: {
+  step: LineStep; me: Side; mine: boolean; alts: Alternative[]; title: string; peek: PeekControl;
+}) {
   const best = alts[0];
   const facts = [
     step.eval || step.terminal ? `Stockfish ${scoreText(step.eval, step.terminal, me)}` : null,
@@ -165,7 +169,7 @@ function StepWhy({ step, me, mine, alts, title }: { step: LineStep; me: Side; mi
   return (
     <div className="step-why">
       <div className="label">{title}</div>
-      {step.reason && <p>{step.reason}</p>}
+      {step.reason && <p><RefText id={title} text={step.reason} lines={NO_LINES} me={me} peek={peek} /></p>}
       {facts.length > 0 && <p className="muted small">{facts.join(" · ")}.</p>}
       {step.opening && <p className="small">Opening: <b>{step.opening}</b></p>}
     </div>
@@ -173,6 +177,7 @@ function StepWhy({ step, me, mine, alts, title }: { step: LineStep; me: Side; mi
 }
 
 type Miss = { uci: string; san: string; fen: string; step: number };
+const NO_LINES: RefLine[] = [];
 
 export function LineDrill({ line, learn, onDone, onNext, onAgain, onClose, last }: {
   line: Line; learn: boolean; onDone: (mistakes: number) => void; onNext: () => void; onAgain: () => void;
@@ -220,6 +225,7 @@ export function LineDrill({ line, learn, onDone, onNext, onAgain, onClose, last 
     return true;
   };
   const input = useMoveInput(fens[step], myTurn, onMove);
+  const peek = usePeek(`${step}:${miss?.uci ?? ""}`);
   const tokens = numberedLine(START, line.san);
   const lastUci = step > 0 ? line.moves[step - 1] : null;
   const lastMine = step > 0 && sideToMove(fens[step - 1]) === me;
@@ -233,7 +239,8 @@ export function LineDrill({ line, learn, onDone, onNext, onAgain, onClose, last 
         <Board id={`line-${line.id}`} fen={fens[step]} orientation={me} label={`Repertoire line, ${me} to play`}
           arrows={showArrow ? [{ uci: line.moves[step], kind: "best" }] : []}
           highlight={lastUci ? { uci: lastUci, kind: lastMine ? "you" : "them" } : null}
-          selected={input.selected} dots={input.dots} onDrop={input.onDrop} onSquare={input.onSquare} />
+          selected={input.selected} dots={input.dots} onDrop={input.onDrop} onSquare={input.onSquare}
+          peek={peek.shown} marks={!myTurn || learn} />
       </div>
       <div className="puzzle-side" aria-live="polite">
         {!done ? (
@@ -244,10 +251,11 @@ export function LineDrill({ line, learn, onDone, onNext, onAgain, onClose, last 
                 : learn ? <>Play <b className="san">{line.san[step]}</b>: the arrow shows it.</>
                 : line.source === "leak" ? "You've gone wrong here before. Stockfish's move?" : "Your move in this line."}
             </p>
-            {miss && <Slip miss={miss} expected={info(miss.step)} san={line.san[miss.step]} alts={altsAt(miss.step)} me={me} />}
-            {nextInfo && !miss && <StepWhy step={nextInfo} me={me} mine alts={altsAt(step)} title={`Why ${line.san[step]}`} />}
+            {miss && <Slip miss={miss} expected={info(miss.step)} san={line.san[miss.step]} alts={altsAt(miss.step)} me={me}
+              before={fens[miss.step]} peek={peek} />}
+            {nextInfo && !miss && <StepWhy step={nextInfo} me={me} mine alts={altsAt(step)} title={`Why ${line.san[step]}`} peek={peek} />}
             {lastInfo && !miss && (
-              <StepWhy step={lastInfo} me={me} mine={lastMine} alts={altsAt(step - 1)}
+              <StepWhy step={lastInfo} me={me} mine={lastMine} alts={altsAt(step - 1)} peek={peek}
                 title={`${moveName(step, line.san[step - 1])} · ${lastMine ? "your move" : "their move"}`} />
             )}
           </>
@@ -286,7 +294,11 @@ export function LineDrill({ line, learn, onDone, onNext, onAgain, onClose, last 
 
 /** A move that isn't the line's: Stockfish's stored score for it next to the line's move, and what happens
     along Stockfish's line after it. Without a stored score, the live engine scores it (labelled). */
-function Slip({ miss, expected, san, alts, me }: { miss: Miss; expected?: LineStep; san: string; alts: Alternative[]; me: Side }) {
+function Slip({ miss, expected, san, alts, me, before, peek }: {
+  miss: Miss; expected?: LineStep; san: string; alts: Alternative[]; me: Side; before: string; peek: PeekControl;
+}) {
+  // The slip's text names the slip, then Stockfish's answer to it (found from the position after the slip).
+  const lines = useMemo<RefLine[]>(() => [{ fen: before, ucis: [miss.uci], kind: myKinds }], [before, miss.uci]);
   const alt = alts.find((a) => a.uci === miss.uci);
   const stored = alt && (alt.eval || alt.terminal) && alt.win != null;
   const live = useLiveEngine(stored ? null : miss.fen);
@@ -311,7 +323,7 @@ function Slip({ miss, expected, san, alts, me }: { miss: Miss; expected?: LineSt
             : "Stockfish in this browser is scoring it…"}
         </p>
       )}
-      {stored && alt!.why && <p className="small">{alt!.why}</p>}
+      {stored && alt!.why && <p className="small"><RefText id="slip" text={alt!.why} lines={lines} me={me} peek={peek} /></p>}
       <p className="small">The line plays <b className="san">{san}</b> (the arrow); play it to go on.</p>
     </div>
   );

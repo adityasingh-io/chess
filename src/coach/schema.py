@@ -428,6 +428,8 @@ class Puzzle(Model):
     ply: int | None
     played_san: str | None
     drop: float | None
+    played_line: list[str]     # mine: my move (UCI), then Stockfish's line after it; empty for Lichess
+    played_line_san: list[str]
     opening: str | None        # family (mine) or OpeningTags (Lichess)
     url: str | None            # Lichess puzzle page
     why: str                   # shown once it's over: what the solution does on the board (measured, why.py)

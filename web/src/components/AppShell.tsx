@@ -9,6 +9,7 @@ const ICON = {
   puzzle: "M13 3 5 14h6l-1 7 8-11h-6z",
   games: "M4 4h16v16H4zM4 12h16M12 4v16",
   more: "M5 12h.01M12 12h.01M19 12h.01",
+  gear: "M10.2 4.8 10.6 2.1 13.4 2.1 13.8 4.8 15.8 5.7 18 4 20 6 18.3 8.2 19.2 10.2 21.9 10.6 21.9 13.4 19.2 13.8 18.3 15.8 20 18 18 20 15.8 18.3 13.8 19.2 13.4 21.9 10.6 21.9 10.2 19.2 8.2 18.3 6 20 4 18 5.7 15.8 4.8 13.8 2.1 13.4 2.1 10.6 4.8 10.2 5.7 8.2 4 6 6 4 8.2 5.7zM12 9a3 3 0 1 0 0 6 3 3 0 1 0 0-6z",
 };
 const Icon = ({ d }: { d: string }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -30,7 +31,8 @@ export const MORE = [
   { to: "/trainer", name: "Repertoire trainer", what: "Play your repertoire and leak lines from memory, with spaced repetition" },
   { to: "/endgames", name: "Endgames", what: "How your endgames turn out, by type, and the moves that spoiled them" },
   { to: "/insights", name: "Insights", what: "Score and accuracy by colour, opponent, time of day and more; think time; trends" },
-  { to: "/settings", name: "Settings", what: "Export or import your training progress, sync, theme" },
+  { to: "/coordinates", name: "Coordinates", what: "Learn the square names: tap the square that's asked, against the clock" },
+  { to: "/settings", name: "Settings", what: "Board options (square names, hanging pieces, sounds), progress, sync, theme" },
 ];
 const BOTTOM = [
   { to: "/", short: "Home", icon: ICON.home, end: true }, { to: "/leaks", short: "Leaks", icon: ICON.leak },
@@ -109,6 +111,7 @@ export function AppShell() {
           <nav className="tabs-top" aria-label="Sections"><TopTabs /></nav>
           <Boundary fallback={<span className="who" />}><Suspense fallback={<span className="who" />}><Who /></Suspense></Boundary>
           <ThemeButton />
+          <NavLink className="gear" to="/settings" aria-label="Settings" title="Settings"><Icon d={ICON.gear} /></NavLink>
         </div>
       </header>
       <main className="page">

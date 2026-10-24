@@ -52,6 +52,18 @@ FLAG_THEMES = {"opening": "opening", "endgame": "endgame"}
 BUCKET_THEMES = ["hangingPiece", *MOTIFS, *MATES]
 
 
+def legal_prefix(fen: str, ucis: list[str]) -> list[str]:
+    """The moves of a line up to the first one that isn't legal."""
+    board, out = chess.Board(fen), []
+    for uci in ucis:
+        move = chess.Move.from_uci(uci)
+        if move not in board.legal_moves:
+            break
+        out.append(uci)
+        board.push(move)
+    return out
+
+
 def sans(fen: str, ucis: list[str]) -> list[str]:
     board = chess.Board(fen)
     out = []
@@ -95,10 +107,12 @@ def my_puzzles(cfg: Config, models: list[GameModel], evals2: dict[str, dict]) ->
             solution, unique = found
             fen = r.ply.move["fen_before"]
             previous = m.plies[r.ply.number - 2] if r.ply.number >= 2 else None
+            played = legal_prefix(fen, [r.ply.move["uci"], *r.reply_line])
             out.append(dict(
                 id=f"m-{r.id}", source="mine", fen=fen, last_move=previous.move["uci"] if previous else None,
                 solution=solution, solution_san=sans(fen, solution), unique=unique, tags=r.tags, themes=r.themes,
                 rating=None, game=m.id, ply=r.ply.number, played_san=r.ply.move["san"], drop=round(r.ply.drop, 1),
+                played_line=played, played_line_san=sans(fen, played),
                 opening=m.opening.family if m.opening else None, url=None,
             ))
     return out
@@ -174,6 +188,7 @@ def lichess_puzzle(row: dict) -> dict:
         id=f"l-{row['PuzzleId']}", source="lichess", fen=fen, last_move=moves[0], solution=solution,
         solution_san=sans(fen, solution), unique=[True] * ((len(solution) + 1) // 2), tags=lichess_tags(row["Themes"]),
         themes=list(row["Themes"]), rating=int(row["Rating"]), game=None, ply=None, played_san=None, drop=None,
+        played_line=[], played_line_san=[],
         opening=" ".join(row["OpeningTags"]).replace("_", " ") or None,
         url=f"https://lichess.org/training/{row['PuzzleId']}",
     )

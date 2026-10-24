@@ -1,6 +1,10 @@
-// Settings: where training progress lives, export and import of it as JSON, sync sign-in (when this build
-// has sync configured), and the theme.
+// Settings: the board options, where training progress lives, export and import of it as JSON, sync sign-in
+// (when this build has sync configured), and the theme.
 import { useRef, useState, useSyncExternalStore } from "react";
+import { Link } from "react-router";
+import { Board } from "../components/Board";
+import { setSetting, useSettings, type Settings as BoardSettings } from "../lib/settings";
+import { play } from "../lib/sound";
 import { exportProgress, importProgress, useProgress } from "../lib/progress";
 import { getSyncState, onSyncState, sendLink, signOut, syncConfigured, syncNow } from "../lib/sync";
 import { setPref, useThemePref, type ThemePref } from "../lib/theme";
@@ -35,9 +39,10 @@ export default function Settings() {
     <>
       <div className="page-head">
         <h1>Settings</h1>
-        <p className="muted">Training progress is kept on this device first, so drills work offline.</p>
+        <p className="muted">Board options and training progress are kept on this device first, so drills work offline.</p>
       </div>
       <div className="grid-2">
+        <BoardCard />
         <section className="card">
           <div className="card-head"><h2>Progress</h2></div>
           <dl className="pos-facts">
@@ -109,6 +114,42 @@ function SyncCard() {
           {error && <p className="small bad-text" role="alert">{error}</p>}
         </form>
       )}
+    </section>
+  );
+}
+
+// 1. e4 d5 2. Nc3 Bg4 3. Bc4: the bishops on c4 and g4 are attacked and not defended.
+const PREVIEW = "rn1qkbnr/ppp1pppp/8/3p4/2B1P1b1/2N5/PPPP1PPP/R1BQK1NR b KQkq - 3 3";
+const BOARD: [keyof BoardSettings, string, string][] = [
+  ["squareNames", "Square names on every square",
+    "Each square shows its name (e4, g7, h2…) in its top-left corner, in place of the letters and numbers along the edges."],
+  ["hanging", "Mark hanging pieces",
+    "A ring around a piece that's attacked and has no defender: red for the side at the bottom of the board, teal for the side at the top. It counts attackers and defenders on the board; Stockfish isn't asked. Hidden while a puzzle or the trainer waits for your move."],
+  ["sounds", "Move sounds", "A knock for each move, a sharper one for a capture and two notes for check."],
+];
+
+function BoardCard() {
+  const s = useSettings();
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Board</h2></div>
+      <div className="toggles">
+        {BOARD.map(([key, label, what]) => (
+          <label key={key} className="toggle">
+            <input type="checkbox" checked={s[key]} onChange={(e) => {
+              setSetting(key, e.target.checked);
+              if (key === "sounds" && e.target.checked) play("move");
+            }} />
+            <span><b>{label}</b><span className="muted small">{what}</span></span>
+          </label>
+        ))}
+      </div>
+      <div className="settings-preview">
+        <Board id="settings-preview" fen={PREVIEW} orientation="white" label="Preview of the board options" />
+      </div>
+      <p className="muted small" style={{ margin: 0 }}>
+        Still learning the squares? <Link to="/coordinates">The coordinates drill</Link> asks for one square at a time.
+      </p>
     </section>
   );
 }

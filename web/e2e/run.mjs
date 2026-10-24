@@ -1,8 +1,9 @@
 // End-to-end check of the acceptance so far: every page at phone and desktop width in both themes (no
 // console errors, no sideways scroll), the numbers on screen match the exports, a 250-ply game steps
 // smoothly, the arrow buttons step the game, a comparison and Explore, Explore gets live lines from the
-// in-browser engine, a drill session from a leak works on a phone (Phase 5), and the training pages open
-// offline once the service worker is in.
+// in-browser engine, hovering a move in an explanation shows it on the board, Threat gets the other side's
+// move from the live engine, a drill session from a leak works on a phone (Phase 5), and the training pages
+// open offline once the service worker is in.
 //
 // Uses the installed Google Chrome through playwright-core. Builds and serves the production bundle
 // (vite preview) unless E2E_URL is set; --dev serves the dev build instead.
@@ -112,6 +113,8 @@ try {
     { path: "/play", name: "play-it-out", ready: ".playout-row" },
     { path: `/puzzles?game=${retryGame.id}`, name: "retry-game", ready: ".puzzle .board" },
     { path: "/settings", name: "settings", ready: ".card h2" },
+    { path: "/coordinates", name: "coordinates", ready: ".board" },
+    { path: "/puzzles?tab=missed", name: "missed", ready: ".card h2" },
     { path: "/more", name: "more", ready: ".rows" },
   ];
   for (const theme of ["dark", "light"]) {
@@ -284,6 +287,29 @@ try {
   const isolated = await page.evaluate(() => crossOriginIsolated);
   check("explore: live lines appear", lines, `${label?.trim()} · crossOriginIsolated=${isolated}`);
   if (shots) await page.screenshot({ path: join(shots, "explore-1280-dark.png"), fullPage: true });
+
+  // Hovering a move named in a mistake's explanation shows the position before it; moving away puts the
+  // game's position back.
+  const r0 = longGame.records[0];
+  await page.goto(`${base}/games/${LONG_GAME}?ply=${r0.ply}`);
+  await page.waitForSelector(".explain .ref.move");
+  const gameBoard = `game-${LONG_GAME}`;
+  const atMove = await boardOn(page, gameBoard);
+  await page.hover(".explain .ref.move");
+  await page.waitForTimeout(300);
+  const peeked = await boardOn(page, gameBoard);
+  await page.mouse.move(2, 2);
+  await page.waitForTimeout(300);
+  check("explain: hovering a move shows it on the board, leaving it puts the game back",
+    !same(atMove, peeked) && same(atMove, await boardOn(page, gameBoard)), await page.textContent(".explain .ref.move") ?? "");
+
+  // Threat: the live engine's move for the side not to move (off while that side is in check).
+  await page.goto(`${base}/games/${LONG_GAME}?ply=100`);
+  await page.waitForSelector(".moves .mv");
+  for (let i = 0; i < 6 && await page.isDisabled("button.threat"); i++) await page.keyboard.press("ArrowRight");
+  await page.click("button.threat");
+  const threat = await page.waitForSelector(".threat-line:has-text('Stockfish would play')", { timeout: 20000 }).then(() => true, () => false);
+  check("threat: the live engine names the other side's move, labelled live", threat, (await page.textContent(".threat-line"))?.trim() ?? "");
   await ctx.close();
 
   // Phase 5 acceptance: on a phone, a leak's "Drill these" opens a session; tapping the solution solves the

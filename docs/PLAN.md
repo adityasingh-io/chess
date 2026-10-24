@@ -154,7 +154,9 @@ this file wins.
   first `pv_plies` moves, like-for-like captures cancelling, with the net material. A mistake's text adds
   this for Stockfish's best move and line and for the move I played and Stockfish's reply; when both
   lines end with the same material, it says the difference is in the position, which only Stockfish's
-  score measures. Puzzles show it for the solution once they're over.
+  score measures. A mistake's text starts with the verdict: Stockfish's best move with its score and what
+  its line does to material, then my move with its score and what its line does. Puzzles show it for the
+  solution once they're over.
 - **Dashboard training card:** puzzles due, a drill on the top leak that has puzzles, the opening lines
   due or to learn, and answers today against a goal of ten, with a streak of days.
 - **Sync:** Supabase, off unless the build has `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
@@ -182,6 +184,26 @@ this file wins.
 - **Last game and retrying a game:** the dashboard shows the newest game (result, accuracy, label counts,
   why I lost) with links to review it, retry its mistakes (`/puzzles?game=<id>`: my puzzles from that game
   in move order), and play its thrown win again or play on from where I gave it up. Game summaries and game files carry their puzzle count.
+- **Quality of life** (added 2026-10-24 from what chess.com and Lichess players ask for):
+  - *Hover to show:* every move and square an explanation names is a button. Hovering one (or focusing it
+    from the keyboard) shows it on the board while the pointer stays; a tap or click keeps it shown until
+    it's tapped again, and scrolls the board into view if it's off screen. A move is looked up in the
+    stored lines the text was written from (the move before mine, Stockfish's best line, my move and
+    Stockfish's line after it), then tried in the position after the move named before it; a square after
+    "on" is a square. The line chips under an explanation show their move on hover too.
+  - *Settings → Board* (`localStorage` "coach-settings", all off at first): square names in the corner of
+    every square, in place of the edge coordinates; hanging pieces ringed (attacked by the other side and
+    not defended, measured with chess.js, pins ignored), hidden while a drill waits for my move; move
+    sounds, synthesised with Web Audio when a board steps one legal move forward. A gear in the top bar
+    opens Settings.
+  - *Threat* (game viewer, button or X): passes the turn and asks the in-browser Stockfish what the other
+    side would play. Shown as a violet arrow and a LIVE line, never stored; not offered in check.
+  - *Puzzles:* my puzzles also store my move and Stockfish's line after it (`played_line`), shown as a
+    second row of chips once the puzzle is over. The Missed tab lists puzzles whose latest answer wasn't a
+    clean solve, newest first, and plays them as a session.
+  - *Coordinates* (`/coordinates`, under More and in Settings): the page names a square and I tap it, as
+    many as I can in 30 seconds, as White or Black, with or without pieces. The best per side stays on the
+    device.
 - **Exports are committed.** The `.gitignore` rule `data/` also matched `web/public/data`, so Phase 2's
   exports never reached git. It is now `/data/`.
 

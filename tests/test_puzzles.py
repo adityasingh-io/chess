@@ -24,6 +24,9 @@ def test_my_puzzles_follow_stockfish(recorded):
         rec = records[p["id"].removeprefix("m-")]
         assert rec.confirmed is True
         assert p["fen"] == rec.ply.move["fen_before"] and p["played_san"] == rec.ply.move["san"]
+        # My move's line: what I played, then Stockfish's line after it.
+        assert p["played_line"] == [rec.ply.move["uci"], *rec.reply_line][: len(p["played_line"])]
+        assert p["played_line_san"][0] == rec.ply.move["san"] and len(p["played_line_san"]) == len(p["played_line"])
         # The solution starts with Stockfish's best move and is Stockfish's line, ending on my move.
         assert p["solution"] == rec.best_line[: len(p["solution"])]
         assert len(p["solution"]) % 2 == 1 and len(p["solution"]) <= limit

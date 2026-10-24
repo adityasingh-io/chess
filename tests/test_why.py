@@ -8,8 +8,8 @@ import chess
 
 from coach.measure import balance, play_line
 from coach.puzzles import lichess_puzzle
-from coach.templates import why
-from coach.why import move_facts, outcome, solution_why, trade
+from coach.templates import scores, why
+from coach.why import gist, move_facts, outcome, solution_why, trade, verdict
 
 PUZZLES = json.loads((Path(__file__).parent / "fixtures" / "puzzles.json").read_text())["puzzles"]
 
@@ -50,6 +50,36 @@ def test_like_for_like_trades_cancel():
     assert outcome(t) == "you win a pawn (+1 in material)"
     t = trade(_board("e4", "e5", "Bc4", "Nc6", "Qh5", "Nf6"), ["h5f7"], chess.WHITE, 10)
     assert t.mated is False and outcome(t) == "it ends in checkmate"
+
+
+def test_verdict_names_both_moves_and_what_each_line_wins():
+    """The scores are passed in (they're Stockfish's); placeholders here, since only the wording is tested."""
+    start = _board("e4", "d5")
+    pawn, level = trade(start, ["e4d5"], chess.WHITE, 10), trade(start, ["g1f3"], chess.WHITE, 10)
+    assert gist(pawn) == "wins a pawn" and gist(level) == "keeps the material level"
+    assert verdict("exd5", "S1", pawn, "Nf3", "S2", level) == \
+        "In Stockfish's lines, exd5 (S1) wins a pawn; your Nf3 (S2) keeps the material level."
+    assert verdict("Nf3", "S1", level, "exd5", "S2", pawn).endswith(
+        "Nf3 ends with less material, so what it gains is in the position, which only Stockfish's score measures.")
+    assert "end with the same material" in verdict("Nf3", "S1", level, "Nc3", "S2", level)
+    mate = trade(_board("e4", "e5", "Bc4", "Nc6", "Qh5", "Nf6"), ["h5f7"], chess.WHITE, 10)
+    assert gist(mate) == "ends in checkmate"
+
+
+def test_record_explanations_lead_with_the_verdict(recorded):
+    """A recorded mistake's text starts with Stockfish's best move and my move, each with its stored score."""
+    checked = 0
+    for m in recorded.models:
+        for r in m.records:
+            move = r.ply.move
+            if not r.best_line or r.best_line[0] == move["uci"]:
+                continue
+            best = chess.Board(move["fen_before"]).san(chess.Move.from_uci(r.best_line[0]))
+            best_score, my_score = scores(r)
+            assert why(r).startswith(f"In Stockfish's lines, {best} ({best_score}) "), (r.id, why(r))
+            assert f"your {move['san']} ({my_score})" in why(r), (r.id, why(r))
+            checked += 1
+    assert checked > 20
 
 
 def test_record_explanations_match_measured_material(recorded):

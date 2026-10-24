@@ -49,40 +49,45 @@ def eval_text(line: dict | None, white: bool, terminal: str | None = None) -> st
         n = line["mate"] if white else -line["mate"]
         return f"mate in {n}" if n > 0 else f"mated in {-n}"
     cp = line["cp"] if white else -line["cp"]
-    return f"{cp / 100:+.1f}"
+    text = f"{cp / 100:+.1f}"
+    return "0.0" if text in ("+0.0", "-0.0") else text
 
 
 def explain(r: Record) -> str:
-    """What kind of mistake it was and the scores, then what each line does on the board (why.py)."""
+    """What kind of mistake it was, then the verdict (both scores and what each line wins or loses) and what
+    the moves do on the board (why.py)."""
     move = r.ply.move
     me = r.ply.white
     san = move["san"]
     best = move_san(move["fen_before"], r.best_line[0] if r.best_line else None)
-    best_eval = eval_text(r.before_top, me)
-    after_eval = eval_text(r.after_top, me, r.after_terminal)
-    better = f" Best was {best} ({best_eval})." if best else ""
     if r.primary == "allowed_mate":
         n = -(r.after_top["mate"] if me else -r.after_top["mate"])
-        head = f"{san} allowed mate in {n}.{better}"
+        head = f"{san} allowed mate in {n}."
     elif r.primary == "hung_piece":
-        head = f"{san} hung material: you end {r.net_after:+d} in material.{better}"
+        head = f"{san} hung material: you end {r.net_after:+d} in material."
     elif r.primary == "tactic":
-        head = f"{san} walked into {SUBTYPE_NAMES.get(r.subtype, 'a tactic')}: you end {r.net_after:+d} in material.{better}"
+        head = f"{san} walked into {SUBTYPE_NAMES.get(r.subtype, 'a tactic')}: you end {r.net_after:+d} in material."
     elif r.primary == "missed_mate":
-        head = f"You had {best_eval} with {best}. {san} gives {after_eval}."
+        head = f"{san} missed a mate."
     elif r.primary == "missed_win":
-        what = "won material outright" if r.subtype == "free_material" else f"won material with {SUBTYPE_NAMES.get(r.subtype, 'a tactic')}"
-        head = f"{best} {what}, ending {r.net_best:+d} for you. {san} gives {after_eval}."
+        head = (f"{san} missed free material." if r.subtype == "free_material"
+                else f"{san} missed {SUBTYPE_NAMES.get(r.subtype, 'a tactic')} that wins material.")
     else:
-        head = f"{san} dropped your Win% from {r.ply.win_before:.0f} to {r.ply.win_after:.0f}.{better}"
+        head = f"{san} dropped your Win% from {r.ply.win_before:.0f} to {r.ply.win_after:.0f}."
     measured = why(r)
     return f"{head} {measured}" if measured else head
 
 
+def scores(r: Record) -> tuple[str, str]:
+    """Stockfish's score with its best move and after mine, from my side: '+1.4', 'mate in 3'."""
+    me = r.ply.white
+    return eval_text(r.before_top, me), eval_text(r.after_top, me, r.after_terminal)
+
+
 def why(r: Record) -> str:
-    """What the best move and my move do on the board along Stockfish's two lines (why.py)."""
+    """The verdict, then what the best move and my move do on the board along Stockfish's two lines (why.py)."""
     move, n = r.ply.move, r.ply.number
     prev = r.game.plies[n - 2].move if n >= 2 else None
     return mistake_why(move["fen_before"], move["uci"], r.best_line, r.reply_line,
                        chess.WHITE if r.ply.white else chess.BLACK, max(len(r.best_line), len(r.reply_line)),
-                       (prev["fen_before"], prev["uci"]) if prev else None)
+                       (prev["fen_before"], prev["uci"]) if prev else None, scores(r))

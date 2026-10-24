@@ -4,9 +4,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { posKey, replay } from "../src/lib/chess";
+import { numberedLine, posKey, replay } from "../src/lib/chess";
 import { evalFor, sanTokens } from "../src/lib/format";
-import { grade, Rating } from "../src/lib/progress";
+import { grade, normalise, Rating, setProgress } from "../src/lib/progress";
 import { ENDGAME_TYPE, OUTCOME } from "../src/lib/names";
 import { routes } from "../src/router";
 import { Chess } from "chess.js";
@@ -22,6 +22,8 @@ async function open(path: string) {
   return router;
 }
 const SLOW = { timeout: 10_000 };   // first render waits for the lazily loaded page module
+/** A paragraph reading `text`, whose moves and squares may be buttons (hover to see them on the board). */
+const para = (text: string) => (_: string, el: Element | null) => el?.tagName === "P" && el.textContent === text;
 
 test("dashboard shows the exported rating and loss shares", async () => {
   await open("/");
@@ -51,7 +53,7 @@ test("the viewer steps through a game with the keyboard", async () => {
   // A mistake record's explanation is the pipeline's template text, shown as is.
   const r = g.records[0];
   fireEvent.click(document.querySelector(`.mv[data-ply="${r.ply}"]`)!);
-  expect(await screen.findByText(r.explanation)).toBeTruthy();
+  expect(await screen.findByText(para(r.explanation))).toBeTruthy();
 }, 20_000);
 
 test("a note Claude worded replaces the template, which stays one tap away", async () => {
@@ -65,9 +67,9 @@ test("a note Claude worded replaces the template, which stays one tap away", asy
     : real(input)) as typeof fetch;
   try {
     await open(`/games/${id}?ply=${r.ply}`);
-    expect(await screen.findByText(note, {}, SLOW)).toBeTruthy();
+    expect(await screen.findByText(para(note), {}, SLOW)).toBeTruthy();
     const details = screen.getByText("Worded by Claude from Stockfish's facts").closest("details")!;
-    expect(within(details as HTMLElement).getByText(r.explanation)).toBeTruthy();
+    expect(within(details as HTMLElement).getByText(para(r.explanation))).toBeTruthy();
   } finally {
     globalThis.fetch = real;
   }
@@ -214,7 +216,7 @@ test("a leak's drill starts with my newest puzzle of that kind, and solving it s
   }
   expect(await screen.findByText("Solved, with help.", {}, { timeout: 5000 })).toBeTruthy();
   // Once it's over, what the solution does on the board.
-  expect(screen.getByText(z.why)).toBeTruthy();
+  expect(screen.getByText(para(z.why))).toBeTruthy();
   const p = progress();
   expect(p.items[z.id].kind).toBe("puzzle");
   expect(p.attempts[0].grade).toBe(2);   // one wrong move: Hard
@@ -230,7 +232,7 @@ test("a new leak line is shown first: the arrow, Stockfish's move and why, then 
   expect(await screen.findByText(/the arrow shows it/, {}, SLOW)).toBeTruthy();
   const step = line.steps[line.start];
   expect(screen.getByText(`Why ${step.san}`)).toBeTruthy();
-  if (step.reason) expect(screen.getAllByText(step.reason).length).toBeGreaterThan(0);
+  if (step.reason) expect(screen.getAllByText(para(step.reason)).length).toBeGreaterThan(0);
   const board = `line-${line.id}`;
   const expected = line.moves[line.start];
   await tap(board, expected.slice(0, 2));
@@ -255,7 +257,7 @@ test("from memory, a slip shows Stockfish's stored score for it and what happens
   await tap(board, alt.uci.slice(0, 2));
   await tap(board, alt.uci.slice(2, 4));
   expect(await screen.findByText(/isn't the line's move/)).toBeTruthy();
-  expect(screen.getByText(alt.why)).toBeTruthy();
+  expect(screen.getByText(para(alt.why))).toBeTruthy();
   const miss = document.querySelector(".puzzle-miss")!;
   expect(miss.textContent).toContain(evalFor(alt.eval, line.colour));
 }, 30_000);
@@ -304,4 +306,88 @@ test("the dashboard's last game is the newest one, and ?game retries its puzzles
   await open(`/puzzles?game=${g.id}`);
   expect(await screen.findByText(`Puzzle 1 of ${g.puzzles}`, {}, SLOW)).toBeTruthy();
   expect(screen.getByText("This game's mistakes")).toBeTruthy();
+}, 20_000);
+
+test("Settings → Board: square names on every square and rings on hanging pieces, kept on this device", async () => {
+  localStorage.clear();
+  await open("/settings");
+  const names = await screen.findByRole("checkbox", { name: /Square names on every square/ }, SLOW);
+  expect(document.querySelector("#settings-preview-board")?.parentElement?.querySelector(".square-names")).toBeNull();
+  await act(async () => { fireEvent.click(names); });
+  const grid = document.querySelector(".square-names")!;
+  expect(grid.children).toHaveLength(64);
+  expect(grid.children[0].textContent).toBe("a8");   // White at the bottom: a8 is the top-left square
+  await act(async () => { fireEvent.click(screen.getByRole("checkbox", { name: /Mark hanging pieces/ })); });
+  // The preview: 1. e4 d5 2. Nc3 Bg4 3. Bc4, where both bishops hang.
+  const ring = (sq: string) => document.getElementById(`settings-preview-square-${sq}`)!.innerHTML;
+  expect(ring("c4")).toContain("var(--bad)");
+  expect(ring("g4")).toContain("var(--good)");
+  expect(ring("d5")).not.toContain("inset");
+  expect(JSON.parse(localStorage.getItem("coach-settings")!)).toMatchObject({ squareNames: true, hanging: true, sounds: false });
+}, 20_000);
+
+test("tapping a move in an explanation shows the position before it on the board, until it's tapped again", async () => {
+  const id = "164948678288";
+  const g = data<Game>(`games/${id}.json`);
+  const r = g.records[0];
+  await open(`/games/${id}?ply=${r.ply}`);
+  await screen.findByText(para(r.explanation), {}, SLOW);
+  const best = screen.getAllByRole("button", { name: `Show ${r.best_san} on the board` })[0];
+  // My move's piece is back on the square it left: the board shows the position before my move.
+  const from = r.uci.slice(0, 2), piece = (r.colour === "white" ? "w" : "b") + (/^[KQRBN]/.test(r.san) ? r.san[0] : "P");
+  const onFrom = () => document.getElementById(`game-${id}-piece-${piece}-${from}`);
+  expect(onFrom()).toBeNull();
+  await act(async () => { fireEvent.click(best); });
+  expect(best.getAttribute("aria-pressed")).toBe("true");
+  expect(onFrom()).not.toBeNull();
+  await act(async () => { fireEvent.click(best); });
+  expect(onFrom()).toBeNull();
+}, 20_000);
+
+test("a puzzle from my game, once over, steps through my move's line as well as Stockfish's", async () => {
+  localStorage.clear();
+  const z = data<PuzzleSet>("puzzles/mine.json").puzzles.find((x) => x.played_line.length >= 3)!;
+  await open(`/puzzles?tab=missed&id=${z.id}`);
+  grade(z.id, "puzzle", Rating.Again, z.tags);   // so it's on the missed list; the session plays it either way
+  const reveal = await screen.findByRole("button", { name: "Show the solution" }, SLOW);
+  await act(async () => { fireEvent.click(reveal); });
+  const yours = await screen.findByRole("group", { name: "Your move in the game, then Stockfish's line" }, { timeout: 5000 });
+  const chips = within(yours).getAllByRole("button");
+  expect(chips.map((c) => c.textContent)).toEqual(numberedLine(z.fen, z.played_line_san));
+  await act(async () => { fireEvent.click(chips[0]); });
+  // After my move, its piece stands on the square it went to.
+  const to = z.played_line[0].slice(2, 4);
+  expect(document.getElementById(`pz-${z.id}-square-${to}`)!.querySelector("[data-piece]")).not.toBeNull();
+  expect(chips[0].getAttribute("aria-pressed")).toBe("true");
+}, 20_000);
+
+test("missed puzzles are listed latest first, and each one plays again", async () => {
+  localStorage.clear();
+  setProgress(normalise({}));
+  const [a, b] = data<PuzzleSet>("puzzles/mine.json").puzzles;
+  grade(a.id, "puzzle", Rating.Again, a.tags, new Date(Date.now() - 60_000));
+  grade(b.id, "puzzle", Rating.Hard, b.tags);
+  await open("/puzzles?tab=missed");
+  expect(await screen.findByRole("heading", { name: "Missed puzzles" }, SLOW)).toBeTruthy();
+  const rows = screen.getAllByRole("link").filter((l) => l.getAttribute("href")?.startsWith("/puzzles?tab=missed&id="));
+  expect(rows.map((l) => l.getAttribute("href"))).toEqual([b.id, a.id].map((x) => `/puzzles?tab=missed&id=${x}`));
+  expect(within(rows[0]).getByText(/with help/)).toBeTruthy();
+  await act(async () => { fireEvent.click(rows[1]); });
+  expect(await screen.findByText("Puzzle 1 of 1", {}, SLOW)).toBeTruthy();
+  expect(document.getElementById(`pz-${a.id}-board`)).not.toBeNull();
+}, 20_000);
+
+test("the coordinates drill counts the squares tapped in time", async () => {
+  localStorage.clear();
+  await open("/coordinates");
+  const start = await screen.findByRole("button", { name: "Start" }, SLOW);
+  await act(async () => { fireEvent.click(start); });
+  const target = () => document.querySelector(".coord-target b")!.textContent!;
+  const first = target();
+  const tally = () => document.querySelector(".puzzle-side p.num")!.textContent;
+  await tap("coords", first);
+  expect(tally()).toContain("1 found");
+  expect(target()).not.toBe(first);
+  await tap("coords", target() === "a1" ? "h8" : "a1");
+  expect(tally()).toContain("1 missed");
 }, 20_000);

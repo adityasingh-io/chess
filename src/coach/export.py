@@ -282,7 +282,8 @@ def lichess_puzzles(cfg: Config) -> list[S.Puzzle]:
         rows = json.loads(last.read_text())["puzzles"]
     else:
         return []
-    return [S.Puzzle(**{**p, "why": solution_why(p["fen"], p["solution"])}) for p in rows]
+    return [S.Puzzle(**{"played_line": [], "played_line_san": [], **p, "why": solution_why(p["fen"], p["solution"])})
+            for p in rows]
 
 
 def tag_counts(puzzles: S.PuzzleSet) -> dict[str, int]:

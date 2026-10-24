@@ -72,6 +72,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .brand-mark i:nth-child(1), .brand-mark i:nth-child(4) { background: var(--sq-d); }
 .brand-mark i:nth-child(2), .brand-mark i:nth-child(3) { background: var(--sq-l); }
 .who { margin-left: auto; font-size: .86rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.gear { display: inline-flex; color: var(--muted); padding: 4px; border-radius: var(--radius-sm); }
+.gear svg { width: 22px; height: 22px; }
+.gear:hover, .gear.active { color: var(--ink); background: var(--soft); }
 .theme-btn { border: 1px solid var(--line); background: transparent; border-radius: var(--radius-sm); padding: 4px 8px; font-size: .8rem; color: var(--muted); cursor: pointer; white-space: nowrap; }
 .tabs-top { display: none; gap: 2px; margin-left: auto; }
 .tabs-top a, .tabs-top span { text-decoration: none; padding: 6px 12px; border-radius: var(--radius-sm); font-weight: 600; font-size: .92rem; color: var(--muted); }
@@ -166,8 +169,17 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .legend-inline { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .78rem; color: var(--muted); }
 
 /* Board */
-.board { width: 100%; max-width: 100%; border-radius: var(--radius-sm); overflow: hidden; isolation: isolate; }  /* its arrows (z-index 20) stay under the bars */
+.board { position: relative; width: 100%; max-width: 100%; border-radius: var(--radius-sm); overflow: hidden; isolation: isolate; }  /* its arrows (z-index 20) stay under the bars */
 .board.interactive { touch-action: none; }
+/* Settings → Square names: each square's name in its corner, above the pieces and arrows, taking no clicks. */
+.square-names { position: absolute; inset: 0; z-index: 25; display: grid; grid-template: repeat(8, 1fr) / repeat(8, 1fr); pointer-events: none; }
+.square-names span { font-family: var(--font-num); font-weight: 700; font-size: clamp(9px, 2.9cqw, 15px); line-height: 1; padding: 3px 0 0 3px; }
+.square-names .l { color: var(--coord-l); }
+.square-names .d { color: var(--coord-d); }
+/* A move or square named in an explanation: hover (or tap) it to see it on the board. */
+.ref { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-decoration: underline dotted; text-decoration-color: var(--muted); text-underline-offset: 3px; }
+.ref.move { font-family: var(--font-num); font-weight: 650; }
+.ref:hover, .ref[aria-pressed="true"] { text-decoration: underline solid; text-decoration-color: var(--you); color: var(--ink); }
 .board-keys { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .84rem; }
 .board-keys span { display: inline-flex; gap: 6px; align-items: center; }
 .board-keys i { width: 16px; height: 4px; border-radius: 2px; display: inline-block; }
@@ -256,12 +268,20 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .strip .pl { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; }
 .strip .clk { font-family: var(--font-num); font-weight: 600; padding: 2px 8px; border-radius: var(--radius-sm); background: var(--soft); color: var(--muted); }
 .strip.to-move .clk { background: var(--best); color: var(--bg); }
-.navbtns { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) auto; gap: 6px; }
+.navbtns { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) auto auto; gap: 6px; }
 .navbtns button { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius-sm); padding: 8px 0; cursor: pointer; font-weight: 700; font-size: 1rem; }
 .navbtns .live { padding: 8px 12px; white-space: nowrap; font-size: .88rem; border-color: var(--live); color: var(--live); }
 .navbtns .live[aria-pressed="true"] { background: var(--live); color: var(--bg); }
 .navbtns button[disabled] { opacity: .35; cursor: default; }
 .navbtns .leave { padding: 8px 12px; white-space: nowrap; font-size: .88rem; border-color: var(--best); color: var(--best); }
+.navbtns .threat { padding: 8px 12px; white-space: nowrap; font-size: .88rem; }
+.navbtns .threat[aria-pressed="true"] { border-color: var(--live); color: var(--live); }
+/* On a phone the two mode buttons get their own row under the arrows. */
+@media (max-width: 520px) {
+  .navbtns .threat { grid-row: 2; grid-column: 1 / 3; }
+  .navbtns .live { grid-row: 2; grid-column: 3 / -1; }
+}
+.threat-line { margin: 0; }
 
 /* Eval bar: White's share fills from White's side of the board */
 .board-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; }
@@ -320,6 +340,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .live-line b { font-size: .92rem; }
 .live-line span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .chips.played button.redo { opacity: .5; border-style: dashed; }
+.chips > .label { flex-basis: 100%; margin: 0; }
+.chips.yours button[aria-pressed="true"] { background: var(--you); border-color: var(--you); }
 
 /* Openings */
 .tree-card { gap: 14px; }
@@ -441,6 +463,13 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .line-row .r { display: flex; align-items: center; gap: 10px; }
 .pill.due { background: var(--best); color: var(--bg); }
 label.btn { position: relative; }
+.toggles { display: grid; gap: 12px; }
+.toggle { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; cursor: pointer; }
+.toggle input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--best); }
+.toggle > span { display: grid; gap: 2px; }
+.settings-preview { width: min(100%, 280px); }
+.coord-target { display: flex; align-items: baseline; gap: 12px; }
+.coord-target b { font-size: 3rem; line-height: 1; }
 .signin { display: grid; gap: 8px; justify-items: start; }
 .signin input { width: min(100%, 320px); font: inherit; color: var(--ink); background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 10px; }
 .bad-text { color: var(--bad); margin: 0; }

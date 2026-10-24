@@ -1,21 +1,22 @@
 // Puzzles: my own mistakes as puzzles, Lichess puzzles of the same kind, and whatever is due today, each
 // filterable by tag. A session is up to ten puzzles; every answer schedules the puzzle's next review (FSRS,
 // kept on this device). ?drill=<tag> is the session a leak's "Drill these" starts; ?game=<id> retries one
-// game's mistakes in the order they happened.
+// game's mistakes in the order they happened. The Missed tab lists puzzles whose latest answer wasn't
+// clean; ?tab=missed&id=<puzzle> replays one of them and &all=1 replays them in turn.
 import { Suspense, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Loading } from "../components/AppShell";
 import { PuzzleBoard, type Outcome } from "../components/PuzzleBoard";
 import { usePuzzles } from "../lib/data";
-import { byLevel, byNewestGame, drillQueue, dueIds, dueQueue, hasTag, queue } from "../lib/drill";
-import { grouped, plural } from "../lib/format";
+import { byLevel, byNewestGame, drillQueue, dueIds, dueQueue, hasTag, missed, queue, SESSION } from "../lib/drill";
+import { dateTime, grouped, moveName, plural } from "../lib/format";
 import { tagName } from "../lib/names";
 import { getProgress, grade, rateLevel, Rating, tagStats, useProgress } from "../lib/progress";
 import type { Puzzle } from "../types/export";
 
-type Tab = "mine" | "lichess" | "due" | "drill" | "game";
+type Tab = "mine" | "lichess" | "due" | "missed" | "drill" | "game";
 const NONE: Puzzle[] = [];
-const TABS: [Tab, string][] = [["mine", "My mistakes"], ["lichess", "Same kind"], ["due", "Due today"]];
+const TABS: [Tab, string][] = [["mine", "My mistakes"], ["lichess", "Same kind"], ["due", "Due today"], ["missed", "Missed"]];
 
 export const gradeOf = (o: Outcome) =>
   o.revealed || o.wrong >= 2 ? Rating.Again : o.wrong || o.hint ? Rating.Hard : Rating.Good;
@@ -25,8 +26,10 @@ export default function Puzzles() {
   const drill = params.get("drill"), game = params.get("game");
   const tab: Tab = drill ? "drill" : game ? "game" : ((params.get("tab") as Tab) ?? "mine");
   const tag = drill ?? game ?? params.get("tag") ?? "";
+  const replay = tab === "missed" ? params.get("id") ?? (params.get("all") === "1" ? "all" : null) : null;
   const progress = useProgress();
   const due = dueIds(progress).length;
+  const misses = missed(progress).length;
   const [round, setRound] = useState(0);
   const go = (t: Tab, g = "") => setParams({ ...(t !== "mine" ? { tab: t } : {}), ...(g ? { tag: g } : {}) }, { replace: true });
 
@@ -45,26 +48,32 @@ export default function Puzzles() {
         <span className="seg" role="group" aria-label="Puzzle set">
           {TABS.map(([t, label]) => (
             <button key={t} type="button" aria-pressed={tab === t} onClick={() => go(t)}>
-              {label}{t === "due" && due ? ` (${due})` : ""}
+              {label}{t === "due" && due ? ` (${due})` : t === "missed" && misses ? ` (${misses})` : ""}
             </button>
           ))}
         </span>
         {drill && <Link className="small" to={`/leaks/${drill}`}>← Back to the leak</Link>}
         {game && <Link className="small" to={`/games/${game}`}>← Back to the game</Link>}
+        {replay && <Link className="small" to="/puzzles?tab=missed">← Back to the missed puzzles</Link>}
       </div>
       <Suspense fallback={<Loading what="Loading puzzles" />}>
-        <Session key={`${tab}:${tag}:${round}`} tab={tab} tag={tag} onTag={(g) => go(tab === "drill" || tab === "game" ? "mine" : tab, g)}
-          onAgain={() => setRound((r) => r + 1)} />
+        {tab === "missed" && !replay ? <Missed /> : (
+          <Session key={`${tab}:${tag}:${replay}:${round}`} tab={tab} tag={tag} replay={replay}
+            onTag={(g) => go(tab === "drill" || tab === "game" ? "mine" : tab, g)} onAgain={() => setRound((r) => r + 1)} />
+        )}
       </Suspense>
       <TagStats />
     </>
   );
 }
 
-function Session({ tab, tag, onTag, onAgain }: { tab: Tab; tag: string; onTag: (tag: string) => void; onAgain: () => void }) {
+function Session({ tab, tag, replay, onTag, onAgain }: {
+  tab: Tab; tag: string; replay: string | null; onTag: (tag: string) => void; onAgain: () => void;
+}) {
   const mine = usePuzzles("mine").puzzles;
   // The Lichess set is a couple of MB: only load it where the session needs it.
-  const needLichess = tab === "lichess" || tab === "drill" || (tab === "due" && dueIds(getProgress()).some((id) => id.startsWith("l-")));
+  const needLichess = tab === "lichess" || tab === "drill" || (tab === "due" && dueIds(getProgress()).some((id) => id.startsWith("l-")))
+    || (tab === "missed" && (replay === "all" ? missed(getProgress()).some((a) => a.id.startsWith("l-")) : !!replay?.startsWith("l-")));
   const lichess = needLichess ? usePuzzles("lichess").puzzles : NONE;   // use() may be called conditionally
   const pool = useMemo(() => (tab === "mine" ? mine : tab === "lichess" ? lichess : [...mine, ...lichess]), [tab, mine, lichess]);
   // The queue is fixed when the session starts, so answering doesn't reshuffle it.
@@ -72,6 +81,11 @@ function Session({ tab, tag, onTag, onAgain }: { tab: Tab; tag: string; onTag: (
     const p = getProgress();
     if (tab === "drill") return drillQueue(tag, mine, lichess, p);
     if (tab === "game") return mine.filter((z) => z.game === tag).sort((a, b) => (a.ply ?? 0) - (b.ply ?? 0));
+    if (tab === "missed") {
+      const byId = new Map(pool.map((z) => [z.id, z]));
+      const ids = replay === "all" ? missed(p).map((a) => a.id) : [replay ?? ""];
+      return ids.flatMap((id) => byId.get(id) ?? []).slice(0, SESSION);
+    }
     if (tab === "due") return dueQueue(pool, p, tag);
     return queue(pool.filter(hasTag(tag)), p, tab === "mine" ? byNewestGame : byLevel(p.level));
   });
@@ -92,7 +106,7 @@ function Session({ tab, tag, onTag, onAgain }: { tab: Tab; tag: string; onTag: (
 
   return (
     <>
-      {tab !== "drill" && tab !== "game" && tags.length > 0 && (
+      {tab !== "drill" && tab !== "game" && tab !== "missed" && tags.length > 0 && (
         <div className="chips tag-filter" role="group" aria-label="Filter by tag">
           <button type="button" aria-pressed={!tag} onClick={() => onTag("")}>All</button>
           {tags.map(([t, n]) => (
@@ -130,6 +144,44 @@ function Session({ tab, tag, onTag, onAgain }: { tab: Tab; tag: string; onTag: (
         Your puzzle level: <span className="num">{getProgress().level}</span> (Lichess puzzles near it come first).
       </p>
     </>
+  );
+}
+
+const RESULT = { [Rating.Again]: "missed", [Rating.Hard]: "with help" } as { [grade: number]: string };
+
+/** Puzzles whose latest answer wasn't clean, latest first, each with a button to play it again. */
+function Missed() {
+  const p = useProgress();
+  const list = missed(p);
+  const mine = usePuzzles("mine").puzzles;
+  const lichess = list.some((a) => a.id.startsWith("l-")) ? usePuzzles("lichess").puzzles : NONE;   // use() may be called conditionally
+  const byId = new Map([...mine, ...lichess].map((z) => [z.id, z]));
+  const rows = list.flatMap((a) => (byId.has(a.id) ? [{ a, z: byId.get(a.id)! }] : []));
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h2>Missed puzzles</h2>
+        {rows.length > 0 && <Link className="btn" to="/puzzles?tab=missed&all=1">Play {rows.length > SESSION ? `the latest ${SESSION}` : "them all"}</Link>}
+      </div>
+      {!rows.length ? (
+        <div className="empty">Nothing here: every puzzle you've answered, you got right the last time.</div>
+      ) : (
+        <div className="rows">
+          {rows.map(({ a, z }) => (
+            <Link key={a.id} className="row" to={`/puzzles?tab=missed&id=${encodeURIComponent(a.id)}`}>
+              <span className="t">
+                {z.source === "mine" && z.ply ? <>From your game: you played <b className="san">{moveName(z.ply, z.played_san ?? "?")}</b></>
+                  : <>Lichess puzzle{z.rating != null ? <> · rated <span className="num">{z.rating}</span></> : null}</>}
+              </span>
+              <span className="s">
+                {RESULT[a.grade] ?? "missed"} · {dateTime(a.at / 1000)}{z.tags.length ? ` · ${z.tags.slice(0, 3).map(tagName).join(", ")}` : ""}
+              </span>
+              <span className="r" aria-hidden="true">Play ›</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

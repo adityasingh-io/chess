@@ -1,7 +1,7 @@
 // Which puzzles a session shows, and in what order: due reviews first (longest overdue first), then
 // puzzles never tried. My own come newest game first; Lichess ones nearest my puzzle level first.
 import type { Puzzle } from "../types/export";
-import { endOfToday, isDue, type Progress } from "./progress";
+import { endOfToday, isDue, Rating, type Attempt, type Progress } from "./progress";
 
 export const SESSION = 10;
 export const MINE_IN_DRILL = 5;     // a leak drill: up to this many of mine, the rest from Lichess
@@ -30,6 +30,14 @@ export function drillQueue(tag: string, mine: Puzzle[], lichess: Puzzle[], p: Pr
 export function dueQueue(all: Puzzle[], p: Progress, tag = ""): Puzzle[] {
   const until = endOfToday();
   return all.filter((z) => isDue(p.items[z.id], until) && hasTag(tag)(z)).sort((a, b) => p.items[a.id].card.due - p.items[b.id].card.due);
+}
+
+/** Puzzles whose latest answer wasn't clean (missed, or solved with a hint or a wrong try), latest first. Solving
+    one cleanly takes it off the list. */
+export function missed(p: Progress): Attempt[] {
+  const latest = new Map<string, Attempt>();
+  for (const a of p.attempts) if (a.kind === "puzzle" && (latest.get(a.id)?.at ?? -1) <= a.at) latest.set(a.id, a);
+  return [...latest.values()].filter((a) => a.grade < Rating.Good).sort((a, b) => b.at - a.at);
 }
 
 export const dueIds = (p: Progress, kind: "puzzle" | "line" = "puzzle", until = endOfToday()) =>
