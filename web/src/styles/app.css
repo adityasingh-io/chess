@@ -447,3 +447,8 @@ label.btn { position: relative; }
 .train { display: grid; gap: 2px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); text-decoration: none; background: var(--soft); }
 .train:hover { border-color: var(--best); }
 .train b { font-size: 1.3rem; font-weight: 700; }
+
+/* Convert the win */
+button.row { background: none; border: 0; border-top: 1px solid var(--line); color: inherit; font: inherit; text-align: left; cursor: pointer; width: 100%; }
+.rows button.row:first-child { border-top: 0; }
+.convert-moves { margin: 0; line-height: 1.6; word-spacing: 2px; }

@@ -14,6 +14,7 @@ const Insights = lazy(() => import("./pages/Insights"));
 const More = lazy(() => import("./pages/More"));
 const Puzzles = lazy(() => import("./pages/Puzzles"));
 const Trainer = lazy(() => import("./pages/Trainer"));
+const Convert = lazy(() => import("./pages/Convert"));
 const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -35,6 +36,7 @@ export const routes = [
       { path: "more", element: <More /> },
       { path: "puzzles", element: <Puzzles /> },
       { path: "trainer", element: <Trainer /> },
+      { path: "convert", element: <Convert /> },
       { path: "settings", element: <Settings /> },
       { path: "*", element: <NotFound /> },
     ],

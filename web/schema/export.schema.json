@@ -512,6 +512,10 @@
      "title": "Records",
      "type": "array"
     },
+    "puzzles": {
+     "title": "Puzzles",
+     "type": "integer"
+    },
     "loss": {
      "anyOf": [
       {
@@ -564,6 +568,7 @@
     "chesscom_accuracy",
     "moves",
     "records",
+    "puzzles",
     "loss",
     "thrown",
     "endgame"
@@ -681,6 +686,10 @@
     "thrown": {
      "title": "Thrown",
      "type": "boolean"
+    },
+    "puzzles": {
+     "title": "Puzzles",
+     "type": "integer"
     }
    },
    "required": [
@@ -699,7 +708,8 @@
     "mistakes",
     "blunders",
     "loss_cause",
-    "thrown"
+    "thrown",
+    "puzzles"
    ],
    "title": "GameSummary",
    "type": "object"
@@ -2520,6 +2530,40 @@
       }
      ],
      "title": "Drop"
+    },
+    "colour": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Colour",
+     "type": "string"
+    },
+    "opponent": {
+     "title": "Opponent",
+     "type": "string"
+    },
+    "fen": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Fen"
+    },
+    "win_before": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Win Before"
     }
    },
    "required": [
@@ -2529,7 +2573,11 @@
     "peak",
     "ply",
     "san",
-    "drop"
+    "drop",
+    "colour",
+    "opponent",
+    "fen",
+    "win_before"
    ],
    "title": "ThrownEntry",
    "type": "object"

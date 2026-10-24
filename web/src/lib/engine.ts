@@ -44,6 +44,13 @@ export function parseInfo(line: string, whiteToMove: boolean): (LiveLine & { nps
   return { multipv, depth, nps, pv, eval: { cp: cp == null ? null : cp * s, mate: mate == null ? null : mate * s } };
 }
 
+/** Which Stockfish build this page can run: multi-threaded when cross-origin isolated, else single-threaded. */
+export function engineBuild(): { file: string; threads: number } {
+  const threaded = typeof SharedArrayBuffer !== "undefined" && globalThis.crossOriginIsolated === true;
+  const threads = threaded ? Math.max(1, Math.min((navigator.hardwareConcurrency || 2) - 1, 8)) : 1;
+  return { file: `${import.meta.env.BASE_URL}engine/${threaded ? "stockfish-19-lite.js" : "stockfish-19-lite-single.js"}`, threads };
+}
+
 class LiveEngine {
   private worker: Worker;
   private ready = false;
@@ -56,12 +63,11 @@ class LiveEngine {
   state: LiveState;
 
   constructor(private onChange: (s: LiveState) => void) {
-    const threaded = typeof SharedArrayBuffer !== "undefined" && globalThis.crossOriginIsolated === true;
-    this.threads = threaded ? Math.max(1, Math.min((navigator.hardwareConcurrency || 2) - 1, 8)) : 1;
-    const file = threaded ? "stockfish-19-lite.js" : "stockfish-19-lite-single.js";
+    const build = engineBuild();
+    this.threads = build.threads;
     this.state = { status: "loading", fen: null, lines: [], depth: 0, nps: null,
                    engine: `Stockfish 19 lite · ${this.threads === 1 ? "1 thread" : `${this.threads} threads`}` };
-    this.worker = new Worker(`${import.meta.env.BASE_URL}engine/${file}`);
+    this.worker = new Worker(build.file);
     this.worker.onmessage = (e) => this.onLine(String(e.data));
     this.worker.onerror = () => this.set({ status: "error", error: "The in-browser engine failed to load." });
     this.worker.postMessage("uci");

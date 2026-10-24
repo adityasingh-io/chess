@@ -1,6 +1,7 @@
 // Puzzles: my own mistakes as puzzles, Lichess puzzles of the same kind, and whatever is due today, each
 // filterable by tag. A session is up to ten puzzles; every answer schedules the puzzle's next review (FSRS,
-// kept on this device). ?drill=<tag> is the session a leak's "Drill these" starts.
+// kept on this device). ?drill=<tag> is the session a leak's "Drill these" starts; ?game=<id> retries one
+// game's mistakes in the order they happened.
 import { Suspense, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Loading } from "../components/AppShell";
@@ -12,7 +13,7 @@ import { tagName } from "../lib/names";
 import { getProgress, grade, rateLevel, Rating, tagStats, useProgress } from "../lib/progress";
 import type { Puzzle } from "../types/export";
 
-type Tab = "mine" | "lichess" | "due" | "drill";
+type Tab = "mine" | "lichess" | "due" | "drill" | "game";
 const NONE: Puzzle[] = [];
 const TABS: [Tab, string][] = [["mine", "My mistakes"], ["lichess", "Same kind"], ["due", "Due today"]];
 
@@ -21,9 +22,9 @@ export const gradeOf = (o: Outcome) =>
 
 export default function Puzzles() {
   const [params, setParams] = useSearchParams();
-  const drill = params.get("drill");
-  const tab: Tab = drill ? "drill" : ((params.get("tab") as Tab) ?? "mine");
-  const tag = drill ?? params.get("tag") ?? "";
+  const drill = params.get("drill"), game = params.get("game");
+  const tab: Tab = drill ? "drill" : game ? "game" : ((params.get("tab") as Tab) ?? "mine");
+  const tag = drill ?? game ?? params.get("tag") ?? "";
   const progress = useProgress();
   const due = dueIds(progress).length;
   const [round, setRound] = useState(0);
@@ -32,10 +33,11 @@ export default function Puzzles() {
   return (
     <>
       <div className="page-head">
-        <h1>{drill ? `Drill: ${tagName(drill)}` : "Puzzles"}</h1>
+        <h1>{drill ? `Drill: ${tagName(drill)}` : game ? "This game's mistakes" : "Puzzles"}</h1>
         <p className="muted">
           {drill
             ? "Your own positions with this mistake first, then Lichess puzzles of the same kind."
+            : game ? "The positions from this game where one move was clearly best, in the order you reached them."
             : "Positions from your games where one move is clearly best, and Lichess puzzles that train the same patterns. Answers schedule each puzzle's next review."}
         </p>
       </div>
@@ -48,9 +50,10 @@ export default function Puzzles() {
           ))}
         </span>
         {drill && <Link className="small" to={`/leaks/${drill}`}>← Back to the leak</Link>}
+        {game && <Link className="small" to={`/games/${game}`}>← Back to the game</Link>}
       </div>
       <Suspense fallback={<Loading what="Loading puzzles" />}>
-        <Session key={`${tab}:${tag}:${round}`} tab={tab} tag={tag} onTag={(g) => go(tab === "drill" ? "mine" : tab, g)}
+        <Session key={`${tab}:${tag}:${round}`} tab={tab} tag={tag} onTag={(g) => go(tab === "drill" || tab === "game" ? "mine" : tab, g)}
           onAgain={() => setRound((r) => r + 1)} />
       </Suspense>
       <TagStats />
@@ -68,6 +71,7 @@ function Session({ tab, tag, onTag, onAgain }: { tab: Tab; tag: string; onTag: (
   const [list] = useState<Puzzle[]>(() => {
     const p = getProgress();
     if (tab === "drill") return drillQueue(tag, mine, lichess, p);
+    if (tab === "game") return mine.filter((z) => z.game === tag).sort((a, b) => (a.ply ?? 0) - (b.ply ?? 0));
     if (tab === "due") return dueQueue(pool, p, tag);
     return queue(pool.filter(hasTag(tag)), p, tab === "mine" ? byNewestGame : byLevel(p.level));
   });
@@ -88,7 +92,7 @@ function Session({ tab, tag, onTag, onAgain }: { tab: Tab; tag: string; onTag: (
 
   return (
     <>
-      {tab !== "drill" && tags.length > 0 && (
+      {tab !== "drill" && tab !== "game" && tags.length > 0 && (
         <div className="chips tag-filter" role="group" aria-label="Filter by tag">
           <button type="button" aria-pressed={!tag} onClick={() => onTag("")}>All</button>
           {tags.map(([t, n]) => (

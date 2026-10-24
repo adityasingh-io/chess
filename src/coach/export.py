@@ -87,7 +87,8 @@ def move_out(p: Ply, evals1: dict[str, dict], record_ids: dict[int, str], plies:
     )
 
 
-def game_out(cfg: Config, m: GameModel, evals1: dict[str, dict], evals2: dict[str, dict], notes: dict[str, str]) -> S.Game:
+def game_out(cfg: Config, m: GameModel, evals1: dict[str, dict], evals2: dict[str, dict], notes: dict[str, str],
+             puzzles: int) -> S.Game:
     row = m.row
     record_ids = {r.ply.number: r.id for r in m.records}
     loss = None
@@ -112,19 +113,19 @@ def game_out(cfg: Config, m: GameModel, evals1: dict[str, dict], evals2: dict[st
         accuracy={c: r1(v) for c, v in m.accuracy.items()},
         chesscom_accuracy={"white": row["cc_acc_white"], "black": row["cc_acc_black"]},
         moves=[move_out(p, evals1, record_ids, cfg.engine.pv_plies) for p in m.plies],
-        records=[record_out(r, notes) for r in m.records],
+        records=[record_out(r, notes) for r in m.records], puzzles=puzzles,
         loss=loss, thrown=thrown, endgame=endgame_out(m, evals2, evals1),
     )
 
 
-def game_summary(m: GameModel) -> S.GameSummary:
+def game_summary(m: GameModel, puzzles: int) -> S.GameSummary:
     mine = Counter(p.label for p in m.mine())
     return S.GameSummary(
         id=m.id, start_ts=m.row["start_ts"], colour=m.row["my_color"], opponent=m.row["opp_username"],
         opp_rating=m.row["opp_rating"], my_rating=m.row["my_rating"], result=m.row["result"], my_code=m.row["my_code"],
         opening=m.opening.family if m.opening else None, accuracy=r1(m.my_accuracy), plies=len(m.plies),
         inaccuracies=mine["inaccuracy"], mistakes=mine["mistake"], blunders=mine["blunder"],
-        loss_cause=m.loss.cause if m.loss else None, thrown=m.thrown is not None,
+        loss_cause=m.loss.cause if m.loss else None, thrown=m.thrown is not None, puzzles=puzzles,
     )
 
 
@@ -229,9 +230,10 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
     rated = [m for m in ordered if m.row["rated"] and m.row["my_rating"]]
     engine = S.EngineInfo(version=cfg.engine.version, pass1=cfg.engine.pass1.key, pass2=cfg.engine.pass2.key)
 
-    games = {m.id: game_out(cfg, m, evals1, evals2, notes or {}) for m in ordered}
-    record_index = [r for g in games.values() for r in g.records]
     mine = S.PuzzleSet(as_of=stamp, source="mine", puzzles=[S.Puzzle(**p) for p in my_puzzles(cfg, ordered, evals2)])
+    per_game = Counter(p.game for p in mine.puzzles)
+    games = {m.id: game_out(cfg, m, evals1, evals2, notes or {}, per_game[m.id]) for m in ordered}
+    record_index = [r for g in games.values() for r in g.records]
     lichess = S.PuzzleSet(as_of=stamp, source="lichess", puzzles=lichess_puzzles(cfg))
     files: dict[str, BaseModel] = {
         "summary.json": S.Summary(
@@ -245,12 +247,15 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
                        for l in top_leaks(cfg, all_leaks)],
             thrown=len(thrown), engine=engine,
         ),
-        "games/index.json": S.GamesIndex(as_of=stamp, games=[game_summary(m) for m in reversed(ordered)]),
+        "games/index.json": S.GamesIndex(as_of=stamp, games=[game_summary(m, per_game[m.id]) for m in reversed(ordered)]),
         "mistakes/index.json": S.MistakesIndex(as_of=stamp, records=record_index),
         "losses.json": S.Losses(
             as_of=stamp, total=len(lost), causes=dict(loss_summary(models)), causes_30_days=dict(loss_summary(models, month_ago)),
             losses=[S.LossEntry(game=g.id, ts=g.start_ts, **games[g.id].loss.model_dump()) for g in (games[m.id] for m in lost)],
-            thrown=[S.ThrownEntry(game=m.id, ts=m.row["start_ts"], result=m.row["result"], **games[m.id].thrown.model_dump())
+            thrown=[S.ThrownEntry(game=m.id, ts=m.row["start_ts"], result=m.row["result"], colour=m.row["my_color"],
+                                  opponent=m.row["opp_username"], fen=m.thrown.move.move["fen_before"] if m.thrown.move else None,
+                                  win_before=r1(m.thrown.move.win_before) if m.thrown.move else None,
+                                  **games[m.id].thrown.model_dump())
                     for m in thrown],
         ),
         "leaks.json": S.Leaks(as_of=stamp, games=len(models), recent_games=cfg.analysis.insights.recent_games, leaks=[

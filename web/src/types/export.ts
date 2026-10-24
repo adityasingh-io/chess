@@ -140,6 +140,7 @@ chesscom_accuracy: {
 }
 moves: Move[]
 records: Record[]
+puzzles: number
 loss: (LossInfo | null)
 thrown: (ThrownInfo | null)
 endgame: (EndgameInfo | null)
@@ -262,6 +263,7 @@ mistakes: number
 blunders: number
 loss_cause: (string | null)
 thrown: boolean
+puzzles: number
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -429,6 +431,10 @@ peak: number
 ply: (number | null)
 san: (string | null)
 drop: (number | null)
+colour: ("white" | "black")
+opponent: string
+fen: (string | null)
+win_before: (number | null)
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema

@@ -1,9 +1,10 @@
 import { memo, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from "react";
-import { useParams, useSearchParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import { Board, type ArrowKind, type HighlightKind } from "../components/Board";
 import { EvalBar, type BarValue } from "../components/EvalBar";
 import { EvalChart, ThinkChart, type ThinkBar } from "../components/charts";
 import { LineChips, Nag } from "../components/bits";
+import { startId, WINNING } from "../lib/convert";
 import { useGame } from "../lib/data";
 import { clock, dateTime, evalFor, grouped, moveName, n1, plural, sanTokens, signed, timeControl } from "../lib/format";
 import { gameOver, lineSan, numberedLine, outcome, posKey, replay, sideToMove, targets, tryMove, uciParts, type Side } from "../lib/chess";
@@ -397,6 +398,7 @@ function GameHead({ g, me, opp, onTurning, broken }: { g: Game; me: Side; opp: S
         <span>{dateTime(g.start_ts)}</span>
         {g.opening && <span>{g.opening.name} ({g.opening.eco})</span>}
         <a href={g.url} target="_blank" rel="noopener noreferrer">Open on chess.com ↗</a>
+        {g.puzzles > 0 && <Link to={`/puzzles?game=${g.id}`}>Retry its mistakes ({g.puzzles}) →</Link>}
       </div>
       {g.loss && (
         <div className="chips">
@@ -446,7 +448,12 @@ function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, onCompare }
         <div className="callout"><b>Turning point. </b>The first move in this loss that took you from 40% or more to 25% or less.</div>
       )}
       {g.thrown && cur === g.thrown.ply && (
-        <div className="callout"><b>Threw away a win. </b>Your Win% had reached {n1(g.thrown.peak)}% in this game.</div>
+        <div className="callout">
+          <b>Threw away a win. </b>Your Win% had reached {n1(g.thrown.peak)}% in this game.{" "}
+          {before >= WINNING && (
+            <Link to={`/convert?play=${startId({ game: g.id, ply: cur })}`}>Play it out from here →</Link>
+          )}
+        </div>
       )}
       {r && <p>{r.note ?? r.explanation}</p>}
       {r?.note && (

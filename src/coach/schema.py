@@ -145,6 +145,7 @@ class Game(Model):
     chesscom_accuracy: dict[Colour, float | None]
     moves: list[Move]
     records: list[Record]
+    puzzles: int               # my puzzles from this game
     loss: LossInfo | None
     thrown: ThrownInfo | None
     endgame: EndgameInfo | None
@@ -167,6 +168,7 @@ class GameSummary(Model):
     blunders: int
     loss_cause: str | None
     thrown: bool
+    puzzles: int               # my puzzles from this game
 
 
 class GamesIndex(Model):
@@ -197,6 +199,10 @@ class ThrownEntry(Model):
     ply: int | None
     san: str | None
     drop: float | None
+    colour: Colour
+    opponent: str
+    fen: str | None            # position before the move that threw the win (full FEN)
+    win_before: float | None   # my Win% there (pass 1)
 
 
 class Losses(Model):

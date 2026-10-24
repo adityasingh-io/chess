@@ -1,12 +1,13 @@
 import { Link } from "react-router";
 import { RatingChart } from "../components/charts";
 import { Trend } from "../components/bits";
-import { useGameSummaries, useInsights, useLeaks, useLosses, usePuzzleIndex, useSummary } from "../lib/data";
+import { readTally, startId, thrownStarts } from "../lib/convert";
+import { useGamesIndex, useGameSummaries, useInsights, useLeaks, useLosses, usePuzzleIndex, useSummary } from "../lib/data";
 import { dueIds } from "../lib/drill";
 import { dueLines, newLines, useLines } from "../lib/lines";
 import { streak, useProgress } from "../lib/progress";
 import { dateTime, day, moveName, n1, pct } from "../lib/format";
-import { TYPE, tagName } from "../lib/names";
+import { RESULT_WORD, TYPE, tagName } from "../lib/names";
 
 const THROWN_SHOWN = 5;
 const DAILY = 10;   // answers a day the training card counts towards
@@ -46,6 +47,7 @@ export default function Dashboard() {
           {points.length > 1 && <RatingChart points={points} goal={s.rating_goal} goalDate={s.goal_date} />}
         </section>
         <Training />
+        <LastGame />
         <WhyILost />
         <div className="stack">
           <TopLeaks />
@@ -65,6 +67,8 @@ function Training() {
   const due = dueIds(p).length;
   const linesDue = dueLines(lines, p).length, linesNew = newLines(lines, p).length;
   const top = s.top_leaks.find((l) => (index.mine[l.tag] ?? 0) + (index.lichess[l.tag] ?? 0) > 0);
+  const tally = readTally();
+  const toConvert = thrownStarts(useLosses().thrown).filter((t) => !tally[t.id]?.wins).length;
   const { today, days } = streak(p);
   return (
     <section className="card span-2" aria-label="Today's training">
@@ -96,6 +100,42 @@ function Training() {
           <b className="num">{linesDue || linesNew}</b>
           <span className="muted small">{linesDue ? "lines due" : linesNew ? "lines to learn" : "no lines yet"}</span>
         </Link>
+        <Link to="/convert" className="train">
+          <span className="label">Convert the win</span>
+          <b className="num">{toConvert}</b>
+          <span className="muted small">winning positions from your games to play out again</span>
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+// The newest game: how it went, and the ways back into it.
+function LastGame() {
+  const g = useGamesIndex().games[0];
+  const thrown = useLosses().thrown.find((t) => t.game === g?.id);
+  if (!g) return null;
+  const counts = [[g.blunders, "blunder"], [g.mistakes, "mistake"], [g.inaccuracies, "inaccuracy"]] as const;
+  return (
+    <section className="card" aria-label="Last game">
+      <div className="card-head">
+        <h2>Last game</h2>
+        <Link to={`/games/${g.id}`} className="small">Review it →</Link>
+      </div>
+      <p style={{ margin: 0 }}>
+        <b>{RESULT_WORD[g.result]}</b> vs {g.opponent} {g.opp_rating != null && <span className="muted num">({g.opp_rating})</span>}
+        <span className="muted small"> · {dateTime(g.start_ts)} · {g.colour === "white" ? "White" : "Black"}{g.opening ? ` · ${g.opening}` : ""}</span>
+      </p>
+      <p className="small" style={{ margin: 0 }}>
+        Accuracy <b className="num">{g.accuracy != null ? n1(g.accuracy) : "–"}</b>
+        {counts.map(([n, word]) => <span key={word} className="muted"> · <span className="num">{n}</span> {n === 1 ? word : word === "inaccuracy" ? "inaccuracies" : `${word}s`}</span>)}
+        {g.loss_cause && <> · why you lost: <b>{TYPE[g.loss_cause] ?? g.loss_cause}</b></>}
+      </p>
+      <div className="puzzle-actions">
+        {g.puzzles > 0 && <Link className="btn" to={`/puzzles?game=${g.id}`}>Retry its mistakes ({g.puzzles})</Link>}
+        {thrown && thrownStarts([thrown]).length > 0 && (
+          <Link className="btn ghost" to={`/convert?play=${startId(thrown)}`}>Play the thrown win out again</Link>
+        )}
       </div>
     </section>
   );

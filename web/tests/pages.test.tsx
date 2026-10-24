@@ -2,14 +2,14 @@
 // be the exported ones.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { posKey, replay } from "../src/lib/chess";
 import { evalFor, sanTokens } from "../src/lib/format";
 import { ENDGAME_TYPE, OUTCOME } from "../src/lib/names";
 import { routes } from "../src/router";
 import { Chess } from "chess.js";
-import type { Endgames, Game, Insights, Leaks, Losses, OpeningReport, PuzzleSet, Repertoire, Summary } from "../src/types/export";
+import type { Endgames, Game, GamesIndex, Insights, Leaks, Losses, OpeningReport, PuzzleSet, Repertoire, Summary } from "../src/types/export";
 
 const data = <T,>(p: string): T => JSON.parse(readFileSync(join(__dirname, "../public/data", p), "utf8"));
 const summary = data<Summary>("summary.json");
@@ -247,3 +247,27 @@ test("Drill this line adds the tree's line to the trainer", async () => {
   await open("/trainer");
   expect(await screen.findByRole("button", { name: /^1\. d4 d5 2\. c4/ }, SLOW)).toBeTruthy();
 }, 30_000);
+
+test("convert the win lists the stored winning positions, and ?play opens one with the stored Win%", async () => {
+  const offered = losses.thrown.filter((t) => t.fen && t.ply && t.win_before != null && t.win_before >= 80);
+  await open("/convert");
+  expect(await screen.findByText(`0 of ${offered.length} positions won again`, {}, SLOW)).toBeTruthy();
+  const t = [...offered].sort((a, b) => b.ts - a.ts)[0];
+  cleanup();
+  await open(`/convert?play=thrown-${t.game}-${t.ply}`);
+  const side = (await screen.findAllByText(/Stockfish had you at/, {}, SLOW))[0].closest(".puzzle-side") as HTMLElement;
+  expect(within(side).getByText(`${t.win_before!.toFixed(1)}%`)).toBeTruthy();
+  expect(within(side).getByText(new RegExp(`You're ${t.colour === "white" ? "White" : "Black"}, to move`))).toBeTruthy();
+}, 20_000);
+
+test("the dashboard's last game is the newest one, and ?game retries its puzzles in order", async () => {
+  const g = data<GamesIndex>("games/index.json").games.find((x) => x.puzzles > 0)!;
+  const newest = data<GamesIndex>("games/index.json").games[0];
+  await open("/");
+  const card = (await screen.findByRole("region", { name: "Last game" }, SLOW));
+  expect(within(card).getByText(newest.opponent, { exact: false })).toBeTruthy();
+  cleanup();
+  await open(`/puzzles?game=${g.id}`);
+  expect(await screen.findByText(`Puzzle 1 of ${g.puzzles}`, {}, SLOW)).toBeTruthy();
+  expect(screen.getByText("This game's mistakes")).toBeTruthy();
+}, 20_000);

@@ -21,11 +21,12 @@ const Icon = ({ d }: { d: string }) => (
 type Tab = { to: string; long: string; end?: boolean };
 const TOP: Tab[] = [
   { to: "/", long: "Dashboard", end: true }, { to: "/leaks", long: "Leaks" }, { to: "/puzzles", long: "Puzzles" },
-  { to: "/trainer", long: "Trainer" }, { to: "/games", long: "Games" }, { to: "/openings", long: "Openings" },
+  { to: "/trainer", long: "Trainer" }, { to: "/convert", long: "Convert" }, { to: "/games", long: "Games" }, { to: "/openings", long: "Openings" },
   { to: "/endgames", long: "Endgames" }, { to: "/insights", long: "Insights" },
 ];
 export const MORE = [
   { to: "/openings", name: "Openings", what: "Your opening tree per colour: what you play, Stockfish's best and players at your level" },
+  { to: "/convert", name: "Convert the win", what: "Play out positions where Stockfish had you winning and the game got away, against Stockfish" },
   { to: "/trainer", name: "Repertoire trainer", what: "Play your repertoire and leak lines from memory, with spaced repetition" },
   { to: "/endgames", name: "Endgames", what: "How your endgames turn out, by type, and the moves that spoiled them" },
   { to: "/insights", name: "Insights", what: "Score and accuracy by colour, opponent, time of day and more; think time; trends" },
