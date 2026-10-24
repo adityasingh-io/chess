@@ -2,8 +2,10 @@
 // console errors, no sideways scroll), the numbers on screen match the exports, a 250-ply game steps
 // smoothly, the arrow buttons step the game, a comparison and Explore, Explore gets live lines from the
 // in-browser engine, hovering a move in an explanation shows it on the board, Threat gets the other side's
-// move from the live engine, Play on gets answers from Maia-2 and Stockfish on the Compare boards, a drill session from a leak works on a phone (Phase 5), and the training pages
-// open offline once the service worker is in.
+// move from the live engine, Compare sits in the button row (greyed out with its reason where there's
+// nothing to compare), Play on gets answers from Maia-2 and Stockfish on the Compare boards and from Maia-2
+// in Explore, a drill session from a leak works on a phone (Phase 5), and the training pages open offline
+// once the service worker is in.
 //
 // Uses the installed Google Chrome through playwright-core. Builds and serves the production bundle
 // (vite preview) unless E2E_URL is set; --dev serves the dev build instead.
@@ -258,6 +260,20 @@ try {
   await page.keyboard.press("Escape");
   check("compare: Esc goes back to the game", !(await page.$(".cmp")) && !!(await page.$(".v-board .board")), "");
 
+  // Compare is always in the button row: greyed out with its reason where there's nothing to compare (the
+  // start), opening the comparison on a mistake.
+  await page.goto(`${base}/games/${LONG_GAME}?ply=0`);
+  await page.waitForSelector(".moves .mv");
+  const greyed = await page.getAttribute(".navbtns .compare", "aria-disabled");
+  await page.click(".navbtns .compare", { force: true });   // greyed out but tappable: Playwright won't click aria-disabled
+  const why = (await page.textContent(".nav-note").catch(() => "")) ?? "";
+  await page.goto(`${base}/games/${LONG_GAME}?ply=${rec.ply}`);
+  await page.waitForSelector(".moves .mv");
+  await page.click(".navbtns .compare");
+  const opened = await page.waitForSelector(".cmp .playon", { timeout: 5000 }).then(() => true, () => false);
+  check("game row: Compare is greyed with its reason at the start and opens the comparison on a mistake",
+    greyed === "true" && /^Compare puts one of your moves/.test(why) && opened, why);
+
   // Play on: a move on a Compare board is answered by the chosen bot, Maia-2 on one board and Stockfish on the other.
   await page.goto(`${base}/games/${LONG_GAME}?ply=${rec.ply}&compare=1`);
   await page.waitForSelector(".cmp-side .board");
@@ -311,6 +327,16 @@ try {
   const label = await page.textContent(".live-panel .card-head");
   const isolated = await page.evaluate(() => crossOriginIsolated);
   check("explore: live lines appear", lines, `${label?.trim()} · crossOriginIsolated=${isolated}`);
+  // A move played in Explore is answered by the chosen bot, picked under the board.
+  await page.click('.v-board .playon-head .seg button:text-is("~800")');
+  const at100 = fenAfter(longGame.initial_fen, longGame.moves.slice(0, 100).map((m) => m.uci));
+  const mine = new Chess(at100).moves({ verbose: true })[0];
+  await page.click(`[id="game-${LONG_GAME}-square-${mine.from}"]`);
+  await page.click(`[id="game-${LONG_GAME}-square-${mine.to}"]`);
+  const answer = await page.waitForSelector(".live-panel .played button.bot", { timeout: 90_000 })
+    .then(async (e) => ({ text: await e.textContent(), title: await e.getAttribute("title") }), () => null);
+  check("explore: Maia ~800 answers a move played in Explore", /^Maia ~800: \d+% of its choices here$/.test(answer?.title ?? ""),
+    `${mine.san}, then ${answer?.text} [${answer?.title}]`);
   if (shots) await page.screenshot({ path: join(shots, "explore-1280-dark.png"), fullPage: true });
 
   // Hovering a move named in a mistake's explanation shows the position before it; moving away puts the
@@ -451,6 +477,7 @@ try {
   await phone.goto(`${plain.url}/games/${LONG_GAME}?ply=0`);
   await phone.waitForSelector(".moves .mv");
   await phone.click("button.live");
+  await phone.click('.v-board .playon-head .seg button:text-is("Nobody")');   // play both sides: nobody answers 1. e4
   await phone.click(`[id="game-${LONG_GAME}-square-e2"]`);
   await phone.click(`[id="game-${LONG_GAME}-square-e4"]`);
   const playedOk = await phone.waitForSelector(".live-panel .played button.san", { timeout: 5000 }).then((e) => e.textContent(), () => null);

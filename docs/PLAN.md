@@ -221,6 +221,13 @@ this file wins.
   Esc or "Back to the lines" returns to the stored lines. "Nobody" lets me play both sides. The model
   (42 MB) and its runtime (14 MB) download the first time a Maia bot answers and stay cached, not at
   install.
+  - *From any position* (added 2026-10-24, because Play on was only reachable through Compare): the same
+    choice sits under the board in Explore, so a move played there is answered too, from any position in
+    the game. One choice is kept for both, on this device; "Nobody" is Explore as it was.
+  - *Compare in the button row*, next to Threat and Explore, so it's always in the same place (C on a
+    keyboard). Where there's nothing to compare (the start, their moves, my book or best moves, a move
+    with no stored line) it's greyed out, and tapping it says why. The explanation's "Compare side by
+    side" stays.
 - **Exports are committed.** The `.gitignore` rule `data/` also matched `web/public/data`, so Phase 2's
   exports never reached git. It is now `/data/`.
 

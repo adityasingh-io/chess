@@ -64,6 +64,7 @@ export function useBot(bots: Bots) {
   const stockfish = useOpponent(20);
   const progress = useSyncExternalStore(maia.subscribe, () => maia.progress);
   const level = choice.startsWith("maia-") ? bots.maia.find((m) => `maia-${m.chesscom}` === choice) ?? null : null;
+  const name = level ? `Maia ~${level.chesscom}` : choice === "stockfish" ? "Stockfish" : null;
 
   /** The bot's move in `fen`, or null when it has none (or nobody answers). */
   const move = async (fen: string): Promise<BotMove | null> => {
@@ -73,7 +74,7 @@ export function useBot(bots: Bots) {
     }
     if (!level) return null;
     const moves = await maia.ask(fen, category(level.lichess), category(bots.me_lichess ?? level.lichess));
-    return moves[0] ? { uci: moves[0].uci, by: `Maia ~${level.chesscom}`, p: moves[0].p } : null;
+    return moves[0] ? { uci: moves[0].uci, by: name!, p: moves[0].p } : null;
   };
-  return { choice, setChoice, move, level, progress, failed: stockfish.failed };
+  return { choice, setChoice, move, level, name, progress, failed: stockfish.failed };
 }

@@ -28,17 +28,17 @@ export default function GameViewerRoute() {
   );
 }
 
-type ExploreMove = { uci: string; san: string; fen: string };
+/** A move played on a board (Explore, or Play on from a Compare board): mine, or the bot's answer (`by`, with
+    Maia-2's share for the move it chose). */
+type PlayMove = { uci: string; san: string; fen: string; by?: string; p?: number };
 /** Moves played in Explore from `base`. The first `at` are on the board; the rest can be stepped forward again. */
-type Explore = { base: string; from: string; moves: ExploreMove[]; at: number };
+type Explore = { base: string; from: string; moves: PlayMove[]; at: number };
 /** One side of a comparison: moves from the position before my move, their positions, and Stockfish's
     stored score for the line. */
 type CmpLine = { ucis: string[]; tokens: string[]; fens: string[]; bar: BarValue };
 type Cmp = { base: string; you: CmpLine; best: CmpLine; steps: number };
 type CmpKey = "you" | "best";
-/** Play on: moves played on a Compare board from step `from` of its line, mine and the bot's answers (`by`,
-    with Maia-2's share for the move it chose). The first `at` are on the board. */
-type PlayMove = ExploreMove & { by?: string; p?: number };
+/** Play on: moves played on a Compare board from step `from` of its line. The first `at` are on the board. */
 type Branch = { from: number; moves: PlayMove[]; at: number };
 type Branches = Partial<Record<CmpKey, Branch>>;
 const lineFen = (cmp: Cmp, key: CmpKey, k: number) => (k ? cmp[key].fens[k - 1] : cmp.base);
@@ -76,6 +76,15 @@ function compareAt(g: Game, fens: string[], me: Side, ply: number, r: MistakeRec
     bar: r?.best_eval ? { win: winOf(r.best_eval), ev: r.best_eval } : storedBar(g, fens, ply - 1),
   };
   return { base, you, best, steps: Math.max(you.fens.length, best.fens.length) };
+}
+
+/** Why there's nothing to compare at a move (compareAt gave null), for the greyed-out Compare button. */
+function noCompare(m: Move | undefined, me: Side, opponent: string) {
+  if (!m) return "Compare puts one of your moves next to Stockfish's best: step to one of your moves.";
+  if (m.side !== me) return `${opponent}'s move. Compare puts your moves next to Stockfish's best.`;
+  if (m.label === "book") return "A book move: nothing to compare.";
+  if (!m.best_line.length) return "No Stockfish line is stored for this move.";
+  return "You played Stockfish's best move here: nothing to compare.";
 }
 
 const RESULT_SCORE = { white: "1–0", black: "0–1", draw: "½–½" } as const;
@@ -120,6 +129,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
   const [cmpSel, setCmpSel] = useState<{ key: CmpKey; square: string } | null>(null);
   const [botBusy, setBotBusy] = useState(false);
   const [botError, setBotError] = useState<string | null>(null);
+  const [why, setWhy] = useState(false);   // the greyed-out Compare button was tapped: say why, until the next step
   const bot = useBot(summary.bots);
   const botReq = useRef(0);   // the latest request: answers to older ones are dropped
   const stopPlaying = useCallback(() => {
@@ -134,6 +144,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
     setCompare(null);
     setExplore(null);
     setSelected(null);
+    setWhy(false);
     stopPlaying();
   }, [clamp, stopPlaying]);
   const openCompare = useCallback((ply: number, step = 0) => {
@@ -164,6 +175,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
   // ◀ ▶ ⏮ ⏭ and the arrow keys move through whatever the board shows: the game, the two lines being compared,
   // or the moves played in Explore.
   const mode = explore ? "explore" : branch ? "play" : comparing ? "compare" : "game";
+  if (why && mode !== "game") setWhy(false);
   const at = explore ? explore.at : branch ? branch.at : comparing ? compare : cur;
   const end = explore ? explore.moves.length : branch ? branch.moves.length : comparing ? cmp.steps : n;
   const navTo = (f: (at: number, end: number) => number) => {
@@ -173,9 +185,10 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
       return b ? { ...bs, [active]: { ...b, at: Math.max(0, Math.min(b.moves.length, f(b.at, b.moves.length))) } } : bs;
     });
     else if (comparing) setCompare((s) => (s == null ? s : Math.max(0, Math.min(cmp.steps, f(s, cmp.steps)))));
-    else { setCur((c) => clamp(f(c, n))); setSelected(null); }
+    else { setCur((c) => clamp(f(c, n))); setSelected(null); setWhy(false); }
   };
   const leave = () => { setExplore(null); setCompare(null); setSelected(null); stopPlaying(); };
+  const tryCompare = () => (cmp ? openCompare(cur) : setWhy(true));
 
   const onKey = useEffectEvent((e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement).closest?.("input, select, textarea")) return;
@@ -185,6 +198,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
     else if (e.key === "End") navTo((_, e) => e);
     else if (e.key === "f" || e.key === "F") setFlip((f) => !f);
     else if ((e.key === "x" || e.key === "X") && mode === "game") setThreat((t) => !t);
+    else if ((e.key === "c" || e.key === "C") && mode === "game") tryCompare();
     else if (e.key === "Escape" && mode === "play") stopPlaying();
     else if (e.key === "Escape" && mode !== "game") leave();
     else return;
@@ -196,18 +210,42 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  // The chosen bot answers a move just played (`line`, now ending at `fen`): its move goes on the end of the
+  // line, through `set`, if the line still ends there when it arrives. A move played again (stepping forward
+  // along moves already played) already has its answer after it, so nobody is asked.
+  const answer = <L extends { moves: PlayMove[]; at: number }>(line: L, fen: string, set: (f: (x: L | undefined) => L | undefined) => void) => {
+    setBotError(null);
+    const id = ++botReq.current;
+    if (bot.choice === "off" || gameOver(fen) || line.at < line.moves.length) { setBotBusy(false); return; }
+    setBotBusy(true);
+    bot.move(fen).then((reply) => {
+      if (id !== botReq.current) return;
+      setBotBusy(false);
+      const p = reply && uciParts(reply.uci);
+      const bm = p && tryMove(fen, p.from, p.to, p.promotion);
+      if (!reply || !bm) return;
+      set((x) => (x && x.at === x.moves.length && x.moves[x.at - 1]?.fen === fen
+        ? { ...x, moves: [...x.moves, { ...bm, by: reply.by, p: reply.p }], at: x.at + 1 } : x));
+    }, (err: unknown) => {
+      if (id !== botReq.current) return;
+      setBotBusy(false);
+      setBotError(err instanceof Error ? err.message : String(err));
+    });
+  };
+
   // Playing a move on the board starts Explore; playing the move that was taken back steps forward again.
-  const play = useCallback((from: string, to: string, promotion?: string) => {
+  const play = (from: string, to: string, promotion?: string) => {
     const mv = tryMove(shownFen, from, to, promotion);
     if (!mv) return false;
-    setExplore((x) => {
-      if (!x) return { base: gameFen, from: labels[cur], moves: [mv], at: 1 };
-      if (x.moves[x.at]?.uci === mv.uci) return { ...x, at: x.at + 1 };
-      return { ...x, moves: [...x.moves.slice(0, x.at), mv], at: x.at + 1 };
-    });
+    const x = explore;
+    const next: Explore = !x ? { base: gameFen, from: labels[cur], moves: [mv], at: 1 }
+      : x.moves[x.at]?.uci === mv.uci ? { ...x, at: x.at + 1 }
+      : { ...x, moves: [...x.moves.slice(0, x.at), mv], at: x.at + 1 };
+    setExplore(next);
     setSelected(null);
+    answer(next, mv.fen, (f) => setExplore((e) => f(e ?? undefined) ?? null));
     return true;
-  }, [shownFen, gameFen, labels, cur]);
+  };
 
   // Play on: a move on a Compare board starts (or continues) that board's own line, and the chosen bot answers.
   const playOn = (key: CmpKey, from: string, to: string, promotion?: string) => {
@@ -222,27 +260,10 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
     setBranches((bs) => ({ ...bs, [key]: next }));
     setActive(key);
     setCmpSel(null);
-    setBotError(null);
-    const id = ++botReq.current;
-    // The bot answers a new move only: one played again already has its answer after it.
-    if (bot.choice === "off" || gameOver(mv.fen) || next.at < next.moves.length) { setBotBusy(false); return true; }
-    setBotBusy(true);
-    bot.move(mv.fen).then((reply) => {
-      if (id !== botReq.current) return;
-      setBotBusy(false);
-      const p = reply && uciParts(reply.uci);
-      const bm = p && tryMove(mv.fen, p.from, p.to, p.promotion);
-      if (!reply || !bm) return;
-      setBranches((bs) => {
-        const x = bs[key];
-        if (!x || x.at !== x.moves.length || x.moves[x.at - 1]?.fen !== mv.fen) return bs;
-        return { ...bs, [key]: { ...x, moves: [...x.moves, { ...bm, by: reply.by, p: reply.p }], at: x.at + 1 } };
-      });
-    }, (err: unknown) => {
-      if (id !== botReq.current) return;
-      setBotBusy(false);
-      setBotError(err instanceof Error ? err.message : String(err));
-    });
+    answer(next, mv.fen, (f) => setBranches((bs) => {
+      const y = f(bs[key]);
+      return y && y !== bs[key] ? { ...bs, [key]: y } : bs;
+    }));
     return true;
   };
 
@@ -298,6 +319,9 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
   const bars = useMemo<ThinkBar[]>(() => g.moves.filter((x) => x.side === me && x.think != null)
     .map((x) => ({ k: x.ply, t: x.think!, label: moveName(x.ply, x.san), severity: recAt.get(x.ply)?.severity ?? null })), [g, me, recAt]);
 
+  const explorePlayed = useMemo(() => (explore ? numberedLine(explore.base, explore.moves.map((x) => x.san)) : []), [explore]);
+  const lastBot = explore?.at && explore.moves[explore.at - 1].by ? explore.moves[explore.at - 1] : null;
+
   const caption = explore ? (
     <span><span className="live-badge">LIVE</span> <b>Explore</b> · {explore.at ? `${explore.at} from ${explore.from}` : `from ${explore.from}`}</span>
   ) : m ? (
@@ -306,7 +330,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
 
   const [first, prev, next, last] = NAV[mode];
   const navbtns = (
-    <div className="navbtns">
+    <div className={`navbtns viewer-nav ${mode}`}>
       <button type="button" title={first} aria-label={first} disabled={at === 0} onClick={() => navTo(() => 0)}>⏮</button>
       <button type="button" title={prev} aria-label={prev} disabled={at === 0} onClick={() => navTo((a) => a - 1)}>◀</button>
       <button type="button" title={next} aria-label={next} disabled={at === end} onClick={() => navTo((a) => a + 1)}>▶</button>
@@ -318,11 +342,18 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
             : "No threat to show while the side to move is in check"}
           onClick={() => setThreat((t) => !t)}>Threat</button>
       )}
+      {mode === "game" && (
+        // Greyed out, not disabled, where there's nothing to compare: tapping it says why.
+        <button type="button" className="compare" aria-disabled={!cmp}
+          title={cmp ? "Your move next to Stockfish's best, on two boards; play on from either (C)" : noCompare(m, me, g.opponent)}
+          onClick={tryCompare}>Compare</button>
+      )}
       {mode === "compare" || mode === "play" ? (
         <button type="button" className="leave" title="Back to the game (Esc)" onClick={leave}>Back to the game</button>
       ) : (
         <button type="button" className="live" aria-pressed={!!explore}
-          title={explore ? "Back to the game (Esc)" : "Play any move here; the in-browser Stockfish evaluates it live, never saved"}
+          title={explore ? "Back to the game (Esc)"
+            : "Play any move here, against a bot or for both sides; the in-browser Stockfish scores it live, never saved"}
           onClick={() => (explore ? leave() : setExplore({ base: gameFen, from: labels[cur], moves: [], at: 0 }))}>
           {explore ? "Leave explore" : "Explore · live"}
         </button>
@@ -342,9 +373,11 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
               onMistake={(p) => openCompare(p)} peek={peek.shown}
               branches={branches} active={active} live={live} sel={cmpSel} setSel={setCmpSel} onPlay={playOn}
               onBranchAt={(key, k) => { botReq.current++; setBotBusy(false); setActive(key); setBranches((bs) => (bs[key] ? { ...bs, [key]: { ...bs[key]!, at: k } } : bs)); }}>
-              <PlayOn bots={summary.bots} bot={bot} busy={botBusy} error={botError} playing={!!(branches.you || branches.best)}
-                fen={playFen} over={playOver} line={playFen && live.fen === playFen ? live.lines[0] ?? null : null} live={live} me={me}
-                onStop={stopPlaying} />
+              <PlayOn bots={summary.bots} bot={bot} busy={botBusy} error={botError} onStop={branches.you || branches.best ? stopPlaying : undefined}>
+                {playOver ? <b>{playOver}.</b>
+                  : playFen ? <LiveBest fen={playFen} line={live.fen === playFen ? live.lines[0] ?? null : null} live={live} me={me} />
+                  : <span className="muted">Make a move on either board and {bot.name ? `${bot.name} answers` : "play both sides"}.</span>}
+              </PlayOn>
               {navbtns}
             </Compare>
           ) : (
@@ -368,7 +401,16 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
               </div>
               {strip(orientation)}
               {navbtns}
+              {why && !cmp && <p className="muted small nav-note" role="status">{noCompare(m, me, g.opponent)}</p>}
               {threatFen && <Threat fen={threatFen} line={threatLine} depth={live.depth} status={live.status} error={live.error} me={me} />}
+              {explore && (
+                <PlayOn bots={summary.bots} bot={bot} busy={botBusy} error={botError}>
+                  {over ? <b>{over}.</b>
+                    : lastBot ? <>{lastBot.by} played <b className="san">{explorePlayed[explore.at - 1]}</b>
+                        {lastBot.p != null ? ` (${Math.round(lastBot.p * 100)}% of its choices here)` : ""}. Your move.</>
+                    : <span className="muted">{bot.name ? `Make a move on the board and ${bot.name} answers.` : "Nobody answers: play any move, for either side."}</span>}
+                </PlayOn>
+              )}
             </div>
           )}
           <section className="card v-graph">
@@ -386,7 +428,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
         </div>
         <div className="colB">
           {explore ? (
-            <LivePanel live={live} lines={liveLines} explore={explore} me={me} over={over}
+            <LivePanel live={live} lines={liveLines} explore={explore} played={explorePlayed} me={me} over={over}
               onPlay={(uci) => { const p = uciParts(uci); play(p.from, p.to, p.promotion); }}
               onAt={(k) => navTo(() => k)} onClose={leave} />
           ) : (
@@ -516,12 +558,12 @@ function Compare({ id, cur, m, r, cmp, step, setStep, me, orientation, show, set
   );
 }
 
-/** Play on: who answers a move played on a Compare board, and what's happening on the board played on last. */
-function PlayOn({ bots, bot, busy, error, playing, fen, over, line, live, me, onStop }: {
-  bots: Summary["bots"]; bot: ReturnType<typeof useBot>; busy: boolean; error: string | null; playing: boolean;
-  fen: string | null; over: string | null; line: LiveLine | null; live: LiveState; me: Side; onStop: () => void;
+/** Play on: who answers a move played on a board (a Compare board, or the board in Explore), and what's
+    happening: the bot at work, or `children` when it isn't. `onStop` goes back to the stored lines. */
+function PlayOn({ bots, bot, busy, error, onStop, children }: {
+  bots: Summary["bots"]; bot: ReturnType<typeof useBot>; busy: boolean; error: string | null; onStop?: () => void;
+  children: ReactNode;
 }) {
-  const mv = fen && line ? moveBetween(fen, replay(fen, [line.pv[0]])[0] ?? "") : null;
   const level = bot.level;
   const downloading = busy && level && bot.progress != null && bot.progress < 1;
   return (
@@ -539,16 +581,13 @@ function PlayOn({ bots, bot, busy, error, playing, fen, over, line, live, me, on
           <button type="button" aria-pressed={bot.choice === "off"} onClick={() => bot.setChoice("off")}
             title="Nobody answers: you play both sides">Nobody</button>
         </span>
-        {playing && <button type="button" className="btn ghost" onClick={onStop} title="Back to the stored lines (Esc)">Back to the lines</button>}
+        {onStop && <button type="button" className="btn ghost" onClick={onStop} title="Back to the stored lines (Esc)">Back to the lines</button>}
       </div>
       <p className="small">
         {error ? <span className="bad-text">{error}</span>
           : downloading ? <>Downloading Maia-2 (42 MB, once): <span className="num">{Math.round(bot.progress! * 100)}%</span></>
-          : busy ? <>{level ? `Maia ~${level.chesscom}` : "Stockfish"} is choosing…</>
-          : over ? <b>{over}.</b>
-          : fen && mv ? <><span className="live-badge">LIVE</span> Stockfish's best here: <b className="san">{mv.san}</b> ({evalFor(line!.eval, me)}, depth {line!.depth}). Never saved.</>
-          : fen ? <><span className="live-badge">LIVE</span> {live.status === "loading" ? "Starting the engine…" : live.status === "error" ? live.error : "Stockfish is looking…"}</>
-          : <span className="muted">Make a move on either board and {bot.choice === "off" ? "play both sides" : level ? `Maia ~${level.chesscom} answers` : "Stockfish answers"}.</span>}
+          : busy ? <>{bot.name} is choosing…</>
+          : children}
       </p>
       {level && (
         <p className="muted small">
@@ -557,6 +596,16 @@ function PlayOn({ bots, bot, busy, error, playing, fen, over, line, live, me, on
         </p>
       )}
     </div>
+  );
+}
+
+/** The live engine's best move on the Compare board played on last. */
+function LiveBest({ fen, line, live, me }: { fen: string; line: LiveLine | null; live: LiveState; me: Side }) {
+  const mv = line ? moveBetween(fen, replay(fen, [line.pv[0]])[0] ?? "") : null;
+  return (
+    <><span className="live-badge">LIVE</span>{" "}
+      {mv ? <>Stockfish's best here: <b className="san">{mv.san}</b> ({evalFor(line!.eval, me)}, depth {line!.depth}). Never saved.</>
+        : live.status === "loading" ? "Starting the engine…" : live.status === "error" ? live.error : "Stockfish is looking…"}</>
   );
 }
 
@@ -695,12 +744,11 @@ function Threat({ fen, line, depth, status, error, me }: {
   );
 }
 
-function LivePanel({ live, lines, explore, me, over, onPlay, onAt, onClose }: {
-  live: LiveState; lines: LiveState["lines"]; explore: Explore; me: Side; over: string | null;
+function LivePanel({ live, lines, explore, played, me, over, onPlay, onAt, onClose }: {
+  live: LiveState; lines: LiveState["lines"]; explore: Explore; played: string[]; me: Side; over: string | null;
   onPlay: (uci: string) => void; onAt: (at: number) => void; onClose: () => void;
 }) {
   const fen = explore.at ? explore.moves[explore.at - 1].fen : explore.base;
-  const played = numberedLine(explore.base, explore.moves.map((x) => x.san));
   return (
     <section className="card v-explain live-panel" aria-live="polite">
       <div className="card-head">
@@ -708,15 +756,22 @@ function LivePanel({ live, lines, explore, me, over, onPlay, onAt, onClose }: {
         <span className="muted small">{live.engine}{live.depth ? ` · depth ${live.depth}` : ""}</span>
       </div>
       <p className="muted small" style={{ margin: 0 }}>
-        Play any move on the board, for either side. The in-browser Stockfish shows its top lines, scored from your side. Live
-        results are never saved.
+        Play any move on the board; the bot chosen under the board answers it, or nobody and you play both sides. The
+        in-browser Stockfish shows its top lines, scored from your side. Live results are never saved.
       </p>
       <div className="chips played" role="group" aria-label="Moves played in Explore">
         <span className="muted small">From {explore.from}:</span>
-        {played.length ? played.map((t, i) => (
-          <button key={i} type="button" className={`san${i >= explore.at ? " redo" : ""}`} aria-pressed={i === explore.at - 1}
-            onClick={() => onAt(i + 1)}>{t}</button>
-        )) : <span className="muted small">no moves yet</span>}
+        {played.length ? played.map((t, i) => {
+          const x = explore.moves[i];
+          return (
+            <button key={i} type="button" className={`san${x.by ? " bot" : ""}${i >= explore.at ? " redo" : ""}`}
+              aria-pressed={i === explore.at - 1}
+              title={x.by ? `${x.by}${x.p != null ? `: ${Math.round(x.p * 100)}% of its choices here` : ""}` : undefined}
+              onClick={() => onAt(i + 1)}>
+              {t}{x.p != null && <small className="num"> {Math.round(x.p * 100)}%</small>}
+            </button>
+          );
+        }) : <span className="muted small">no moves yet</span>}
       </div>
       <div className="actions">
         <button type="button" className="btn ghost" onClick={() => onAt(explore.at - 1)} disabled={!explore.at}>Take back</button>

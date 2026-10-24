@@ -217,6 +217,54 @@ test("Play on: a move on a Compare board plays on from its line, and Esc goes ba
   }
 }, 20_000);
 
+test("Compare is always in the button row: greyed out with the reason where there's nothing to compare", async () => {
+  const id = "164948678288";
+  const r = data<Game>(`games/${id}.json`).records[0];
+  await open(`/games/${id}?ply=0`);
+  const compare = await screen.findByRole("button", { name: "Compare" }, SLOW);
+  expect(compare.getAttribute("aria-disabled")).toBe("true");
+  await act(async () => { fireEvent.click(compare); });
+  expect(document.querySelector(".nav-note")?.textContent).toMatch(/^Compare puts one of your moves next to Stockfish's best/);
+  expect(document.querySelector(".cmp")).toBeNull();
+  // A step on: the reason goes with the move it was for.
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Next move (→)" })); });
+  expect(document.querySelector(".nav-note")).toBeNull();
+  // On a mistake of mine it opens the comparison.
+  cleanup();
+  await open(`/games/${id}?ply=${r.ply}`);
+  const mine = await screen.findByRole("button", { name: "Compare" }, SLOW);
+  expect(mine.getAttribute("aria-disabled")).toBe("false");
+  await act(async () => { fireEvent.click(mine); });
+  expect(document.querySelector(".cmp")).not.toBeNull();
+}, 20_000);
+
+test("Explore: who answers your moves sits under the board; with nobody, you play both sides", async () => {
+  localStorage.clear();
+  localStorage.setItem("coach-bot", "off");
+  const engines = globalThis.Worker;
+  globalThis.Worker = class { onmessage = null; onerror = null; postMessage() {} terminate() {} } as unknown as typeof Worker;
+  try {
+    const id = "164948678288";
+    const g = data<Game>(`games/${id}.json`);
+    await open(`/games/${id}?ply=0`);
+    await act(async () => { fireEvent.click(await screen.findByRole("button", { name: /^Explore/ }, SLOW)); });
+    const who = screen.getByRole("group", { name: "Who answers your moves" });
+    expect(within(who).getByRole("button", { pressed: true }).textContent).toBe("Nobody");
+    const mv = new Chess(g.initial_fen).moves({ verbose: true })[0];
+    const sq = (s: string) => document.getElementById(`game-${id}-square-${s}`)!;
+    await act(async () => { fireEvent.click(sq(mv.from)); });
+    await act(async () => { fireEvent.click(sq(mv.to)); });
+    const played = screen.getByRole("group", { name: "Moves played in Explore" });
+    expect(within(played).getAllByRole("button").map((b) => b.textContent)).toEqual(numberedLine(g.initial_fen, [mv.san]));
+    expect(document.querySelector(".v-board .playon")!.textContent).toContain("Nobody answers: play any move, for either side.");
+    await act(async () => { fireEvent.click(within(who).getByRole("button", { name: "~800" })); });
+    expect(localStorage.getItem("coach-bot")).toBe("maia-800");
+    expect(document.querySelector(".v-board .playon")!.textContent).toContain("Make a move on the board and Maia ~800 answers.");
+  } finally {
+    globalThis.Worker = engines;
+  }
+}, 20_000);
+
 // Phase 5: drills. Moves are played by tapping squares, as on a phone.
 const tap = async (boardId: string, square: string) => {
   await act(async () => { fireEvent.click(document.getElementById(`${boardId}-square-${square}`)!); });

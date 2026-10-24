@@ -269,18 +269,23 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .strip .pl { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; }
 .strip .clk { font-family: var(--font-num); font-weight: 600; padding: 2px 8px; border-radius: var(--radius-sm); background: var(--soft); color: var(--muted); }
 .strip.to-move .clk { background: var(--best); color: var(--bg); }
-.navbtns { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) auto auto; gap: 6px; }
+/* The arrows share the width; the mode buttons after them (Threat, Compare, Explore) take what they need. */
+.navbtns { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-flow: column; grid-auto-columns: auto; gap: 6px; }
 .navbtns button { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius-sm); padding: 8px 0; cursor: pointer; font-weight: 700; font-size: 1rem; }
 .navbtns .live { padding: 8px 12px; white-space: nowrap; font-size: .88rem; border-color: var(--live); color: var(--live); }
 .navbtns .live[aria-pressed="true"] { background: var(--live); color: var(--bg); }
 .navbtns button[disabled] { opacity: .35; cursor: default; }
 .navbtns .leave { padding: 8px 12px; white-space: nowrap; font-size: .88rem; border-color: var(--best); color: var(--best); }
-.navbtns .threat { padding: 8px 12px; white-space: nowrap; font-size: .88rem; }
+.navbtns .threat, .navbtns .compare { padding: 8px 12px; white-space: nowrap; font-size: .88rem; }
+.navbtns .compare[aria-disabled="true"] { opacity: .35; cursor: help; }
+.nav-note { margin: 0; }
 .navbtns .threat[aria-pressed="true"] { border-color: var(--live); color: var(--live); }
-/* On a phone the two mode buttons get their own row under the arrows. */
+/* On a phone the mode buttons get their own row under the arrows: three thirds, or one across. */
 @media (max-width: 520px) {
-  .navbtns .threat { grid-row: 2; grid-column: 1 / 3; }
-  .navbtns .live { grid-row: 2; grid-column: 3 / -1; }
+  .viewer-nav { grid-template-columns: repeat(30, minmax(0, 1fr)); grid-auto-flow: row; }
+  .viewer-nav > button { grid-column: span 6; }
+  .viewer-nav .threat, .viewer-nav .compare, .viewer-nav .live { grid-row: 2; grid-column: span 10; }
+  .viewer-nav:not(.game) .live, .viewer-nav .leave { grid-row: 2; grid-column: 1 / -1; }
 }
 .threat-line { margin: 0; }
 
@@ -313,10 +318,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .cmp-you .chips button[aria-pressed="true"] { background: var(--you); border-color: var(--you); }
 /* Play on: a board's own moves after its line, the bot's in the live colour; the board played on last is outlined. */
 .cmp-side.playing .board-row { outline: 2px solid var(--live); outline-offset: 3px; border-radius: 4px; }
-.chips.played-on button.bot { border-color: var(--live); }
+.chips.played-on button.bot, .chips.played button.bot { border-color: var(--live); }
 .chips.played-on button[aria-pressed="true"] { background: var(--live); border-color: var(--live); color: var(--bg); }
 .chips.played-on button.redo { opacity: .5; border-style: dashed; }
-.chips.played-on small { font-size: .72rem; opacity: .8; }
+.chips.played-on small, .chips.played small { font-size: .72rem; opacity: .8; }
 .playon { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
 .playon p { margin: 0; }
 .playon-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }

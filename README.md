@@ -60,8 +60,8 @@ gave up while still playable, played on against the in-browser Stockfish. Every 
 trainer move says what it does on the board, measured along Stockfish's lines, and every move or square it
 names shows on the board on hover or tap. Settings has board options (square names on every square,
 hanging pieces, move sounds); the viewer can show the opponent's threat (live engine); either Compare board
-can be played on against Stockfish or Maia-2 playing like a chess.com ~600, ~800 or ~1000 player (Maia-2,
-MIT, only picks the bot's moves); a coordinates drill helps find squares quickly. It installs
+or Explore can be played on against Stockfish or Maia-2 playing like a chess.com ~600, ~800 or ~1000 player
+(Maia-2, MIT, only picks the bot's moves); a coordinates drill helps find squares quickly. It installs
 as an app and works offline; training progress stays on the device unless Supabase sync is set up.
 
 ## Deploy
