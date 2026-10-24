@@ -149,16 +149,22 @@ this file wins.
   the app shell, every built file and the training data (summary, games index, leaks, puzzles,
   repertoire). Pages and data are network-first with the cache as fallback; built assets and engine files
   are cache-first.
-- **Convert the win** (added after Phase 6, from the data: 174 games reached 80% and weren't won, 155 of
-  them lost): the position before the move that threw each win, offered when my stored Win% there is at
-  least 80, newest first, plus three textbook mates (queen, rook, two rooks against a lone king). I play
-  it out against the in-browser Stockfish at full strength or its own Skill Level 10 or 3; its moves are
-  played, never shown as analysis or stored. The result is the rules' (checkmate, stalemate, threefold
-  repetition, fifty moves, insufficient material). Tries and wins stay on the device. The viewer links
-  here from the thrown-win callout, and `losses.json` carries each start position and its Win%.
+- **Play it out** (`/play`, added after Phase 6 from what the data shows: 174 games reached 80% and
+  weren't won, 155 of them lost; 47 of 303 losses were resigned or abandoned at 40% or more). Three lists,
+  each played on against the in-browser Stockfish at full strength or its own Skill Level 10 or 3:
+  - *Wins that got away:* the position before the move that threw each win, when my stored Win% there is
+    at least 80. Goal: a win.
+  - *Games you gave up:* the position each `gave_up` loss ended in (Stockfish moves first if the game ended
+    on its turn). Goal: not losing, so a draw or a win.
+  - *Mating practice:* queen, rook and two rooks against a lone king. Goal: a win.
+
+  Stockfish's moves are played, never shown as analysis or stored. The rules decide the result
+  (checkmate, stalemate, threefold repetition, fifty moves, insufficient material). Tries and goals
+  reached stay on the device. The viewer links here from a thrown win and from a game given up;
+  `losses.json` carries each start position and its Win%.
 - **Last game and retrying a game:** the dashboard shows the newest game (result, accuracy, label counts,
   why I lost) with links to review it, retry its mistakes (`/puzzles?game=<id>`: my puzzles from that game
-  in move order) and play its thrown win out again. Game summaries and game files carry their puzzle count.
+  in move order), and play its thrown win again or play on from where I gave it up. Game summaries and game files carry their puzzle count.
 - **Exports are committed.** The `.gitignore` rule `data/` also matched `web/public/data`, so Phase 2's
   exports never reached git. It is now `/data/`.
 

@@ -448,7 +448,7 @@ label.btn { position: relative; }
 .train:hover { border-color: var(--best); }
 .train b { font-size: 1.3rem; font-weight: 700; }
 
-/* Convert the win */
+/* Play it out */
 button.row { background: none; border: 0; border-top: 1px solid var(--line); color: inherit; font: inherit; text-align: left; cursor: pointer; width: 100%; }
 .rows button.row:first-child { border-top: 0; }
-.convert-moves { margin: 0; line-height: 1.6; word-spacing: 2px; }
+.playout-moves { margin: 0; line-height: 1.6; word-spacing: 2px; }

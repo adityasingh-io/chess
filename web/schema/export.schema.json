@@ -1195,6 +1195,26 @@
       }
      ],
      "title": "Record"
+    },
+    "colour": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Colour",
+     "type": "string"
+    },
+    "opponent": {
+     "title": "Opponent",
+     "type": "string"
+    },
+    "final_fen": {
+     "title": "Final Fen",
+     "type": "string"
+    },
+    "final_win": {
+     "title": "Final Win",
+     "type": "number"
     }
    },
    "required": [
@@ -1204,7 +1224,11 @@
     "subtype",
     "flags",
     "turning_ply",
-    "record"
+    "record",
+    "colour",
+    "opponent",
+    "final_fen",
+    "final_win"
    ],
    "title": "LossEntry",
    "type": "object"

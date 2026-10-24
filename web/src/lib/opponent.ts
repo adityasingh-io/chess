@@ -1,4 +1,4 @@
-// The sparring engine for "Win it again": the in-browser Stockfish plays the other side of a position.
+// The sparring engine for "Play it out": the in-browser Stockfish plays the other side of a position.
 // Its moves are only played on the board; nothing it computes is shown as analysis or stored. Skill Level
 // is Stockfish's own UCI option (0 to 20, 20 being full strength).
 import { useEffect, useRef, useState } from "react";

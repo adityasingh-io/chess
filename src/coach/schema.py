@@ -189,6 +189,10 @@ class LossEntry(Model):
     flags: list[str]
     turning_ply: int | None
     record: str | None
+    colour: Colour
+    opponent: str
+    final_fen: str             # the position the game ended in (full FEN)
+    final_win: float           # my Win% there (pass 1)
 
 
 class ThrownEntry(Model):

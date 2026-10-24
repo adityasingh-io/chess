@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { RatingChart } from "../components/charts";
 import { Trend } from "../components/bits";
-import { readTally, startId, thrownStarts } from "../lib/convert";
+import { readTally, resignedId, resignedStarts, thrownId, thrownStarts } from "../lib/playout";
 import { useGamesIndex, useGameSummaries, useInsights, useLeaks, useLosses, usePuzzleIndex, useSummary } from "../lib/data";
 import { dueIds } from "../lib/drill";
 import { dueLines, newLines, useLines } from "../lib/lines";
@@ -68,7 +68,8 @@ function Training() {
   const linesDue = dueLines(lines, p).length, linesNew = newLines(lines, p).length;
   const top = s.top_leaks.find((l) => (index.mine[l.tag] ?? 0) + (index.lichess[l.tag] ?? 0) > 0);
   const tally = readTally();
-  const toConvert = thrownStarts(useLosses().thrown).filter((t) => !tally[t.id]?.wins).length;
+  const losses = useLosses();
+  const toPlay = [...thrownStarts(losses.thrown), ...resignedStarts(losses.losses)].filter((t) => !tally[t.id]?.reached).length;
   const { today, days } = streak(p);
   return (
     <section className="card span-2" aria-label="Today's training">
@@ -100,10 +101,10 @@ function Training() {
           <b className="num">{linesDue || linesNew}</b>
           <span className="muted small">{linesDue ? "lines due" : linesNew ? "lines to learn" : "no lines yet"}</span>
         </Link>
-        <Link to="/convert" className="train">
-          <span className="label">Convert the win</span>
-          <b className="num">{toConvert}</b>
-          <span className="muted small">winning positions from your games to play out again</span>
+        <Link to="/play" className="train">
+          <span className="label">Play it out</span>
+          <b className="num">{toPlay}</b>
+          <span className="muted small">wins that got away and games you gave up, to play on</span>
         </Link>
       </div>
     </section>
@@ -113,7 +114,9 @@ function Training() {
 // The newest game: how it went, and the ways back into it.
 function LastGame() {
   const g = useGamesIndex().games[0];
-  const thrown = useLosses().thrown.find((t) => t.game === g?.id);
+  const losses = useLosses();
+  const thrown = losses.thrown.find((t) => t.game === g?.id);
+  const gaveUp = losses.losses.some((l) => l.game === g?.id && l.cause === "gave_up");
   if (!g) return null;
   const counts = [[g.blunders, "blunder"], [g.mistakes, "mistake"], [g.inaccuracies, "inaccuracy"]] as const;
   return (
@@ -134,8 +137,9 @@ function LastGame() {
       <div className="puzzle-actions">
         {g.puzzles > 0 && <Link className="btn" to={`/puzzles?game=${g.id}`}>Retry its mistakes ({g.puzzles})</Link>}
         {thrown && thrownStarts([thrown]).length > 0 && (
-          <Link className="btn ghost" to={`/convert?play=${startId(thrown)}`}>Play the thrown win out again</Link>
+          <Link className="btn ghost" to={`/play?play=${thrownId(thrown.game, thrown.ply!)}`}>Play the thrown win again</Link>
         )}
+        {gaveUp && <Link className="btn ghost" to={`/play?play=${resignedId(g.id)}`}>Play on from where you gave up</Link>}
       </div>
     </section>
   );

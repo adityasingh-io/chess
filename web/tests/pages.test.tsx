@@ -248,13 +248,15 @@ test("Drill this line adds the tree's line to the trainer", async () => {
   expect(await screen.findByRole("button", { name: /^1\. d4 d5 2\. c4/ }, SLOW)).toBeTruthy();
 }, 30_000);
 
-test("convert the win lists the stored winning positions, and ?play opens one with the stored Win%", async () => {
-  const offered = losses.thrown.filter((t) => t.fen && t.ply && t.win_before != null && t.win_before >= 80);
-  await open("/convert");
-  expect(await screen.findByText(`0 of ${offered.length} positions won again`, {}, SLOW)).toBeTruthy();
-  const t = [...offered].sort((a, b) => b.ts - a.ts)[0];
+test("play it out lists stored winning and given-up positions, and ?play opens one with the stored Win%", async () => {
+  const thrown = losses.thrown.filter((t) => t.fen && t.ply && t.win_before != null && t.win_before >= 80);
+  const gaveUp = losses.losses.filter((l) => l.cause === "gave_up");
+  await open("/play");
+  expect(await screen.findByText(`0 of ${thrown.length} positions won again`, {}, SLOW)).toBeTruthy();
+  expect(screen.getByText(`0 of ${gaveUp.length} positions saved`)).toBeTruthy();
+  const t = [...thrown].sort((a, b) => b.ts - a.ts)[0];
   cleanup();
-  await open(`/convert?play=thrown-${t.game}-${t.ply}`);
+  await open(`/play?play=thrown-${t.game}-${t.ply}`);
   const side = (await screen.findAllByText(/Stockfish had you at/, {}, SLOW))[0].closest(".puzzle-side") as HTMLElement;
   expect(within(side).getByText(`${t.win_before!.toFixed(1)}%`)).toBeTruthy();
   expect(within(side).getByText(new RegExp(`You're ${t.colour === "white" ? "White" : "Black"}, to move`))).toBeTruthy();

@@ -402,6 +402,10 @@ subtype: (string | null)
 flags: string[]
 turning_ply: (number | null)
 record: (string | null)
+colour: ("white" | "black")
+opponent: string
+final_fen: string
+final_win: number
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema

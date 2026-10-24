@@ -88,7 +88,7 @@ try {
     { path: "/puzzles", name: "puzzles", ready: ".puzzle .board" },
     { path: "/puzzles?drill=hung_piece", name: "drill", ready: ".puzzle .board" },
     { path: "/trainer", name: "trainer", ready: ".line-row" },
-    { path: "/convert", name: "convert", ready: ".convert-row" },
+    { path: "/play", name: "play-it-out", ready: ".playout-row" },
     { path: `/puzzles?game=${retryGame.id}`, name: "retry-game", ready: ".puzzle .board" },
     { path: "/settings", name: "settings", ready: ".card h2" },
     { path: "/more", name: "more", ready: ".rows" },
@@ -314,31 +314,31 @@ try {
     await pctx.close();
   }
 
-  // Convert the win on a phone: a mating-practice position against the in-browser Stockfish. My move is
+  // Play it out on a phone: a mating-practice position against the in-browser Stockfish. My move is
   // played, Stockfish answers with a legal move of its own, and stopping records a try on the device.
   {
     const cctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, colorScheme: "dark" });
     const cp = await cctx.newPage();
     const errs = [];
     cp.on("pageerror", (e) => errs.push(String(e)));
-    await cp.goto(`${base}/convert?play=mate-queen`);
-    await cp.waitForSelector('[id="convert-mate-queen-square-a1"]');
-    await cp.click('[id="convert-mate-queen-square-a1"]');
-    await cp.click('[id="convert-mate-queen-square-a4"]');
+    await cp.goto(`${base}/play?play=mate-queen`);
+    await cp.waitForSelector('[id="playout-mate-queen-square-a1"]');
+    await cp.click('[id="playout-mate-queen-square-a1"]');
+    await cp.click('[id="playout-mate-queen-square-a4"]');
     const moves = await cp.waitForFunction(() => {
-      const t = document.querySelector(".convert-moves")?.textContent ?? "";
+      const t = document.querySelector(".playout-moves")?.textContent ?? "";
       return t.split(/\s+/).length >= 3 ? t : null;
     }, null, { timeout: 15000 }).then((h) => h.jsonValue(), () => null);
     // The reply animates; wait for the king to leave d5 on the board too.
-    await cp.waitForFunction(() => !document.querySelector('[id="convert-mate-queen-square-d5"] [data-piece="bK"]'), null, { timeout: 3000 }).catch(() => {});
-    const board = await boardOn(cp, "convert-mate-queen");
+    await cp.waitForFunction(() => !document.querySelector('[id="playout-mate-queen-square-d5"] [data-piece="bK"]'), null, { timeout: 3000 }).catch(() => {});
+    const board = await boardOn(cp, "playout-mate-queen");
     const kingMoved = board.d5 !== "bK" && Object.values(board).includes("bK");
-    check("convert 390px: my move is played and Stockfish replies", !!moves?.startsWith("1. Qa4") && kingMoved, String(moves));
+    check("play it out 390px: my move is played and Stockfish replies", !!moves?.startsWith("1. Qa4") && kingMoved, String(moves));
     await cp.click('button:has-text("Stop")');
-    const tally = await cp.evaluate(() => JSON.parse(localStorage.getItem("coach-convert-v1") ?? "{}")["mate-queen"] ?? null);
-    check("convert 390px: stopping records a try on the device", tally?.tries === 1 && tally?.wins === 0, JSON.stringify(tally));
-    check("convert 390px: no page errors", errs.length === 0, errs.slice(0, 2).join(" | "));
-    if (shots) await cp.screenshot({ path: join(shots, "convert-390-dark.png"), fullPage: true });
+    const tally = await cp.evaluate(() => JSON.parse(localStorage.getItem("coach-playout-v1") ?? "{}")["mate-queen"] ?? null);
+    check("play it out 390px: stopping records a try on the device", tally?.tries === 1 && tally?.reached === 0, JSON.stringify(tally));
+    check("play it out 390px: no page errors", errs.length === 0, errs.slice(0, 2).join(" | "));
+    if (shots) await cp.screenshot({ path: join(shots, "play-it-out-390-dark.png"), fullPage: true });
     await cctx.close();
   }
 

@@ -54,9 +54,9 @@ npm run e2e        # every page at phone and desktop width in Chrome, step timin
 ```
 
 Dashboard, leaks, games with a move-by-move viewer and live engine, openings tree and report, endgames,
-insights, puzzles from my games and Lichess with spaced repetition, a repertoire trainer, and "Convert
-the win": the positions where Stockfish had me winning and the game got away, played out again against
-the in-browser Stockfish. It installs
+insights, puzzles from my games and Lichess with spaced repetition, a repertoire trainer, and "Play it
+out": wins that got away and games I gave up while still playable, played on against the in-browser
+Stockfish. It installs
 as an app and works offline; training progress stays on the device unless Supabase sync is set up.
 
 ## Deploy
