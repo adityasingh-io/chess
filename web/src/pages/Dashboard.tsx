@@ -1,11 +1,15 @@
 import { Link } from "react-router";
 import { RatingChart } from "../components/charts";
 import { Trend } from "../components/bits";
-import { useGameSummaries, useInsights, useLeaks, useLosses, useSummary } from "../lib/data";
+import { useGameSummaries, useInsights, useLeaks, useLosses, usePuzzleIndex, useSummary } from "../lib/data";
+import { dueIds } from "../lib/drill";
+import { dueLines, newLines, useLines } from "../lib/lines";
+import { streak, useProgress } from "../lib/progress";
 import { dateTime, day, moveName, n1, pct } from "../lib/format";
 import { TYPE, tagName } from "../lib/names";
 
 const THROWN_SHOWN = 5;
+const DAILY = 10;   // answers a day the training card counts towards
 
 export default function Dashboard() {
   const s = useSummary();
@@ -41,17 +45,59 @@ export default function Dashboard() {
           {points.length > 0 && <RatingHero points={points} />}
           {points.length > 1 && <RatingChart points={points} goal={s.rating_goal} goalDate={s.goal_date} />}
         </section>
+        <Training />
         <WhyILost />
         <div className="stack">
           <TopLeaks />
           <Thrown />
         </div>
-        <section className="card span-2">
-          <div className="card-head"><h2>Today's training</h2><span className="pill later">Phase 5</span></div>
-          <div className="empty">Puzzles due and one opening drill appear here once the puzzle and repertoire trainers exist.</div>
-        </section>
       </div>
     </>
+  );
+}
+
+// Today's training: reviews that are due, a drill on the top leak that has puzzles, and the opening lines.
+function Training() {
+  const p = useProgress();
+  const s = useSummary();
+  const index = usePuzzleIndex();
+  const lines = useLines();
+  const due = dueIds(p).length;
+  const linesDue = dueLines(lines, p).length, linesNew = newLines(lines, p).length;
+  const top = s.top_leaks.find((l) => (index.mine[l.tag] ?? 0) + (index.lichess[l.tag] ?? 0) > 0);
+  const { today, days } = streak(p);
+  return (
+    <section className="card span-2" aria-label="Today's training">
+      <div className="card-head">
+        <h2>Today's training</h2>
+        <span className="muted small num">
+          {Math.min(today, DAILY)} of {DAILY} answers today{days > 1 ? ` · ${days} days running` : ""}
+        </span>
+      </div>
+      <div className="meter" role="progressbar" aria-label="Answers today" aria-valuemin={0} aria-valuemax={DAILY}
+        aria-valuenow={Math.min(today, DAILY)}>
+        <i style={{ width: `${(100 * Math.min(today, DAILY)) / DAILY}%` }} />
+      </div>
+      <div className="train-grid">
+        <Link to="/puzzles?tab=due" className="train">
+          <span className="label">Reviews</span>
+          <b className="num">{due}</b>
+          <span className="muted small">{due ? "puzzles due today" : "nothing due; new puzzles are waiting"}</span>
+        </Link>
+        {top && (
+          <Link to={`/puzzles?drill=${top.tag}`} className="train">
+            <span className="label">Top leak drill</span>
+            <b>{tagName(top.tag)}</b>
+            <span className="muted small num">{index.mine[top.tag] ?? 0} of your positions, then Lichess puzzles</span>
+          </Link>
+        )}
+        <Link to="/trainer" className="train">
+          <span className="label">Openings</span>
+          <b className="num">{linesDue || linesNew}</b>
+          <span className="muted small">{linesDue ? "lines due" : linesNew ? "lines to learn" : "no lines yet"}</span>
+        </Link>
+      </div>
+    </section>
   );
 }
 

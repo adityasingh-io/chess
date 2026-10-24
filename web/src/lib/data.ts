@@ -2,7 +2,8 @@
 // can read it with React's use() under a Suspense boundary.
 import { use } from "react";
 import type {
-  Endgames, Game, GamesIndex, Insights, Leaks, Losses, MistakesIndex, OpeningReport, Record as MistakeRecord, Summary,
+  Endgames, Game, GamesIndex, Insights, Leaks, Losses, MistakesIndex, OpeningReport, PuzzleIndex, PuzzleSet, Record as MistakeRecord,
+  Repertoire, Summary,
 } from "../types/export";
 
 const BASE = `${import.meta.env.BASE_URL}data/`;
@@ -32,6 +33,10 @@ export const useGamesIndex = () => use(load<GamesIndex>("games/index.json"));
 export const useEndgames = () => use(load<Endgames>("endgames.json"));
 export const useOpenings = (colour: "white" | "black") => use(load<OpeningReport>(`openings/${colour}.json`));
 export const useGame = (id: string) => use(load<Game>(`games/${encodeURIComponent(id)}.json`));
+// My puzzles are small; the Lichess subset (a couple of MB) loads only where a page needs it.
+export const usePuzzles = (source: "mine" | "lichess") => use(load<PuzzleSet>(`puzzles/${source}.json`));
+export const usePuzzleIndex = () => use(load<PuzzleIndex>("puzzles/index.json"));
+export const useRepertoire = () => use(load<Repertoire>("repertoire.json"));
 
 // The mistakes index is the largest file (a few MB); only leak detail pages read it.
 const recordMaps = new WeakMap<MistakesIndex, Map<string, MistakeRecord>>();

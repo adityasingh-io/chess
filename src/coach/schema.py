@@ -400,6 +400,56 @@ class Summary(Model):
     engine: EngineInfo
 
 
+class Puzzle(Model):
+    """A position to solve. The solver is the side to move in `fen`; the solution alternates the solver's
+    moves (even indices) and the replies."""
+    id: str                    # m-<record id> or l-<Lichess PuzzleId>
+    source: Literal["mine", "lichess"]
+    fen: str
+    last_move: str | None      # the move that led to the position (UCI), shown on the board
+    solution: list[str]        # UCI
+    solution_san: list[str]
+    unique: list[bool]         # per solver move: clearly best in pass 2, so no other move solves it
+    tags: list[str]            # my tags: the record's, or those whose Lichess themes the puzzle has
+    themes: list[str]          # Lichess themes
+    rating: int | None         # Lichess puzzle rating
+    game: str | None           # mine: the game, the ply of my move, what I played and the Win% it lost
+    ply: int | None
+    played_san: str | None
+    drop: float | None
+    opening: str | None        # family (mine) or OpeningTags (Lichess)
+    url: str | None            # Lichess puzzle page
+
+
+class PuzzleSet(Model):
+    as_of: int
+    source: Literal["mine", "lichess"]
+    puzzles: list[Puzzle]
+
+
+class PuzzleIndex(Model):
+    """How many puzzles each set has per tag, so pages can offer a drill without loading the sets."""
+    as_of: int
+    mine: dict[str, int]
+    lichess: dict[str, int]
+
+
+class RepertoireLine(Model):
+    id: str                    # stable across builds: from the colour and the moves
+    colour: Colour             # the side I play
+    name: str
+    source: Literal["repertoire", "leak"]
+    moves: list[str]           # UCI from the start position
+    san: list[str]
+    start: int                 # plies played for me before the drill asks (a leak line asks only at its end)
+
+
+class Repertoire(Model):
+    as_of: int
+    pgn: str | None            # the PGN the lines were read from (None when there isn't one yet)
+    lines: list[RepertoireLine]
+
+
 FILES = {
     "summary.json": Summary,
     "games/index.json": GamesIndex,
@@ -410,4 +460,8 @@ FILES = {
     "openings/black.json": OpeningReport,
     "endgames.json": Endgames,
     "insights.json": Insights,
+    "puzzles/mine.json": PuzzleSet,
+    "puzzles/lichess.json": PuzzleSet,
+    "puzzles/index.json": PuzzleIndex,
+    "repertoire.json": Repertoire,
 }

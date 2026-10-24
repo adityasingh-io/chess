@@ -60,7 +60,7 @@ def analyze(last: Last = None, reviewed: Reviewed = 0, pass1_only: bool = False,
 @app.command()
 def update(last: Last = None, reviewed: Reviewed = 0) -> None:
     """Fetch, parse, analyse, fetch explorer stats and export, touching only what's new."""
-    from coach.build import fetch_explorer, run_build
+    from coach.build import fetch_explorer, fetch_puzzles, run_build
 
     cfg, conn = _setup()
     timings: dict[str, float] = {}
@@ -79,6 +79,7 @@ def update(last: Last = None, reviewed: Reviewed = 0) -> None:
         step("explorer", fetch_explorer, cfg, conn, console)
     else:
         console.print("LICHESS_TOKEN not set: skipping explorer stats")
+    step("puzzles", fetch_puzzles, cfg, conn, console)
     result = step("build", run_build, cfg, conn, console)
     print_acceptance(cfg, result, timings)
 
@@ -162,6 +163,28 @@ def explorer_cmd() -> None:
 
     cfg, conn = _setup()
     fetch_explorer(cfg, conn, console)
+
+
+@app.command()
+def puzzles(refresh: Annotated[bool, typer.Option(help="Select again even if a subset is cached.")] = False) -> None:
+    """Pick the Lichess puzzle subset (streams the puzzle file once) and cache it in data/."""
+    from coach.build import fetch_puzzles
+
+    cfg, conn = _setup()
+    fetch_puzzles(cfg, conn, console, refresh)
+
+
+@app.command()
+def repertoire(force: Annotated[bool, typer.Option(help="Write the starter PGN again, replacing the current one.")] = False) -> None:
+    """Write the starter repertoire PGN from data (runs Stockfish and the explorer on the lines' positions)."""
+    from coach import repertoire as rep
+
+    cfg, conn = _setup()
+    path = cfg.root / cfg.repertoire.pgn
+    if path.exists() and not force:
+        console.print(f"{path.name} exists; edit it, or pass --force to generate it again")
+        return
+    rep.write_starter(cfg, conn, console)
 
 
 @app.command()

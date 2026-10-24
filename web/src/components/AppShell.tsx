@@ -6,8 +6,8 @@ import { setPref, useThemePref, type ThemePref } from "../lib/theme";
 const ICON = {
   home: "M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z",
   leak: "M12 3c3 4.2 6 7.6 6 11a6 6 0 0 1-12 0c0-3.4 3-6.8 6-11z",
+  puzzle: "M13 3 5 14h6l-1 7 8-11h-6z",
   games: "M4 4h16v16H4zM4 12h16M12 4v16",
-  tree: "M6 3v18M6 9c6 0 10 2 10 6v6M6 9c3 0 5-2 5-6",
   more: "M5 12h.01M12 12h.01M19 12h.01",
 };
 const Icon = ({ d }: { d: string }) => (
@@ -16,30 +16,29 @@ const Icon = ({ d }: { d: string }) => (
   </svg>
 );
 
-// The top bar has room for every section; the phone's bottom bar keeps four and puts the rest under More.
-// Puzzles arrive in phase 5; its tab shows where it will go.
-type Tab = { to?: string; long: string; end?: boolean; later?: string };
+// The top bar has room for every section; the phone's bottom bar keeps the training loop (Home, Leaks,
+// Puzzles, Games) and puts the rest under More.
+type Tab = { to: string; long: string; end?: boolean };
 const TOP: Tab[] = [
-  { to: "/", long: "Dashboard", end: true }, { to: "/leaks", long: "Leaks" }, { to: "/games", long: "Games" },
-  { to: "/openings", long: "Openings" }, { to: "/endgames", long: "Endgames" }, { to: "/insights", long: "Insights" },
-  { later: "Arrives in phase 5", long: "Puzzles" },
+  { to: "/", long: "Dashboard", end: true }, { to: "/leaks", long: "Leaks" }, { to: "/puzzles", long: "Puzzles" },
+  { to: "/trainer", long: "Trainer" }, { to: "/games", long: "Games" }, { to: "/openings", long: "Openings" },
+  { to: "/endgames", long: "Endgames" }, { to: "/insights", long: "Insights" },
+];
+export const MORE = [
+  { to: "/openings", name: "Openings", what: "Your opening tree per colour: what you play, Stockfish's best and players at your level" },
+  { to: "/trainer", name: "Repertoire trainer", what: "Play your repertoire and leak lines from memory, with spaced repetition" },
+  { to: "/endgames", name: "Endgames", what: "How your endgames turn out, by type, and the moves that spoiled them" },
+  { to: "/insights", name: "Insights", what: "Score and accuracy by colour, opponent, time of day and more; think time; trends" },
+  { to: "/settings", name: "Settings", what: "Export or import your training progress, sync, theme" },
 ];
 const BOTTOM = [
   { to: "/", short: "Home", icon: ICON.home, end: true }, { to: "/leaks", short: "Leaks", icon: ICON.leak },
-  { to: "/games", short: "Games", icon: ICON.games }, { to: "/openings", short: "Openings", icon: ICON.tree },
-  { to: "/more", short: "More", icon: ICON.more, also: ["/endgames", "/insights"] },
-];
-export const MORE = [
-  { to: "/endgames", name: "Endgames", what: "How your endgames turn out, by type, and the moves that spoiled them" },
-  { to: "/insights", name: "Insights", what: "Score and accuracy by colour, opponent, time of day and more; think time; trends" },
+  { to: "/puzzles", short: "Puzzles", icon: ICON.puzzle }, { to: "/games", short: "Games", icon: ICON.games },
+  { to: "/more", short: "More", icon: ICON.more, also: MORE.map((m) => m.to) },
 ];
 
 function TopTabs() {
-  return TOP.map((t) => t.to ? (
-    <NavLink key={t.long} to={t.to} end={t.end}>{t.long}</NavLink>
-  ) : (
-    <span key={t.long} className="later" title={t.later} aria-disabled="true">{t.long}</span>
-  ));
+  return TOP.map((t) => <NavLink key={t.long} to={t.to} end={t.end}>{t.long}</NavLink>);
 }
 
 function BottomTabs() {

@@ -244,7 +244,7 @@ export type RateRow = { label: string; moves: number; blunders: number; mistakes
 const RateTip = tip<RateRow>((r) => [`${n1(r.total)}% of moves`, `${r.label} seconds · ${r.moves.toLocaleString("en-GB")} moves · blunders ${n1(r.blunders)}%`]);
 
 /** A round axis: about `count` steps of 1, 2 or 5 × 10ⁿ from 0 to just above `max`. */
-function niceTicks(max: number, count = 4) {
+export function niceTicks(max: number, count = 4) {
   const raw = Math.max(max, 1) / count, mag = 10 ** Math.floor(Math.log10(raw));
   const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => s >= raw)!;
   const top = Math.ceil(Math.max(max, 1) / step) * step;

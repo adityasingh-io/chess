@@ -13,10 +13,6 @@ export default function More() {
               <span className="t">{m.name}</span><span className="s">{m.what}</span><span className="r" aria-hidden="true">›</span>
             </Link>
           ))}
-          <div className="row" aria-disabled="true">
-            <span className="t muted">Puzzles</span><span className="s">Your mistakes as puzzles, with spaced repetition</span>
-            <span className="r"><span className="pill later">Phase 5</span></span>
-          </div>
         </div>
       </section>
     </>

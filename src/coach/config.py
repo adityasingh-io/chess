@@ -165,6 +165,28 @@ class TaggerCheck:
 
 
 @dataclass(frozen=True)
+class Puzzles:
+    max_plies: int
+    lichess_ratings: tuple[int, ...]
+    lichess_min_popularity: int
+    lichess_min_plays: int
+    lichess_count: int
+    lichess_band: int
+    lichess_theme_min: int
+    lichess_opening_share: float
+    lichess_families: int
+
+
+@dataclass(frozen=True)
+class Repertoire:
+    pgn: str
+    plies: int
+    min_games: int
+    white: tuple[str, ...]
+    black: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class Calibration:
     moves: int
     pass1_budgets: list[int]
@@ -204,6 +226,8 @@ class Config:
     rating_map: RatingMap
     export: Export
     tagger_check: TaggerCheck
+    puzzles: Puzzles
+    repertoire: Repertoire
     calibration: Calibration
     secrets: Secrets
 
@@ -298,6 +322,8 @@ def load_config(root: Path | None = None) -> Config:
         rating_map=_section(RatingMap, raw["rating_map"]),
         export=_section(Export, raw["export"]),
         tagger_check=_section(TaggerCheck, raw["tagger_check"]),
+        puzzles=_section(Puzzles, raw["puzzles"]),
+        repertoire=_section(Repertoire, raw["repertoire"]),
         calibration=Calibration(
             moves=int(calib["moves"]),
             pass1_budgets=[int(n) for n in calib["pass1_budgets"]],

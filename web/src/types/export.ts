@@ -484,6 +484,77 @@ my_drop: number
 record: (string | null)
 }
 /**
+ * A position to solve. The solver is the side to move in `fen`; the solution alternates the solver's
+ * moves (even indices) and the replies.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "Puzzle".
+ */
+export interface Puzzle {
+id: string
+source: ("mine" | "lichess")
+fen: string
+last_move: (string | null)
+solution: string[]
+solution_san: string[]
+unique: boolean[]
+tags: string[]
+themes: string[]
+rating: (number | null)
+game: (string | null)
+ply: (number | null)
+played_san: (string | null)
+drop: (number | null)
+opening: (string | null)
+url: (string | null)
+}
+/**
+ * How many puzzles each set has per tag, so pages can offer a drill without loading the sets.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "PuzzleIndex".
+ */
+export interface PuzzleIndex {
+as_of: number
+mine: {
+[k: string]: number
+}
+lichess: {
+[k: string]: number
+}
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "PuzzleSet".
+ */
+export interface PuzzleSet {
+as_of: number
+source: ("mine" | "lichess")
+puzzles: Puzzle[]
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "Repertoire".
+ */
+export interface Repertoire {
+as_of: number
+pgn: (string | null)
+lines: RepertoireLine[]
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "RepertoireLine".
+ */
+export interface RepertoireLine {
+id: string
+colour: ("white" | "black")
+name: string
+source: ("repertoire" | "leak")
+moves: string[]
+san: string[]
+start: number
+}
+/**
  * This interface was referenced by `Export`'s JSON-Schema
  * via the `definition` "Summary".
  */

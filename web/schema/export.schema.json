@@ -1604,6 +1604,233 @@
    "title": "PhaseStat",
    "type": "object"
   },
+  "Puzzle": {
+   "additionalProperties": false,
+   "description": "A position to solve. The solver is the side to move in `fen`; the solution alternates the solver's\nmoves (even indices) and the replies.",
+   "properties": {
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "source": {
+     "enum": [
+      "mine",
+      "lichess"
+     ],
+     "title": "Source",
+     "type": "string"
+    },
+    "fen": {
+     "title": "Fen",
+     "type": "string"
+    },
+    "last_move": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Last Move"
+    },
+    "solution": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Solution",
+     "type": "array"
+    },
+    "solution_san": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Solution San",
+     "type": "array"
+    },
+    "unique": {
+     "items": {
+      "type": "boolean"
+     },
+     "title": "Unique",
+     "type": "array"
+    },
+    "tags": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Tags",
+     "type": "array"
+    },
+    "themes": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Themes",
+     "type": "array"
+    },
+    "rating": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Rating"
+    },
+    "game": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Game"
+    },
+    "ply": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Ply"
+    },
+    "played_san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Played San"
+    },
+    "drop": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Drop"
+    },
+    "opening": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Opening"
+    },
+    "url": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Url"
+    }
+   },
+   "required": [
+    "id",
+    "source",
+    "fen",
+    "last_move",
+    "solution",
+    "solution_san",
+    "unique",
+    "tags",
+    "themes",
+    "rating",
+    "game",
+    "ply",
+    "played_san",
+    "drop",
+    "opening",
+    "url"
+   ],
+   "title": "Puzzle",
+   "type": "object"
+  },
+  "PuzzleIndex": {
+   "additionalProperties": false,
+   "description": "How many puzzles each set has per tag, so pages can offer a drill without loading the sets.",
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "mine": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "title": "Mine",
+     "type": "object"
+    },
+    "lichess": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "title": "Lichess",
+     "type": "object"
+    }
+   },
+   "required": [
+    "as_of",
+    "mine",
+    "lichess"
+   ],
+   "title": "PuzzleIndex",
+   "type": "object"
+  },
+  "PuzzleSet": {
+   "additionalProperties": false,
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "source": {
+     "enum": [
+      "mine",
+      "lichess"
+     ],
+     "title": "Source",
+     "type": "string"
+    },
+    "puzzles": {
+     "items": {
+      "$ref": "#/$defs/Puzzle"
+     },
+     "title": "Puzzles",
+     "type": "array"
+    }
+   },
+   "required": [
+    "as_of",
+    "source",
+    "puzzles"
+   ],
+   "title": "PuzzleSet",
+   "type": "object"
+  },
   "RatingPoint": {
    "additionalProperties": false,
    "properties": {
@@ -1947,6 +2174,98 @@
     "explanation"
    ],
    "title": "Record",
+   "type": "object"
+  },
+  "Repertoire": {
+   "additionalProperties": false,
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "pgn": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Pgn"
+    },
+    "lines": {
+     "items": {
+      "$ref": "#/$defs/RepertoireLine"
+     },
+     "title": "Lines",
+     "type": "array"
+    }
+   },
+   "required": [
+    "as_of",
+    "pgn",
+    "lines"
+   ],
+   "title": "Repertoire",
+   "type": "object"
+  },
+  "RepertoireLine": {
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "colour": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Colour",
+     "type": "string"
+    },
+    "name": {
+     "title": "Name",
+     "type": "string"
+    },
+    "source": {
+     "enum": [
+      "repertoire",
+      "leak"
+     ],
+     "title": "Source",
+     "type": "string"
+    },
+    "moves": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Moves",
+     "type": "array"
+    },
+    "san": {
+     "items": {
+      "type": "string"
+     },
+     "title": "San",
+     "type": "array"
+    },
+    "start": {
+     "title": "Start",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "id",
+    "colour",
+    "name",
+    "source",
+    "moves",
+    "san",
+    "start"
+   ],
+   "title": "RepertoireLine",
    "type": "object"
   },
   "Summary": {

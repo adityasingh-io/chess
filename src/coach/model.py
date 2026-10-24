@@ -137,6 +137,7 @@ class Record:
     net_best: int | None         # net material at the end of best_line
     themes: list[str]            # matching Lichess puzzle themes
     flags: list[str] = field(default_factory=list)
+    win_moves: int | None = None  # missed win: my moves its line needs to win the material
 
     @property
     def id(self) -> str:
@@ -329,7 +330,7 @@ def classify(cfg: Config, game: Game, ply: Ply, previous: sqlite3.Row | None,
                     sub = pick_subtype(found)
                 theme = "hangingPiece" if sub == "free_material" else LICHESS_THEME.get(sub)
                 return {**out, "primary": "missed_win", "subtype": sub, "best_line": check.line, "net_best": net_best,
-                        "themes": [theme] if theme else [],
+                        "themes": [theme] if theme else [], "win_moves": check.my_moves_needed,
                         "rule": f"best was worth {drop:.0f} Win% more; its line wins {net_best:+d} material ({since}, "
                                 f"{net_best - net_after:+d} vs your move's line) within "
                                 f"{check.my_moves_needed} of your moves, each a check, capture or clearly best"
@@ -524,6 +525,7 @@ def build_records(cfg: Config, model: GameModel, evals1: dict[str, dict], evals2
             rule=info["rule"], source=source, confirmed=confirmed, best_line=info["best_line"],
             reply_line=info["reply_line"], before_top=top(before), after_top=top(after), after_terminal=after.get("terminal"),
             net_after=info["net_after"], net_best=info["net_best"], themes=info["themes"], flags=flags,
+            win_moves=info.get("win_moves"),
         ))
 
 

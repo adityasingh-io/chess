@@ -10,12 +10,15 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
+import chess
 from pydantic import BaseModel
 from pydantic.json_schema import models_json_schema
 
 from coach import schema as S
 from coach.config import Config
 from coach.model import GameModel, Ply, Record
+from coach.puzzles import lichess_puzzle, load_subset, my_puzzles, sans
+from coach.repertoire import leak_lines, line_id, read_pgn
 from coach.reports import (
     POINTS, as_of, by_time, endgame_table, insights, leak_positions, leaks, loss_summary, opening_families,
     score, surprises, top_leaks, tree,
@@ -190,6 +193,24 @@ def opening_out(cfg: Config, models: list[GameModel], colour: str, evals1: dict[
     )
 
 
+def repertoire_out(cfg: Config, models: list[GameModel], evals1: dict[str, dict], stamp: int) -> S.Repertoire:
+    path = cfg.root / cfg.repertoire.pgn
+    lines, seen = [], set()
+    for colour, name, moves in read_pgn(path):
+        lines.append((colour, name, "repertoire", moves, 0))
+    for colour, name, moves, start in leak_lines(cfg, models, evals1):
+        lines.append((colour, name, "leak", moves, start))
+    out = []
+    for colour, name, source, moves, start in lines:
+        lid = line_id(colour, moves)
+        if lid in seen:
+            continue
+        seen.add(lid)
+        out.append(S.RepertoireLine(id=lid, colour=colour, name=name, source=source, moves=moves,
+                                    san=sans(chess.STARTING_FEN, moves), start=start))
+    return S.Repertoire(as_of=stamp, pgn=cfg.repertoire.pgn if path.exists() else None, lines=out)
+
+
 @dataclass
 class Built:
     files: dict[str, BaseModel]
@@ -210,6 +231,8 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
 
     games = {m.id: game_out(cfg, m, evals1, evals2) for m in ordered}
     record_index = [r for g in games.values() for r in g.records]
+    mine = S.PuzzleSet(as_of=stamp, source="mine", puzzles=[S.Puzzle(**p) for p in my_puzzles(cfg, ordered, evals2)])
+    lichess = S.PuzzleSet(as_of=stamp, source="lichess", puzzles=[S.Puzzle(**lichess_puzzle(row)) for row in load_subset(cfg) or []])
     files: dict[str, BaseModel] = {
         "summary.json": S.Summary(
             as_of=stamp, username=cfg.player.username, rating=rated[-1].row["my_rating"] if rated else None,
@@ -245,8 +268,16 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
                       for m in ordered if m.endgame],
         ),
         "insights.json": S.Insights(as_of=stamp, **_rounded(insights(cfg, models))),
+        "puzzles/mine.json": mine,
+        "puzzles/lichess.json": lichess,
+        "puzzles/index.json": S.PuzzleIndex(as_of=stamp, mine=tag_counts(mine), lichess=tag_counts(lichess)),
+        "repertoire.json": repertoire_out(cfg, models, evals1, stamp),
     }
     return Built(files, games)
+
+
+def tag_counts(puzzles: S.PuzzleSet) -> dict[str, int]:
+    return dict(Counter(t for p in puzzles.puzzles for t in p.tags).most_common())
 
 
 def _rounded(value):

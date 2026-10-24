@@ -1,7 +1,8 @@
-// End-to-end check of the Phase 3 acceptance: every page at phone and desktop width in both themes (no
+// End-to-end check of the acceptance so far: every page at phone and desktop width in both themes (no
 // console errors, no sideways scroll), the numbers on screen match the exports, a 250-ply game steps
-// smoothly, the arrow buttons step the game, a comparison and Explore, and Explore gets live lines from
-// the in-browser engine.
+// smoothly, the arrow buttons step the game, a comparison and Explore, Explore gets live lines from the
+// in-browser engine, a drill session from a leak works on a phone (Phase 5), and the training pages open
+// offline once the service worker is in.
 //
 // Uses the installed Google Chrome through playwright-core. Builds and serves the production bundle
 // (vite preview) unless E2E_URL is set; --dev serves the dev build instead.
@@ -83,6 +84,10 @@ try {
     { path: "/openings/black", name: "openings-black", ready: ".tree-board .board" },
     { path: "/endgames", name: "endgames", ready: ".eg" },
     { path: "/insights", name: "insights", ready: ".grows" },
+    { path: "/puzzles", name: "puzzles", ready: ".puzzle .board" },
+    { path: "/puzzles?drill=hung_piece", name: "drill", ready: ".puzzle .board" },
+    { path: "/trainer", name: "trainer", ready: ".line-row" },
+    { path: "/settings", name: "settings", ready: ".card h2" },
     { path: "/more", name: "more", ready: ".rows" },
   ];
   for (const theme of ["dark", "light"]) {
@@ -256,6 +261,55 @@ try {
   check("explore: live lines appear", lines, `${label?.trim()} · crossOriginIsolated=${isolated}`);
   if (shots) await page.screenshot({ path: join(shots, "explore-1280-dark.png"), fullPage: true });
   await ctx.close();
+
+  // Phase 5 acceptance: on a phone, a leak's "Drill these" opens a session; tapping the solution solves the
+  // first puzzle (my newest with that tag) and stores its review on the device. Then, with the service
+  // worker in control, the puzzle and trainer pages open offline.
+  {
+    const pctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, colorScheme: "dark" });
+    const ph = await pctx.newPage();
+    const errs = [];
+    ph.on("pageerror", (e) => errs.push(String(e)));
+    await ph.goto(`${base}/leaks/hung_piece`);
+    await ph.click('.drill-actions a:has-text("Drill these")');
+    await ph.waitForSelector(".puzzle .board");
+    const z = data("puzzles/mine.json").puzzles.filter((p) => p.tags.includes("hung_piece"))
+      .sort((a, b) => Number(b.game) - Number(a.game) || (a.ply ?? 0) - (b.ply ?? 0))[0];
+    const heading = await ph.textContent("h1");
+    const shownFirst = same(await boardOn(ph, `pz-${z.id}`), placementOf(z.fen));
+    for (let i = 0; i < z.solution.length; i += 2) {
+      if (i) await ph.waitForFunction(() => document.querySelector(".puzzle-task")?.textContent?.includes("Keep going"), null, { timeout: 4000 });
+      await ph.click(`[id="pz-${z.id}-square-${z.solution[i].slice(0, 2)}"]`);
+      await ph.click(`[id="pz-${z.id}-square-${z.solution[i].slice(2, 4)}"]`);
+    }
+    const result = await ph.waitForSelector(".puzzle-result", { timeout: 6000 }).then((e) => e.textContent(), () => null);
+    const stored = await ph.evaluate((id) => JSON.parse(localStorage.getItem("coach-progress-v1") ?? "{}").items?.[id] ?? null, z.id);
+    check("drill 390px: Drill these opens the leak's session at my newest puzzle", heading === "Drill: Hung a piece" && shownFirst, heading ?? "");
+    check("drill 390px: tapping the solution solves it", result === "Solved.", String(result));
+    check("drill 390px: the review is stored on the device", stored?.kind === "puzzle" && stored.card.due > Date.now(),
+      stored ? `next review ${new Date(stored.card.due).toISOString().slice(0, 10)}` : "nothing stored");
+    if (shots) await ph.screenshot({ path: join(shots, "drill-solved-390-dark.png"), fullPage: true });
+    await ph.click('button:has-text("Next puzzle")');
+    const next = await ph.textContent(".puzzle-card h2");
+    check("drill 390px: Next goes on to puzzle 2", next === "Puzzle 2 of 10", next);
+    check("drill 390px: no page errors", errs.length === 0, errs.slice(0, 2).join(" | "));
+    if (!process.argv.includes("--dev")) {
+      const controlled = await ph.waitForFunction(() => !!navigator.serviceWorker?.controller, null, { timeout: 15000 }).then(() => true, () => false);
+      // Installing caches the shell and the training data; give it a moment to finish.
+      await ph.evaluate(() => navigator.serviceWorker.ready);
+      await ph.waitForTimeout(1500);
+      await pctx.setOffline(true);
+      const offline = [];
+      for (const [path, ready] of [["/puzzles", ".puzzle .board"], ["/trainer", ".line-row"], ["/", ".big"]]) {
+        await ph.goto(base + path).catch(() => {});
+        offline.push(await ph.waitForSelector(ready, { timeout: 8000 }).then(() => path, () => `${path} FAILED`));
+      }
+      await pctx.setOffline(false);
+      check("offline: puzzles, trainer and dashboard open with no network", controlled && offline.every((p) => !p.includes("FAILED")),
+        `controlled=${controlled}; ${offline.join(", ")}`);
+    }
+    await pctx.close();
+  }
 
   // Explore from the start by tapping squares, on a host without COOP/COEP (the single-threaded engine).
   const plain = await plainServer();

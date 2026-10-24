@@ -47,14 +47,18 @@ class Explorer:
         params = {"variant": "standard", "fen": key, "speeds": ",".join(e.speeds),
                   "ratings": ",".join(map(str, e.ratings)), "moves": e.moves, "topGames": 0, "recentGames": 0}
         for attempt in range(self.max_attempts):
-            response = self.client.get(e.url, params=params)
+            try:
+                response = self.client.get(e.url, params=params)
+            except httpx.TransportError:
+                self.sleep(10 * (attempt + 1))  # a dropped or slow connection: wait and try again
+                continue
             if response.status_code == 429:
                 self.sleep(60 * (attempt + 1))  # the API docs: wait a minute, longer for some limits
                 continue
             response.raise_for_status()
             data = response.json()
             return {k: data.get(k) for k in ("white", "draws", "black", "moves", "opening")}
-        raise RuntimeError(f"explorer still rate limited after {self.max_attempts} attempts")
+        raise RuntimeError(f"explorer still unavailable after {self.max_attempts} attempts")
 
 
 def fetch(cfg: Config, conn: sqlite3.Connection, keys: Iterable[str], console: Console,

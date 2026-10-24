@@ -8,6 +8,7 @@ import { EvalBar } from "../components/EvalBar";
 import { useGameSummaries, useOpenings } from "../lib/data";
 import { day, evalFor, grouped, moveName, n1, plural, signed } from "../lib/format";
 import { lineSan, numberedLine, posKey, replay, sideToMove, type Side } from "../lib/chess";
+import { activeLines, addLine, removeLine, useProgress } from "../lib/progress";
 import { winOf } from "../lib/winpct";
 import type { ExplorerMove, Family, LeakCard, OpeningReport, TreeMove, TreeNode, Variation } from "../types/export";
 
@@ -191,8 +192,9 @@ function Tree({ ref, report, colour, byKey, root, line, fens, setLine }: {
             <button type="button" title={forward ? `Your most played: ${forward.san} (→)` : "No further position in your tree"}
               aria-label="Forward along your most played move" disabled={!forward}
               onClick={() => forward && setLine([...line, forward.uci])}>▶</button>
-            <button type="button" className="later" disabled title="Arrives in phase 5">Drill this line</button>
+            <DrillLine colour={colour} root={root} byKey={byKey} line={line} fens={fens} name={crumbs.join(" ")} />
           </div>
+          <OffBook colour={colour} root={root} byKey={byKey} line={line} fens={fens} />
         </div>
         <div className="tree-info">
           {node ? (
@@ -225,6 +227,57 @@ function Tree({ ref, report, colour, byKey, root, line, fens, setLine }: {
         for rapid games between players rated 1000 to 1399.
       </p>
     </section>
+  );
+}
+
+/** A short stable id for a line of moves (FNV-1a). */
+function lineId(colour: Side, line: string[]) {
+  let h = 0x811c9dc5;
+  for (const c of `${colour}:${line.join(" ")}`) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193);
+  return `t-${(h >>> 0).toString(36)}`;
+}
+type LineProps = { colour: Side; root: TreeNode; byKey: Map<string, TreeNode>; line: string[]; fens: string[] };
+/** The plies in the line where I'm the one moving. */
+const myPlies = (colour: Side, root: TreeNode, line: string[], fens: string[]) =>
+  line.map((_, i) => i).filter((i) => sideToMove(i ? fens[i - 1] : root.fen) === colour);
+
+// Adds the moves to this position to the repertoire trainer as a line to play from memory.
+function DrillLine({ colour, root, line, fens, name }: LineProps & { name: string }) {
+  const p = useProgress();
+  const id = lineId(colour, line);
+  const added = activeLines(p).some((l) => l.id === id);
+  const mine = myPlies(colour, root, line, fens).length;
+  if (added) {
+    return (
+      <span className="drill-added">
+        <Link to="/trainer" className="small">In the trainer</Link>
+        <button type="button" className="linkish small" onClick={() => removeLine(id)}>Remove</button>
+      </span>
+    );
+  }
+  return (
+    <button type="button" className="drill" disabled={!mine}
+      title={mine ? "Add the moves to here to the repertoire trainer" : `The line needs at least one of your moves as ${NAME[colour]}`}
+      onClick={() => addLine({ id, colour, name, moves: line })}>Drill this line</button>
+  );
+}
+
+// Which of my moves along the line aren't Stockfish's best, so I know what I'd be drilling.
+function OffBook({ colour, root, byKey, line, fens }: LineProps) {
+  const off = myPlies(colour, root, line, fens).flatMap((i) => {
+    const before = i ? fens[i - 1] : root.fen;
+    const node = byKey.get(posKey(before));
+    if (!node?.stockfish_best || node.stockfish_best === line[i]) return [];
+    return [{ i, mine: lineSan(before, [line[i]])[0], best: node.stockfish_best_san ?? node.stockfish_best, ply: nextPly(before) }];
+  });
+  if (!off.length) return null;
+  return (
+    <p className="small off-book">
+      In this line, Stockfish prefers another move to {off.length === 1 ? "your" : `${off.length} of your`} moves:{" "}
+      {off.map((o, k) => (
+        <span key={o.i}>{k ? "; " : ""}<span className="san">{moveName(o.ply, o.mine)}</span> (Stockfish: <span className="san">{moveName(o.ply, o.best)}</span>)</span>
+      ))}.
+    </p>
   );
 }
 

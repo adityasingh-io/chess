@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router";
 import { Board } from "../components/Board";
 import { LineChips, Nag, Trend } from "../components/bits";
 import { Loading } from "../components/AppShell";
-import { useGameSummaries, useLeaks, useRecords, useSummary } from "../lib/data";
+import { useGameSummaries, useLeaks, usePuzzleIndex, useRecords, useSummary } from "../lib/data";
 import { day, evalFor, grouped, moveName, n1, perGame, plural, sanTokens } from "../lib/format";
 import { replay } from "../lib/chess";
 import { DESC, KIND_TITLE, tagName } from "../lib/names";
@@ -97,10 +97,7 @@ function LeakDetail({ tag }: { tag: string }) {
           <div className="label">Your positions</div>
           <h2 className="detail-title">{tagName(tag)}</h2>
         </div>
-        <div className="drill-actions">
-          <button className="btn" type="button" disabled title="Arrives in phase 5">Drill these</button>
-          <span className="pill later">Phase 5</span>
-        </div>
+        <DrillThese tag={tag} />
       </div>
       {DESC[tag] && <p className="muted" style={{ margin: 0 }}>{DESC[tag]}</p>}
       <div className="facts num">
@@ -125,7 +122,23 @@ const RESULT = { loss: "lost", win: "won", draw: "drew" } as const;
 
 /** One mistake: the position before my move, with my move and Stockfish's best as arrows. Either line steps
     through on the board, with its chips or ◀ ▶. */
-export function PositionCard({ r, game }: { r: MistakeRecord; game?: GameSummary }) {
+export // A drill needs puzzles: my own positions with this tag (those with one clearly best move) and Lichess
+// puzzles whose themes match it.
+function DrillThese({ tag }: { tag: string }) {
+  const index = usePuzzleIndex();
+  const mine = index.mine[tag] ?? 0, lichess = index.lichess[tag] ?? 0;
+  if (!mine && !lichess) {
+    return <div className="drill-actions"><span className="muted small">No puzzles for this leak yet: a position becomes a puzzle only when Stockfish finds one clearly best move in it.</span></div>;
+  }
+  return (
+    <div className="drill-actions">
+      <Link className="btn" to={`/puzzles?drill=${tag}`}>Drill these</Link>
+      <span className="muted small num">{grouped(mine)} of yours{lichess ? ` · ${grouped(lichess)} from Lichess` : ""}</span>
+    </div>
+  );
+}
+
+function PositionCard({ r, game }: { r: MistakeRecord; game?: GameSummary }) {
   const [which, setWhich] = useState<"best" | "you">("best");
   const [step, setStep] = useState(0);   // moves of the line on the board
   const lines = useMemo(() => {

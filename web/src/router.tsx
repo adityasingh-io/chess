@@ -12,6 +12,9 @@ const Openings = lazy(() => import("./pages/Openings"));
 const Endgames = lazy(() => import("./pages/Endgames"));
 const Insights = lazy(() => import("./pages/Insights"));
 const More = lazy(() => import("./pages/More"));
+const Puzzles = lazy(() => import("./pages/Puzzles"));
+const Trainer = lazy(() => import("./pages/Trainer"));
+const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 export const routes = [
@@ -30,6 +33,9 @@ export const routes = [
       { path: "endgames", element: <Endgames /> },
       { path: "insights", element: <Insights /> },
       { path: "more", element: <More /> },
+      { path: "puzzles", element: <Puzzles /> },
+      { path: "trainer", element: <Trainer /> },
+      { path: "settings", element: <Settings /> },
       { path: "*", element: <NotFound /> },
     ],
   },

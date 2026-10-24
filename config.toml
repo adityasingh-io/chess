@@ -94,6 +94,25 @@ speeds = ["rapid"]
 ratings = [1000, 1200]          # buckets for players at my level; see rating_map
 moves = 12
 
+[puzzles]                       # BRIEF.md step 5
+max_plies = 6                   # my puzzles follow Stockfish's line while each of my moves is clearly best, up to this
+lichess_ratings = [400, 1400]   # Lichess puzzles kept: rating range,
+lichess_min_popularity = 80     # popularity (-100 to 100),
+lichess_min_plays = 500         # and times played
+lichess_count = 5000            # size of the subset
+lichess_band = 100              # spread each theme's share across rating bands this wide
+lichess_theme_min = 150         # every theme my tags map to gets at least this many
+lichess_opening_share = 0.2     # share of the subset picked by my openings' OpeningTags
+lichess_families = 6            # my most played opening families used for that
+
+[repertoire]                    # the trainer's lines: `coach repertoire` writes a starter PGN if it's missing
+pgn = "repertoire.pgn"
+plies = 20                      # starter lines run to this many plies (fewer if players at my level stop)
+min_games = 50                  # stop a line where the explorer has fewer games at my level
+white = ["Queen's Gambit Declined", "Queen's Gambit Accepted", "Slav Defense", "Queen's Gambit Declined: Albin Countergambit"]
+black = ["Caro-Kann Defense: Classical Variation", "Caro-Kann Defense: Advance Variation",
+         "Caro-Kann Defense: Exchange Variation", "Slav Defense"]
+
 [rating_map]                    # chess.com rapid -> Lichess rapid (lucb3, "Converting Chess.com to Lichess ratings")
 chesscom = [600, 700, 800, 1000, 1100]
 lichess = [980, 1070, 1165, 1350, 1440]

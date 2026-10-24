@@ -1,0 +1,103 @@
+[Event "Starter repertoire: Queen's Gambit Declined"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Repertoire "white"]
+[Opening "Queen's Gambit Declined"]
+[Annotator "chess-openings line, extended by Stockfish 19 on my moves and the most common reply at my level (Lichess explorer) on theirs"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Nf3 Bb4 5. Bg5 O-O 6. e3 h6 7. Bh4 Nc6 8. a3 Bxc3+ 9. bxc3 Re8 10. Ne5 *
+
+[Event "Starter repertoire: Queen's Gambit Accepted"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Repertoire "white"]
+[Opening "Queen's Gambit Accepted"]
+[Annotator "chess-openings line, extended by Stockfish 19 on my moves and the most common reply at my level (Lichess explorer) on theirs"]
+
+1. d4 d5 2. c4 dxc4 3. e4 Nc6 4. Nf3 Bg4 5. d5 Bxf3 6. gxf3 Ne5 7. Bf4 f6 8. Na3 *
+
+[Event "Starter repertoire: Slav Defense"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Repertoire "white"]
+[Opening "Slav Defense"]
+[Annotator "chess-openings line, extended by Stockfish 19 on my moves and the most common reply at my level (Lichess explorer) on theirs"]
+
+1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. e3 Bg4 5. h3 Bxf3 6. gxf3 e6 7. Nc3 Bb4 8. Qb3 *
+
+[Event "Starter repertoire: Queen's Gambit Declined: Albin Countergambit"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Repertoire "white"]
+[Opening "Queen's Gambit Declined: Albin Countergambit"]
+[Annotator "chess-openings line, extended by Stockfish 19 on my moves and the most common reply at my level (Lichess explorer) on theirs"]
+
+1. d4 d5 2. c4 e5 3. dxe5 d4 4. Nf3 Nc6 5. a3 Bg4 6. Nbd2 Bc5 7. b4 *
+
+[Event "Starter repertoire: Caro-Kann Defense: Classical Variation"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Repertoire "black"]
+[Opening "Caro-Kann Defense: Classical Variation"]
+[Annotator "chess-openings line, extended by Stockfish 19 on my moves and the most common reply at my level (Lichess explorer) on theirs"]
+
+1. e4 c6 2. d4 d5 3. Nd2 dxe4 4. Nxe4 Bf5 5. Bd3 Qxd4 6. Nf3 Qd8 7. O-O Bxe4 8. Bxe4 Qxd1 9. Rxd1 Nf6 10. Bd3 a5 *
+
+[Event "Starter repertoire: Caro-Kann Defense: Advance Variation"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Repertoire "black"]
+[Opening "Caro-Kann Defense: Advance Variation"]
+[Annotator "chess-openings line, extended by Stockfish 19 on my moves and the most common reply at my level (Lichess explorer) on theirs"]
+
+1. e4 c6 2. d4 d5 3. e5 Bf5 4. Nf3 e6 5. Bd3 Bxd3 6. Qxd3 c5 7. c3 Nd7 8. O-O Ne7 9. Bg5 h6 10. Bh4 g5 *
+
+[Event "Starter repertoire: Caro-Kann Defense: Exchange Variation"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Repertoire "black"]
+[Opening "Caro-Kann Defense: Exchange Variation"]
+[Annotator "chess-openings line, extended by Stockfish 19 on my moves and the most common reply at my level (Lichess explorer) on theirs"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Nc3 Nc6 5. Nf3 Bg4 6. Be2 e6 7. O-O Bd6 8. h3 Bh5 9. Nb5 Bb8 *
+
+[Event "Starter repertoire: Slav Defense"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Repertoire "black"]
+[Opening "Slav Defense"]
+[Annotator "chess-openings line, extended by Stockfish 19 on my moves and the most common reply at my level (Lichess explorer) on theirs"]
+
+1. d4 d5 2. c4 c6 3. Nc3 Nf6 4. Nf3 dxc4 5. e4 b5 6. e5 Nd5 7. Nxd5 cxd5 8. b3 Nc6 *

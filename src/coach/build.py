@@ -45,6 +45,13 @@ def fetch_explorer(cfg: Config, conn: sqlite3.Connection, console: Console) -> i
     return explorer.fetch(cfg, conn, explorer_keys(cfg, models, evals1), console)
 
 
+def fetch_puzzles(cfg: Config, conn: sqlite3.Connection, console: Console, refresh: bool = False) -> int:
+    from coach.puzzles import fetch_subset
+
+    _, models, _, _ = load_inputs(cfg, conn)
+    return fetch_subset(cfg, models, console, refresh)
+
+
 def run_build(cfg: Config, conn: sqlite3.Connection, console: Console) -> BuildResult:
     started = time.perf_counter()
     games, models, evals1, evals2 = load_inputs(cfg, conn)
