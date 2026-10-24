@@ -1,7 +1,7 @@
 """Copy a few analysed games and their Stockfish results into tests/fixtures/games.json.
 
 Model and export tests run on these instead of hand-written evaluations. The games are picked to
-cover different loss causes and record types. Stockfish lines are trimmed to pv_plies, which is
+cover different loss causes, record types and marks. Stockfish lines are trimmed to pv_plies, which is
 all the model reads. Run after `coach analyze`:
     uv run python scripts/record_games.py
 """
@@ -38,6 +38,7 @@ def main() -> None:
         tags = {f"cause:{m.loss.cause}"} if m.loss else {f"result:{m.row['result']}"}
         tags |= {f"type:{r.primary}" for r in m.records} | {f"sub:{r.subtype}" for r in m.records if r.subtype}
         tags |= {f"end:{m.endgame.outcome}"} if m.endgame else set()
+        tags |= {f"mark:{p.mark.kind}" for p in m.plies if p.mark}
         if tags - seen:
             chosen.append(m)
             seen |= tags

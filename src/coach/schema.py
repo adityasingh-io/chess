@@ -39,6 +39,17 @@ class OpeningRef(Model):
     ply: int
 
 
+class Mark(Model):
+    """chess.com-style Brilliant, Great or Miss, on top of the label (config.toml, analysis.marks)."""
+    kind: Literal["brilliant", "great", "miss"]
+    gap: float | None          # great: how much worse Stockfish's second choice was (Win%)
+    second: str | None         # great: that second choice (uci)
+    material: int | None       # brilliant: the mover's material after their next move, vs before the move
+    line: list[str]            # brilliant: Stockfish's line that takes the piece (uci, from the position after)
+    chance: float | None       # miss: Win% the opponent's move before gave away
+    gave_back: float | None    # miss: Win% this move gave back
+
+
 class Move(Model):
     ply: int
     side: Colour
@@ -51,6 +62,7 @@ class Move(Model):
     best: str | None           # Stockfish's top move in the position before (uci, pass 1)
     best_line: list[str]       # its line (uci)
     label: str
+    mark: Mark | None
     accuracy: float            # the mover's move accuracy
     phase: Literal["opening", "middlegame", "endgame"]
     record: str | None         # id of my mistake record on this move

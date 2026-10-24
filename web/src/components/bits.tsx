@@ -1,4 +1,4 @@
-import { NAG, SEV } from "../lib/names";
+import { MARK, MARK_SYMBOL, NAG, SEV } from "../lib/names";
 import type { Peek } from "./Board";
 import { peekProps, type PeekControl } from "./RefText";
 
@@ -13,6 +13,12 @@ export function Trend({ now, before }: { now: number; before: number }) {
 export function Nag({ severity }: { severity: string | null | undefined }) {
   if (!severity || !(severity in NAG)) return null;
   return <span className={`nag ${severity}`} title={SEV[severity]} aria-label={SEV[severity]}>{NAG[severity]}</span>;
+}
+
+/** Brilliant, Great or Miss as a symbol (!!, !, ✕), named for screen readers and on hover. */
+export function MarkBadge({ kind }: { kind: string | null | undefined }) {
+  if (!kind || !(kind in MARK)) return null;
+  return <span className={`markb ${kind}`} title={MARK[kind]} aria-label={MARK[kind]}>{MARK_SYMBOL[kind]}</span>;
 }
 
 /** A row of SAN chips that steps a board through a stored line. Disabled when the line doesn't replay. With

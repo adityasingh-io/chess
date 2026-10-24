@@ -47,6 +47,19 @@ good = 5.0                      # below this, Good
 inaccuracy = 10.0               # below this, Inaccuracy
 mistake = 15.0                  # below this, Mistake; this or more is a Blunder
 
+[analysis.marks]                # chess.com-style Brilliant, Great and Miss, on top of the label (one per move at most),
+                                # from Stockfish's pass-1 lines (MultiPV 2) and material counted along them
+great_gap = 15.0                # Great: Stockfish's best move, and its second choice was at least this much Win% worse
+                                # (a Blunder); not a recapture on the square just captured on, nor the only legal move
+brilliant_material = 2          # Brilliant: a Best or Excellent move where one of Stockfish's top two replies takes the
+                                # piece that moved, and the mover is still this much material down after their next move
+                                # in that line (a line that stops at the capture doesn't count)
+brilliant_max_before = 90.0     #   while not already winning: the mover's Win% before the move is below this
+brilliant_min_after = 40.0      #   and not worse off: the mover's Win% after it is at least this
+miss_chance = 10.0              # Miss: the opponent's move before gave the mover at least this much Win% (a Mistake or
+                                # worse), and this move gave back at least this much of it too,
+miss_gave_back = 0.5            #   and at least this share of it, but not more than all of it (that's a plain blunder)
+
 [analysis.phases]
 opening_moves = 12              # moves 1-12 are the opening, plus later moves still in book
 endgame_non_pawn = 13           # the endgame starts when each side has at most this much non-pawn material

@@ -52,6 +52,20 @@ export const SEV: { [s: string]: string } = { inaccuracy: "Inaccuracy", mistake:
 export const NAG: { [s: string]: string } = { inaccuracy: "?!", mistake: "?", blunder: "??" };
 export const LABEL: { [s: string]: string } = { book: "Book move", best: "Best move", excellent: "Excellent", good: "Good", ...SEV };
 
+// chess.com-style marks on top of a move's label, from Stockfish's lines (config.toml, analysis.marks).
+export const MARK: { [kind: string]: string } = { brilliant: "Brilliant", great: "Great move", miss: "Miss" };
+export const MARK_SYMBOL: { [kind: string]: string } = { brilliant: "!!", great: "!", miss: "✕" };
+export const MARK_DESC: { [kind: string]: string } = {
+  brilliant: "A Best or Excellent move where one of Stockfish's top two replies takes the piece that moved, and its mover is "
+    + "still 2+ points of material down after their next move, without being worse off (Win% 40+) or already winning (under 90).",
+  great: "Stockfish's best move, where its second choice was 15+ Win% worse: the only good move. Recaptures and the only legal "
+    + "move don't count.",
+  miss: "The opponent's move before gave away 10+ Win% (a Mistake or worse), and this move gave back at least half of it.",
+};
+/** A move's class, as chess.com counts them: its mark if it has one, otherwise its label. */
+export const CLASSES = ["brilliant", "great", "best", "excellent", "good", "book", "inaccuracy", "mistake", "miss", "blunder"] as const;
+export const CLASS_NAME: { [c: string]: string } = { ...LABEL, ...MARK };
+
 export const RESULT_WORD = { win: "Won", loss: "Lost", draw: "Drew" } as const;
 
 // Endgames: the type by material when the endgame starts, and the outcome from my Win% then and the result

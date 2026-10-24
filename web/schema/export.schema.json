@@ -1569,6 +1569,94 @@
    "title": "MaiaLevel",
    "type": "object"
   },
+  "Mark": {
+   "additionalProperties": false,
+   "description": "chess.com-style Brilliant, Great or Miss, on top of the label (config.toml, analysis.marks).",
+   "properties": {
+    "kind": {
+     "enum": [
+      "brilliant",
+      "great",
+      "miss"
+     ],
+     "title": "Kind",
+     "type": "string"
+    },
+    "gap": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Gap"
+    },
+    "second": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Second"
+    },
+    "material": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Material"
+    },
+    "line": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Line",
+     "type": "array"
+    },
+    "chance": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Chance"
+    },
+    "gave_back": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Gave Back"
+    }
+   },
+   "required": [
+    "kind",
+    "gap",
+    "second",
+    "material",
+    "line",
+    "chance",
+    "gave_back"
+   ],
+   "title": "Mark",
+   "type": "object"
+  },
   "MistakesIndex": {
    "additionalProperties": false,
    "properties": {
@@ -1672,6 +1760,16 @@
      "title": "Label",
      "type": "string"
     },
+    "mark": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Mark"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
     "accuracy": {
      "title": "Accuracy",
      "type": "number"
@@ -1709,6 +1807,7 @@
     "best",
     "best_line",
     "label",
+    "mark",
     "accuracy",
     "phase",
     "record"

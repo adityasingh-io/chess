@@ -21,6 +21,17 @@ def test_export_validates_and_is_idempotent(recorded):
     assert {"Record", "Game", "Summary", "OpeningReport"} <= set(schema["$defs"])
 
 
+def test_moves_carry_their_marks(recorded):
+    r = recorded
+    built = build(r.cfg, r.models, len(r.games), r.evals1, r.evals2, {})
+    for m in r.models:
+        moves = built.games[m.id].moves
+        assert [(x.mark.kind if x.mark else None) for x in moves] == [(p.mark.kind if p.mark else None) for p in m.plies]
+        for x in moves:
+            if x.mark and x.mark.kind == "brilliant":
+                assert x.mark.material < 0 and x.mark.line and x.mark.gap is None and x.mark.chance is None
+
+
 def test_losses_cover_every_loss(recorded):
     r = recorded
     losses = build(r.cfg, r.models, len(r.games), r.evals1, r.evals2, {}).files["losses.json"]

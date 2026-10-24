@@ -1,10 +1,10 @@
 // Pages rendered with the real exports (fetch reads public/data in tests/setup.ts): numbers on screen must
 // be the exported ones.
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { numberedLine, posKey, replay } from "../src/lib/chess";
+import { lineSan, numberedLine, posKey, replay } from "../src/lib/chess";
 import { evalFor, sanTokens } from "../src/lib/format";
 import { grade, normalise, Rating, setProgress } from "../src/lib/progress";
 import { ENDGAME_TYPE, OUTCOME } from "../src/lib/names";
@@ -215,6 +215,35 @@ test("Play on: a move on a Compare board plays on from its line, and Esc goes ba
   } finally {
     globalThis.Worker = engines;
   }
+}, 20_000);
+
+test("marks: a Brilliant move has its badge in the move list, its reason in the explanation, and a count that goes to it", async () => {
+  // The first game (by id) with a Brilliant move of mine.
+  const games = readdirSync(join(__dirname, "../public/data/games")).sort().map((f) => data<Game>(`games/${f}`));
+  const g = games.find((x) => x.moves.some((m) => m.side === x.colour && m.mark?.kind === "brilliant"))!;
+  const m = g.moves.find((x) => x.side === g.colour && x.mark?.kind === "brilliant")!;
+  const fens = [g.initial_fen, ...replay(g.initial_fen, g.moves.map((x) => x.uci))];
+  await open(`/games/${g.id}?ply=0`);
+  await screen.findByRole("button", { name: /^Explore/ }, SLOW);
+  const moveCell = document.querySelector(`.moves .mv[data-ply="${m.ply}"]`)!;
+  expect(moveCell.querySelector(".markb.brilliant")?.textContent).toBe("!!");
+  // The classifications table: every move counted once per side; my Brilliant count goes to the move.
+  const table = document.querySelector(".classes-table")!;
+  const mine = [...table.querySelectorAll("tbody tr")].map((tr) => Number(tr.querySelectorAll("td")[0].textContent));
+  expect(mine.reduce((a, b) => a + b, 0)).toBe(g.moves.filter((x) => x.side === g.colour).length);
+  const row = [...table.querySelectorAll("tbody tr")].find((tr) => tr.querySelector("th")!.textContent!.includes("Brilliant"))!;
+  const brilliants = g.moves.filter((x) => x.side === g.colour && x.mark?.kind === "brilliant").length;
+  expect(row.querySelectorAll("td")[0].textContent).toBe(String(brilliants));
+  await act(async () => { fireEvent.click(row.querySelector("td button")!); });
+  expect(document.querySelector('.moves .mv[aria-current="step"]')?.getAttribute("data-ply")).toBe(String(m.ply));
+  // The explanation says why, from the stored line: the reply that takes the piece, then my next move.
+  const lead = document.querySelector(".v-explain .lead")!;
+  expect(lead.querySelector(".markb.brilliant")).not.toBeNull();
+  expect(lead.textContent).toContain("Brilliant");
+  const line = numberedLine(fens[m.ply], lineSan(fens[m.ply], m.mark!.line, 2)).join(" ");
+  const down = -m.mark!.material!;
+  expect(document.querySelector(".v-explain")!.textContent).toContain(
+    `A sacrifice that works: after ${line} you're ${down} point${down === 1 ? "" : "s"} of material down`);
 }, 20_000);
 
 test("Compare is always in the button row: greyed out with the reason where there's nothing to compare", async () => {

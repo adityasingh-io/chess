@@ -53,7 +53,8 @@ npm run build      # production build in web/dist, then a scan that fails on any
 npm run e2e        # every page at phone and desktop width in Chrome, step timing, the live engine
 ```
 
-Dashboard, leaks, games with a move-by-move viewer and live engine, openings tree and report, endgames,
+Dashboard, leaks, games with a move-by-move viewer and live engine (chess.com-style Brilliant, Great and Miss
+marks next to every label, with each game's counts), openings tree and report, endgames,
 insights, puzzles from my games and Lichess with spaced repetition, a repertoire trainer that shows a
 new line move by move before asking for it from memory, and "Play it out": wins that got away and games I
 gave up while still playable, played on against the in-browser Stockfish. Every mistake, puzzle and

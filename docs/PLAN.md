@@ -113,6 +113,23 @@ this file wins.
   the page is left; they're never stored. In a side line the board and eval bar are live and the panel
   shows the live lines; "Explore · live" turns the same on for the game's own positions. Picking a bot
   while it's the bot's turn (the end of a side line, last moved by hand) has it move at once.
+- **Marks: Brilliant, Great and Miss** (added 2026-10-25, asked for as chess.com's move classifications;
+  its "played like a ~N player" estimate was left out). On top of the label, never instead of it: labels,
+  accuracy, records and every report stay as they were. Computed for both sides in the pipeline from
+  pass-1 lines (MultiPV 2) and material counted along them, at most one per move, first that applies;
+  thresholds in `config.toml` (`[analysis.marks]`), exported as `Move.mark` with the facts behind it.
+  - *Brilliant* (!!): a Best or Excellent move where one of Stockfish's top two replies takes the piece
+    that moved and the mover is still 2+ points of material down after their next move in that line (vs
+    before the move), while not already winning (Win% before < 90) and not worse off (Win% after ≥ 40). A
+    line that stops at the capture doesn't count: it can't show whether the piece is taken back.
+  - *Great* (!): Stockfish's best move where its second choice was 15+ Win% worse (the gap a Blunder
+    needs). Recaptures on the square just captured on and the only legal move don't count.
+  - *Miss* (✕): the opponent's move before gave away 10+ Win% (a Mistake or worse), and this move gave back
+    at least half of it and at least 10, but not more than all of it (more is a plain blunder).
+  - On the 608 games then: Brilliant 4 of mine and 3 of theirs in all, Great 0.79 a game for me (0.89 for
+    them), Miss 0.48 (0.43). The viewer shows each mark in the move list, names it in the explanation with
+    a sentence filled from those facts, and counts every class (mark, else label) for both sides in the
+    game's header, where a count goes to the next such move.
 - **Openings** (Phase 4): one tree per colour, the line kept in the URL (`?line=d2d4,d7d5`). Each position
   shows what I play (games, score, average Win% change), Stockfish's best with its score, what Lichess
   players rated 1000–1399 in rapid choose, and the games that reached it; each game opens in the viewer at

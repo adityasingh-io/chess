@@ -2,7 +2,8 @@
 
 import chess
 
-from coach.analysis import is_garbage_time, load_games, select_game_ids
+from coach.analysis import gap, is_garbage_time, load_games, select_game_ids
+from coach.measure import balance, play_line
 from coach.model import (
     LOSS_CAUSES,
     band,
@@ -10,6 +11,7 @@ from coach.model import (
     endgame_type,
     is_endgame,
     mate_for,
+    recapture,
     top,
 )
 from coach.positions import board_from_key
@@ -104,6 +106,47 @@ def test_records_follow_their_rules(recorded):
                 assert r.net_best >= t.material_win and r.net_best - r.net_after >= t.material_win and r.subtype
             else:
                 assert r.primary == "quiet" and not loses
+
+
+def test_marks_follow_their_rules(recorded):
+    k, ev = recorded.cfg.analysis.marks, recorded.evals1
+    kinds = set()
+    for m in recorded.models:
+        for i, p in enumerate(m.plies):
+            if not p.mark:
+                continue
+            kinds.add(p.mark.kind)
+            prev = m.plies[i - 1] if i else None
+            before, board = ev[p.move["key_before"]], board_from_key(p.move["key_before"])
+            assert not p.book
+            if p.mark.kind == "brilliant":
+                assert p.label in ("best", "excellent")
+                assert p.win_before < k.brilliant_max_before and p.win_after >= k.brilliant_min_after
+                line, start = p.mark.line, board_from_key(p.move["key_after"])
+                taken = chess.Move.from_uci(line[0])
+                assert start.is_capture(taken) and taken.to_square == chess.Move.from_uci(p.move["uci"]).to_square
+                end, mover = play_line(start, line, 2), board.turn
+                assert len(end.move_stack) == 2 and p.mark.material == balance(end, mover) - balance(board, mover)
+                assert p.mark.material <= -k.brilliant_material
+            elif p.mark.kind == "great":
+                assert p.label == "best" and board.legal_moves.count() > 1 and not recapture(p, prev)
+                assert p.mark.gap == gap(before, p.white) >= k.great_gap
+                assert p.mark.second == before["lines"][1]["pv"][0] != p.move["uci"]
+            else:
+                assert p.mark.kind == "miss" and prev is not None
+                assert p.mark.chance == prev.drop >= k.miss_chance and p.mark.gave_back == p.drop
+                assert max(k.miss_chance, k.miss_gave_back * prev.drop) <= p.drop <= prev.drop
+    assert kinds == {"brilliant", "great", "miss"}
+
+
+def test_a_line_that_stops_at_the_capture_is_not_brilliant(recorded):
+    """185617083548 ply 16 ...Bg6: Stockfish's second line is just Bxg6, with no move after it, so it doesn't show
+    whether the bishop is taken back (at more nodes the line goes on hxg6: a trade)."""
+    m = next(m for m in recorded.models if m.id == "185617083548")
+    p = m.plies[15]
+    assert p.move["san"] == "Bg6" and p.label in ("best", "excellent")
+    assert recorded.evals1[p.move["key_after"]]["lines"][1]["pv"] == ["d3g6"]
+    assert p.mark is None or p.mark.kind != "brilliant"
 
 
 def test_flags_match_their_definitions(recorded):

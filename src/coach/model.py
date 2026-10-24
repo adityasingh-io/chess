@@ -90,6 +90,7 @@ class Ply:
     accuracy: float          # the mover's move accuracy
     phase: str               # opening, middlegame, endgame
     book: bool
+    mark: Mark | None = None  # Brilliant, Great or Miss, on top of the label
 
     @property
     def number(self) -> int:
@@ -114,6 +115,57 @@ class Ply:
     @property
     def drop(self) -> float:
         return self.win_before - self.win_after
+
+
+@dataclass
+class Mark:
+    """chess.com-style Brilliant, Great or Miss, from Stockfish's pass-1 lines (config.toml, analysis.marks)."""
+    kind: str                       # brilliant, great, miss
+    gap: float | None = None        # great: how much worse Stockfish's second choice was (Win%)
+    second: str | None = None       # great: that second choice (uci)
+    material: int | None = None     # brilliant: the mover's material after their next move, vs before the move
+    line: list[str] = field(default_factory=list)  # brilliant: the Stockfish line that takes the piece (uci, from after the move)
+    chance: float | None = None     # miss: Win% the opponent's move before gave away
+    gave_back: float | None = None  # miss: Win% this move gave back
+
+
+def recapture(ply: Ply, previous: Ply | None) -> bool:
+    """The move captures on the square the opponent's move before captured on."""
+    if previous is None:
+        return False
+    prev_board, prev_move = board_from_key(previous.move["key_before"]), chess.Move.from_uci(previous.move["uci"])
+    return prev_board.is_capture(prev_move) and chess.Move.from_uci(ply.move["uci"]).to_square == prev_move.to_square
+
+
+def mark(cfg: Config, ply: Ply, previous: Ply | None, before: dict | None, after: dict | None) -> Mark | None:
+    """At most one mark per move, the first that applies: Brilliant, Great, Miss."""
+    k = cfg.analysis.marks
+    if ply.book:
+        return None
+    board = board_from_key(ply.move["key_before"])
+    move = chess.Move.from_uci(ply.move["uci"])
+    if ply.label in ("best", "excellent") and ply.win_before < k.brilliant_max_before and ply.win_after >= k.brilliant_min_after:
+        color = chess.WHITE if ply.white else chess.BLACK
+        start = board_from_key(ply.move["key_after"])
+        for line in (after or {}).get("lines", [])[:2]:
+            pv = line["pv"]
+            reply = chess.Move.from_uci(pv[0]) if pv else None
+            if reply is None or reply not in start.legal_moves or reply.to_square != move.to_square or not start.is_capture(reply):
+                continue
+            end = play_line(start, pv, 2)
+            if len(end.move_stack) < 2:
+                continue  # a line that stops at the capture doesn't show whether it's taken back
+            net = balance(end, color) - balance(board, color)
+            if net <= -k.brilliant_material:
+                return Mark("brilliant", material=net, line=pv[:cfg.engine.pv_plies])
+    if ply.label == "best" and board.legal_moves.count() > 1 and not recapture(ply, previous):
+        g = gap(before, ply.white)
+        if g is not None and g >= k.great_gap:
+            return Mark("great", gap=g, second=before["lines"][1]["pv"][0])
+    if previous is not None and previous.drop >= k.miss_chance:
+        if max(k.miss_chance, k.miss_gave_back * previous.drop) <= ply.drop <= previous.drop:
+            return Mark("miss", chance=previous.drop, gave_back=ply.drop)
+    return None
 
 
 # --- mistake records ---------------------------------------------------------------------------
@@ -437,6 +489,8 @@ def build_game(cfg: Config, game: Game, evals1: dict[str, dict], openings: dict[
         before, after = for_side(white_win[i], white), for_side(white_win[i + 1], white)
         label = "book" if book else "best" if move["uci"] == best else band(cfg, before - after)
         plies.append(Ply(move, white_win[i], white_win[i + 1], best, label, move_accuracy(before, after), phase, book))
+    for i, ply in enumerate(plies):
+        ply.mark = mark(cfg, ply, plies[i - 1] if i else None, results[i], results[i + 1])
 
     model = GameModel(game, plies, white_win, game_accuracy(white_win, white_moves_first=game.white_moves_first),
                       opening, opening_ply)

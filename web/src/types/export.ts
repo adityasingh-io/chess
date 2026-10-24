@@ -205,9 +205,25 @@ eval: (Eval | null)
 best: (string | null)
 best_line: string[]
 label: string
+mark: (Mark | null)
 accuracy: number
 phase: ("opening" | "middlegame" | "endgame")
 record: (string | null)
+}
+/**
+ * chess.com-style Brilliant, Great or Miss, on top of the label (config.toml, analysis.marks).
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "Mark".
+ */
+export interface Mark {
+kind: ("brilliant" | "great" | "miss")
+gap: (number | null)
+second: (string | null)
+material: (number | null)
+line: string[]
+chance: (number | null)
+gave_back: (number | null)
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema

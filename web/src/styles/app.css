@@ -9,6 +9,7 @@
   --hl-you: rgba(244, 168, 54, .42); --hl-best: rgba(60, 200, 180, .36); --hl-them: rgba(236, 196, 70, .38);
   --inacc: #9e3d52; --mist: #d7506e; --blun: #f98696; --on-inacc: #ffffff; --on-mist: #ffffff; --on-blun: #0d141b;
   --good: #3cc8b4; --bad: #f2607a; --bar: #3e8cc9; --bar-soft: #2a4b66;
+  --brill: #3cc8b4; --great: #74a9dc; --miss: #f08a5d; --on-mark: #0d141b;
   --eb-white: #ecebe6; --eb-black: #283039; --eb-on-white: #18202a; --eb-on-black: #e6ebf0;
   --font-body: "Archivo Variable", "Archivo", "Helvetica Neue", system-ui, sans-serif;
   --font-num: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -23,6 +24,7 @@
     --hl-you: rgba(199, 122, 0, .34); --hl-best: rgba(13, 143, 126, .28); --hl-them: rgba(214, 170, 30, .34);
     --inacc: #ee939e; --mist: #d7506e; --blun: #a6204b; --on-inacc: #122030; --on-mist: #ffffff; --on-blun: #ffffff;
     --good: #0d8f7e; --bad: #c92f50; --bar: #1f6cb0; --bar-soft: #b5cde7;
+    --brill: #0d8f7e; --great: #2a6aad; --miss: #b8461f; --on-mark: #ffffff;
     --eb-white: #ffffff; --eb-black: #3a424c; --eb-on-white: #18202a; --eb-on-black: #eef1f4;
     color-scheme: light;
   }
@@ -34,6 +36,7 @@
   --hl-you: rgba(199, 122, 0, .34); --hl-best: rgba(13, 143, 126, .28); --hl-them: rgba(214, 170, 30, .34);
   --inacc: #ee939e; --mist: #d7506e; --blun: #a6204b; --on-inacc: #122030; --on-mist: #ffffff; --on-blun: #ffffff;
   --good: #0d8f7e; --bad: #c92f50; --bar: #1f6cb0; --bar-soft: #b5cde7;
+  --brill: #0d8f7e; --great: #2a6aad; --miss: #b8461f; --on-mark: #ffffff;
   --eb-white: #ffffff; --eb-black: #3a424c; --eb-on-white: #18202a; --eb-on-black: #eef1f4;
   color-scheme: light;
 }
@@ -165,6 +168,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .nag.inaccuracy { color: var(--on-inacc); background: var(--inacc); }
 .nag.mistake { color: var(--on-mist); background: var(--mist); }
 .nag.blunder { color: var(--on-blun); background: var(--blun); }
+.markb { font-family: var(--font-num); font-weight: 750; font-size: .76em; padding: 0 5px; border-radius: 4px; line-height: 1.45; display: inline-block; min-width: 1.9em; text-align: center; color: var(--on-mark); }
+.markb.brilliant { background: var(--brill); }
+.markb.great { background: var(--great); }
+.markb.miss { background: var(--miss); }
 .tag { font-family: var(--font-num); font-size: .64rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; white-space: nowrap; }
 .legend-inline { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .78rem; color: var(--muted); }
 
@@ -338,6 +345,19 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .explain p { margin: 0; }
 .callout { border-left: 3px solid var(--bad); padding: 6px 10px; background: var(--soft); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: .9rem; }
 .worded { font-size: .85rem; color: var(--muted); }
+/* Move classifications in the game head: each class's count for both sides, a count goes to the next such move. */
+.classes { font-size: .86rem; }
+.classes summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; color: var(--muted); }
+.classes summary::before { content: "▸"; color: var(--muted); }
+.classes[open] summary::before { content: "▾"; }
+.classes summary::-webkit-details-marker { display: none; }
+.classes summary .num { color: var(--ink); }
+.classes-table { border-collapse: collapse; margin-top: 8px; font-size: .84rem; }
+.classes-table th, .classes-table td { padding: 3px 10px 3px 0; text-align: left; font-weight: 400; }
+.classes-table thead th { color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .06em; }
+.classes-table td { text-align: right; min-width: 3.5rem; }
+.classes-table tbody tr + tr th, .classes-table tbody tr + tr td { border-top: 1px solid var(--line); }
+.classes-table .linkish { color: var(--ink); }
 .worded summary { cursor: pointer; }
 .worded p { margin: 6px 0 0; }
 .moves { display: grid; grid-template-columns: 2.6rem 1fr 1fr; font-family: var(--font-num); font-size: .88rem; max-height: 320px; overflow: auto; border-top: 1px solid var(--line); position: relative; overscroll-behavior: contain; }

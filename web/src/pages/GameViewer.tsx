@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from "react-router";
 import { Board, type ArrowKind, type HighlightKind, type Peek } from "../components/Board";
 import { EvalBar, type BarValue } from "../components/EvalBar";
 import { EvalChart, ThinkChart, type ThinkBar } from "../components/charts";
-import { LineChips, Nag } from "../components/bits";
+import { LineChips, MarkBadge, Nag } from "../components/bits";
 import { RefText, usePeek, type PeekControl } from "../components/RefText";
 import { resignedId, thrownId, WINNING } from "../lib/playout";
 import { useGame, useSummary } from "../lib/data";
@@ -13,8 +13,8 @@ import { gameOver, lineSan, moveBetween, numberedLine, outcome, passTurn, posKey
 import { bestKinds, myKinds, theirKinds, type RefLine } from "../lib/refs";
 import { useLiveEngine, type LiveLine, type LiveState } from "../lib/engine";
 import { winOf, winOfOutcome } from "../lib/winpct";
-import { FLAG, LABEL, RESULT_WORD, SEV, SEVERITIES, SHORT, TYPE, tagName } from "../lib/names";
-import type { Game, Move, Record as MistakeRecord, Summary } from "../types/export";
+import { CLASS_NAME, CLASSES, FLAG, LABEL, MARK, MARK_DESC, RESULT_WORD, SEV, SEVERITIES, SHORT, TYPE, tagName } from "../lib/names";
+import type { Game, Mark, Move, Record as MistakeRecord, Summary } from "../types/export";
 
 export default function GameViewerRoute() {
   const { id = "" } = useParams();
@@ -223,6 +223,12 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
   // Back to the game: from a side line, at the move it leaves the game from.
   const leave = () => { setPos({ line: 0, at: cur }); setLiveOn(false); closeCompare(); setSelected(null); };
   const tryCompare = () => (cmp ? openCompare(cur) : setWhy(true));
+  /** The next move of class `c` (mark or label) by `side` after the game's move on the board, or the first. */
+  const nextOfClass = (side: Side, c: string) => {
+    const plies = g.moves.slice(0, n).filter((x) => x.side === side && (x.mark?.kind ?? x.label) === c).map((x) => x.ply);
+    const k = plies.find((p) => p > cur) ?? plies[0];
+    if (k != null) go(k);
+  };
   /** Removes a side line and the ones branching from it; a board on one of them goes back to where they start. */
   const dropVar = (id: number) => {
     const gone = new Set([id]);
@@ -440,7 +446,8 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
 
   return (
     <>
-      <GameHead g={g} me={me} opp={opp} onTurning={turning != null ? () => go(turning) : undefined} broken={n < g.moves.length ? n : null} />
+      <GameHead g={g} me={me} opp={opp} onTurning={turning != null ? () => go(turning) : undefined} broken={n < g.moves.length ? n : null}
+        onClass={nextOfClass} />
       <div className={`viewer${comparing ? " comparing" : ""}`}>
         <div className="colA">
           {comparing ? (
@@ -511,7 +518,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
               onPlay={(uci) => { const p = uciParts(uci); play(p.from, p.to, p.promotion); }}
               onAt={(k) => side && goPos({ line: side.id, at: k })} onClose={leave} />
           ) : (
-            <Explain g={g} me={me} cur={cur} m={m} r={r} myWin={myWin} turning={turning} cmp={cmp} comparing={comparing}
+            <Explain g={g} me={me} cur={cur} m={m} r={r} myWin={myWin} turning={turning} cmp={cmp} comparing={comparing} fens={fens}
               onCompare={(step) => openCompare(cur, step)} prev={cur >= 2 ? { fen: fens[cur - 2], uci: g.moves[cur - 2].uci } : null}
               peek={peek} />
           )}
@@ -689,8 +696,20 @@ function LiveBest({ fen, line, live, me }: { fen: string; line: LiveLine | null;
   );
 }
 
-function GameHead({ g, me, opp, onTurning, broken }: { g: Game; me: Side; opp: Side; onTurning?: () => void; broken: number | null }) {
+function GameHead({ g, me, opp, onTurning, broken, onClass }: {
+  g: Game; me: Side; opp: Side; onTurning?: () => void; broken: number | null; onClass: (side: Side, c: string) => void;
+}) {
   const turning = g.loss?.turning_ply ?? null;
+  // Each move's class as chess.com counts them: its mark (Brilliant, Great, Miss) if it has one, else its label.
+  const counts = useMemo(() => {
+    const out: Record<Side, Record<string, number>> = { white: {}, black: {} };
+    for (const x of g.moves) {
+      const c = x.mark?.kind ?? x.label;
+      out[x.side][c] = (out[x.side][c] ?? 0) + 1;
+    }
+    return out;
+  }, [g]);
+  const marked = (["brilliant", "great", "miss"] as const).filter((c) => counts[me][c]);
   return (
     <section className="card game-head">
       <div className="card-head">
@@ -725,13 +744,42 @@ function GameHead({ g, me, opp, onTurning, broken }: { g: Game; me: Side; opp: S
           {g.loss.cause === "gave_up" && <Link className="small" to={`/play?play=${resignedId(g.id)}`}>Play on from where it ended →</Link>}
         </div>
       )}
+      <details className="classes">
+        <summary>
+          Move classifications
+          {marked.map((c) => <span key={c} className="num"><MarkBadge kind={c} /> {counts[me][c]}</span>)}
+        </summary>
+        <table className="classes-table">
+          <thead>
+            <tr><th scope="col"><span className="sr-only">Class</span></th><th scope="col">You</th><th scope="col">{g.opponent}</th></tr>
+          </thead>
+          <tbody>
+            {CLASSES.map((c) => (
+              <tr key={c} title={MARK_DESC[c]}>
+                <th scope="row">{c in MARK ? <MarkBadge kind={c} /> : <Nag severity={c} />} {CLASS_NAME[c]}</th>
+                {[me, opp].map((side) => {
+                  const k = counts[side][c] ?? 0;
+                  return (
+                    <td key={side} className="num">
+                      {k ? (
+                        <button type="button" className="linkish" onClick={() => onClass(side, c)}
+                          title={`Go to ${side === me ? "your" : `${g.opponent}'s`} next ${CLASS_NAME[c]}`}>{k}</button>
+                      ) : <span className="muted">0</span>}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </details>
       {broken != null && <div className="callout">The exported moves stop replaying after ply {broken}; the viewer shows the game up to there.</div>}
     </section>
   );
 }
 
-function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, onCompare, prev, peek }: {
-  g: Game; me: Side; cur: number; m?: Move; r?: MistakeRecord; myWin: number[]; turning: number | null; cmp: Cmp | null;
+function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, fens, onCompare, prev, peek }: {
+  g: Game; me: Side; cur: number; m?: Move; r?: MistakeRecord; myWin: number[]; turning: number | null; cmp: Cmp | null; fens: string[];
   comparing: boolean; onCompare: (step: number) => void; prev: { fen: string; uci: string } | null; peek: PeekControl;
 }) {
   // The lines the explanation names moves from: the move before mine, Stockfish's best, mine and its answer.
@@ -755,9 +803,10 @@ function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, onCompare, 
       <div className="lead">
         <b className="san">{moveName(cur, m.san)}</b>
         {r && <Nag severity={r.severity} />}
+        <MarkBadge kind={m.mark?.kind} />
         <span className="muted">
-          {r ? `${SEV[r.severity]} · ${TYPE[r.primary] ?? r.primary}${r.subtype ? ` (${tagName(r.subtype)})` : ""}`
-            : mineMove ? LABEL[m.label] ?? m.label : `${g.opponent}'s move · ${LABEL[m.label] ?? m.label}`}
+          {r ? `${SEV[r.severity]} · ${TYPE[r.primary] ?? r.primary}${r.subtype ? ` (${tagName(r.subtype)})` : ""}${m.mark ? ` · ${MARK[m.mark.kind]}` : ""}`
+            : `${mineMove ? "" : `${g.opponent}'s move · `}${m.mark ? MARK[m.mark.kind] : LABEL[m.label] ?? m.label}`}
         </span>
       </div>
       <div>
@@ -765,6 +814,7 @@ function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, onCompare, 
         <span className="muted num"> ({signed(after - before)})</span>
         {m.think != null && <span className="muted"> · thought {n1(m.think)}s</span>}
       </div>
+      {m.mark && <MarkWhy g={g} me={me} cur={cur} m={m} mark={m.mark} before={fens[cur - 1]} after={fens[cur]} />}
       {cur === turning && (
         <div className="callout"><b>Turning point. </b>The first move in this loss that took you from 40% or more to 25% or less.</div>
       )}
@@ -804,6 +854,39 @@ function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, onCompare, 
         <div className="chips">{r.flags.map((f) => <span key={f} className="pill">{FLAG[f] ?? f}</span>)}</div>
       )}
     </section>
+  );
+}
+
+/** Why a move got its mark, in words filled from the Stockfish facts stored with it. */
+function MarkWhy({ g, me, cur, m, mark, before, after }: {
+  g: Game; me: Side; cur: number; m: Move; mark: Mark; before: string; after: string;
+}) {
+  const mine = m.side === me;
+  if (mark.kind === "great") {
+    const second = mark.second ? numberedLine(before, lineSan(before, [mark.second]))[0] : null;
+    return (
+      <p>
+        {mine ? "The only good move here" : `The only good move for ${g.opponent} here`}: Stockfish's next choice
+        {second && <>, <b className="san">{second}</b>,</>} was <b className="num">{n1(mark.gap ?? 0)}</b> Win% worse.
+      </p>
+    );
+  }
+  if (mark.kind === "brilliant") {
+    const line = numberedLine(after, lineSan(after, mark.line, 2)).join(" ");
+    return (
+      <p>
+        {mine ? "A sacrifice that works" : `${g.opponent} sacrificed`}: after <b className="san">{line}</b>{" "}
+        {mine ? "you're" : "they're"} {plural(-(mark.material ?? 0), "point")} of material down, and it was{" "}
+        {m.label === "best" ? "Stockfish's best move" : "Excellent by Stockfish's score"}.
+      </p>
+    );
+  }
+  const prev = g.moves[cur - 2];
+  const gave = <><b className="num">{n1(mark.chance ?? 0)}</b> Win%</>, back = <b className="num">{n1(mark.gave_back ?? 0)}</b>;
+  return mine ? (
+    <p>{g.opponent}'s <b className="san">{moveName(cur - 1, prev.san)}</b> gave you {gave}, and this move gave {back} of it back.</p>
+  ) : (
+    <p>Your <b className="san">{moveName(cur - 1, prev.san)}</b> gave {g.opponent} {gave}, and they gave {back} of it back.</p>
   );
 }
 
@@ -892,9 +975,11 @@ const MoveCell = memo(function MoveCell({ m, r, mine, turning, current, onPick }
   return (
     <button type="button" data-ply={m.ply} onClick={() => onPick(m.ply)} aria-current={current ? "step" : undefined}
       className={`mv${mine ? " mine" : ""}${turning ? " turn" : ""}${current ? " cur" : ""}`}
-      title={r ? `${SEV[r.severity]} · ${TYPE[r.primary] ?? r.primary}` : LABEL[m.label]}>
+      title={r ? `${SEV[r.severity]} · ${TYPE[r.primary] ?? r.primary}${m.mark ? ` · ${MARK[m.mark.kind]}` : ""}`
+        : m.mark ? MARK[m.mark.kind] : LABEL[m.label]}>
       <span>{m.san}</span>
       {r && <Nag severity={r.severity} />}
+      <MarkBadge kind={m.mark?.kind} />
       {r && SHORT[r.primary] && <span className="tag">{SHORT[r.primary]}</span>}
     </button>
   );

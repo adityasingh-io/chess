@@ -79,11 +79,14 @@ def move_out(p: Ply, evals1: dict[str, dict], record_ids: dict[int, str], plies:
     before = evals1.get(p.move["key_before"])
     if before and before.get("lines"):
         best_line = before["lines"][0]["pv"][:plies]
+    k = p.mark
+    mark = k and S.Mark(kind=k.kind, gap=r1(k.gap), second=k.second, material=k.material, line=k.line,
+                        chance=r1(k.chance), gave_back=r1(k.gave_back))
     return S.Move(
         ply=p.number, side=p.move["side"], san=p.move["san"], uci=p.move["uci"],
         clock=r1(p.move["clock"]), think=r1(p.move["think_time"]), win=r1(p.white_after),
         eval=ev(after["lines"][0]) if after and after.get("lines") else None,
-        best=p.best, best_line=best_line, label=p.label, accuracy=r1(p.accuracy), phase=p.phase,
+        best=p.best, best_line=best_line, label=p.label, mark=mark, accuracy=r1(p.accuracy), phase=p.phase,
         record=record_ids.get(p.number),
     )
 

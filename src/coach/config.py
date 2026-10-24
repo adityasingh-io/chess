@@ -70,6 +70,16 @@ class Labels:
 
 
 @dataclass(frozen=True)
+class Marks:
+    great_gap: float
+    brilliant_material: int
+    brilliant_max_before: float
+    brilliant_min_after: float
+    miss_chance: float
+    miss_gave_back: float
+
+
+@dataclass(frozen=True)
 class Phases:
     opening_moves: int
     endgame_non_pawn: int
@@ -129,6 +139,7 @@ class Analysis:
     """Every threshold of the analysis model (BRIEF.md, Analysis model)."""
 
     labels: Labels
+    marks: Marks
     phases: Phases
     types: Types
     flags: Flags
@@ -337,6 +348,7 @@ def load_config(root: Path | None = None) -> Config:
         ),
         analysis=Analysis(
             labels=_section(Labels, analysis["labels"]),
+            marks=_section(Marks, analysis["marks"]),
             phases=_section(Phases, analysis["phases"]),
             types=_section(Types, analysis["types"]),
             flags=_section(Flags, analysis["flags"]),
