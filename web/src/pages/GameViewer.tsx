@@ -28,11 +28,16 @@ export default function GameViewerRoute() {
   );
 }
 
-/** A move played on a board (Explore, or Play on from a Compare board): mine, or the bot's answer (`by`, with
+/** A move played on a board (a side line, or Play on from a Compare board): mine, or the bot's answer (`by`, with
     Maia-2's share for the move it chose). */
 type PlayMove = { uci: string; san: string; fen: string; by?: string; p?: number };
-/** Moves played in Explore from `base`. The first `at` are on the board; the rest can be stepped forward again. */
-type Explore = { base: string; from: string; moves: PlayMove[]; at: number };
+/** A side line, like chess.com's variations: moves played on the board from position `at` of line `from` (line 0 is
+    the game, where `at` is the ply). Side lines branch from side lines too. */
+type Var = { id: number; from: number; at: number; moves: PlayMove[] };
+/** Where the board is: position `at` of a line. In the game that's after `at` plies (0 = the start); in a side line,
+    after its first `at` moves (1 or more: before its first move the board is on the line it branches from). */
+type Pos = { line: number; at: number };
+type Step = "first" | "prev" | "next" | "last";
 /** One side of a comparison: moves from the position before my move, their positions, and Stockfish's
     stored score for the line. */
 type CmpLine = { ucis: string[]; tokens: string[]; fens: string[]; bar: BarValue };
@@ -92,8 +97,8 @@ const scoreText = (b: BarValue, me: Side) => (b.outcome ? RESULT_SCORE[b.outcome
 
 const NAV = {
   game: ["First move (Home)", "Previous move (←)", "Next move (→)", "Last move (End)"],
+  side: ["First move of the game (Home)", "Back a move (←)", "Forward along this side line (→)", "End of this side line (End)"],
   compare: ["Before the move (Home)", "Back a move in both lines (←)", "Forward a move in both lines (→)", "End of the lines (End)"],
-  explore: ["Take back every move (Home)", "Take back a move (←)", "Play the next move again (→)", "Play every move again (End)"],
   play: ["Back to where you started playing (Home)", "Take back a move (←)", "Play the next move again (→)", "Play every move again (End)"],
 };
 
@@ -114,14 +119,16 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
     [g, fens, me, recAt]);
 
   const clamp = useCallback((k: number) => Math.max(0, Math.min(n, k)), [n]);
-  const [cur, setCur] = useState(() => {
+  const [pos, setPos] = useState<Pos>(() => {
     const at = startPos ? fens.findIndex((f) => posKey(f) === startPos) : -1;
-    return clamp(at >= 0 ? at : startPly ?? turning ?? 0);
+    return { line: 0, at: clamp(at >= 0 ? at : startPly ?? turning ?? 0) };
   });
+  const [vars, setVars] = useState<Var[]>([]);
+  const nextVar = useRef(1);
+  const [liveOn, setLiveOn] = useState(false);   // the live engine on the game's own positions too
   const [flip, setFlip] = useState(false);
   const [compare, setCompare] = useState<number | null>(startCompare ? 0 : null);   // step through both lines
   const [show, setShow] = useState<"you" | "best">("you");                         // the board shown on a phone
-  const [explore, setExplore] = useState<Explore | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [threat, setThreat] = useState(false);   // the live engine's move for the side not to move
   const [branches, setBranches] = useState<Branches>({});   // Play on, per Compare board
@@ -132,70 +139,107 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
   const [why, setWhy] = useState(false);   // the greyed-out Compare button was tapped: say why, until the next step
   const bot = useBot(summary.bots);
   const botReq = useRef(0);   // the latest request: answers to older ones are dropped
-  const stopPlaying = useCallback(() => {
+  const hush = useCallback(() => {
     botReq.current++;
     setBotBusy(false);
+  }, []);
+  const stopPlaying = useCallback(() => {
+    hush();
     setBranches({});
     setCmpSel(null);
-  }, []);
+  }, [hush]);
 
-  const go = useCallback((k: number) => {
-    setCur(clamp(k));
-    setCompare(null);
-    setExplore(null);
+  // Side lines: where each starts, the position at any point of a line, and stepping along the line the board is on.
+  // ◀ from a side line's first move goes back to the line it branches from; ▶ there follows that line again.
+  const varOf = useMemo(() => new Map(vars.map((v) => [v.id, v])), [vars]);
+  const branchOf = (v: Var): Pos => ({ line: v.from, at: v.at });
+  const fenOf = (p: Pos) => (p.line ? varOf.get(p.line)!.moves[p.at - 1].fen : fens[p.at]);
+  const lineLen = (line: number) => (line ? varOf.get(line)!.moves.length : n);
+  const back = (p: Pos): Pos => (p.line && p.at === 1 ? branchOf(varOf.get(p.line)!) : { ...p, at: Math.max(0, p.at - 1) });
+  const fwd = (p: Pos): Pos => ({ ...p, at: Math.min(lineLen(p.line), p.at + 1) });
+  const mainPly = (p: Pos): number => (p.line ? mainPly(branchOf(varOf.get(p.line)!)) : p.at);
+  /** The move that reaches `p`, numbered: "12…Nf6". */
+  const posName = (p: Pos) => (p.line ? numberedLine(fenOf(back(p)), [varOf.get(p.line)!.moves[p.at - 1].san])[0] : labels[p.at]);
+  const startName = (v: Var) => (v.at ? `after ${posName(branchOf(v))}` : "from the start");
+
+  // Going to a position closes a comparison. A bot still choosing its answer in a side line keeps going: its move goes on
+  // the end of that line.
+  const closeCompare = useCallback(() => { setCompare(null); setBranches({}); setCmpSel(null); }, []);
+  const goPos = useCallback((p: Pos) => {
+    setPos(p);
+    closeCompare();
     setSelected(null);
     setWhy(false);
-    stopPlaying();
-  }, [clamp, stopPlaying]);
+  }, [closeCompare]);
+  const go = useCallback((k: number) => goPos({ line: 0, at: clamp(k) }), [goPos, clamp]);
   const openCompare = useCallback((ply: number, step = 0) => {
-    setCur(ply);
+    setPos({ line: 0, at: ply });
     setCompare(step);
-    setExplore(null);
+    setLiveOn(false);
     setSelected(null);
     stopPlaying();
   }, [stopPlaying]);
 
+  const inVar = pos.line !== 0;
+  const side = inVar ? varOf.get(pos.line)! : null;   // the side line the board is on
+  const cur = mainPly(pos);   // the game's ply, or where the side line leaves the game
   const m: Move | undefined = cur ? g.moves[cur - 1] : undefined;
   const r = recAt.get(cur);
   const mine = m?.side === me;
   const cmp = useMemo(() => compareAt(g, fens, me, cur, recAt.get(cur)), [g, fens, me, cur, recAt]);
-  const comparing = compare != null && cmp != null;
+  const comparing = compare != null && cmp != null && !inVar;
   const gameFen = fens[cur];
-  const exploreFen = explore ? (explore.at ? explore.moves[explore.at - 1].fen : explore.base) : null;
-  const shownFen = exploreFen ?? gameFen;
-  const over = exploreFen ? gameOver(exploreFen) : null;
-  const threatFen = threat && !explore && !comparing ? passTurn(gameFen) : null;
+  const shownFen = fenOf(pos);
+  const exploring = inVar || liveOn;
+  const liveFen = exploring ? shownFen : null;
+  const over = liveFen ? gameOver(liveFen) : null;
   const branch = comparing ? branches[active] : undefined;
+  const mode = exploring ? "explore" : branch ? "play" : comparing ? "compare" : "game";
+  const threatFen = threat && mode === "game" ? passTurn(gameFen) : null;
   const playFen = branch ? branchFen(cmp!, active, branch) : null;
   const playOver = playFen ? gameOver(playFen) : null;
-  const live = useLiveEngine(exploreFen && !over ? exploreFen : playFen && !playOver ? playFen : threatFen);
-  const liveLines = live.fen === exploreFen ? live.lines : [];
+  const live = useLiveEngine(liveFen && !over ? liveFen : playFen && !playOver ? playFen : threatFen);
+  const liveLines = live.fen === liveFen ? live.lines : [];
   const threatLine = threatFen && live.fen === threatFen ? live.lines[0] ?? null : null;
 
-  // ◀ ▶ ⏮ ⏭ and the arrow keys move through whatever the board shows: the game, the two lines being compared,
-  // or the moves played in Explore.
-  const mode = explore ? "explore" : branch ? "play" : comparing ? "compare" : "game";
+  // ◀ ▶ ⏮ ⏭ and the arrow keys move through whatever the board shows: the game or a side line, the two lines being
+  // compared, or the moves played on from a Compare board.
   if (why && mode !== "game") setWhy(false);
-  const at = explore ? explore.at : branch ? branch.at : comparing ? compare : cur;
-  const end = explore ? explore.moves.length : branch ? branch.moves.length : comparing ? cmp.steps : n;
-  const navTo = (f: (at: number, end: number) => number) => {
-    if (explore) setExplore((x) => x && { ...x, at: Math.max(0, Math.min(x.moves.length, f(x.at, x.moves.length))) });
-    else if (branch) setBranches((bs) => {
+  const atStart = branch ? branch.at === 0 : comparing ? compare === 0 : !inVar && pos.at === 0;
+  const atEnd = branch ? branch.at === branch.moves.length : comparing ? compare === cmp.steps : pos.at === lineLen(pos.line);
+  const navTo = (s: Step) => {
+    const to = (a: number, e: number) => Math.max(0, Math.min(e, s === "first" ? 0 : s === "prev" ? a - 1 : s === "next" ? a + 1 : e));
+    if (branch) setBranches((bs) => {
       const b = bs[active];
-      return b ? { ...bs, [active]: { ...b, at: Math.max(0, Math.min(b.moves.length, f(b.at, b.moves.length))) } } : bs;
+      return b ? { ...bs, [active]: { ...b, at: to(b.at, b.moves.length) } } : bs;
     });
-    else if (comparing) setCompare((s) => (s == null ? s : Math.max(0, Math.min(cmp.steps, f(s, cmp.steps)))));
-    else { setCur((c) => clamp(f(c, n))); setSelected(null); setWhy(false); }
+    else if (comparing) setCompare((k) => (k == null ? k : to(k, cmp.steps)));
+    else {
+      setPos(s === "first" ? { line: 0, at: 0 } : s === "prev" ? back(pos) : s === "next" ? fwd(pos) : { ...pos, at: lineLen(pos.line) });
+      setSelected(null);
+      setWhy(false);
+    }
   };
-  const leave = () => { setExplore(null); setCompare(null); setSelected(null); stopPlaying(); };
+  // Back to the game: from a side line, at the move it leaves the game from.
+  const leave = () => { setPos({ line: 0, at: cur }); setLiveOn(false); closeCompare(); setSelected(null); };
   const tryCompare = () => (cmp ? openCompare(cur) : setWhy(true));
+  /** Removes a side line and the ones branching from it; a board on one of them goes back to where they start. */
+  const dropVar = (id: number) => {
+    const gone = new Set([id]);
+    for (const v of vars) if (gone.has(v.from)) gone.add(v.id);   // vars are in the order they were started
+    let p = pos;
+    while (gone.has(p.line)) p = branchOf(varOf.get(p.line)!);
+    if (p !== pos) goPos(p);
+    setVars((vs) => vs.filter((v) => !gone.has(v.id)));
+    hush();
+  };
 
   const onKey = useEffectEvent((e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement).closest?.("input, select, textarea")) return;
-    if (e.key === "ArrowLeft") navTo((a) => a - 1);
-    else if (e.key === "ArrowRight") navTo((a) => a + 1);
-    else if (e.key === "Home") navTo(() => 0);
-    else if (e.key === "End") navTo((_, e) => e);
+    if (e.key === "ArrowLeft") navTo("prev");
+    else if (e.key === "ArrowRight") navTo("next");
+    else if (e.key === "Home") navTo("first");
+    else if (e.key === "End") navTo("last");
     else if (e.key === "f" || e.key === "F") setFlip((f) => !f);
     else if ((e.key === "x" || e.key === "X") && mode === "game") setThreat((t) => !t);
     else if ((e.key === "c" || e.key === "C") && mode === "game") tryCompare();
@@ -210,40 +254,72 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // The chosen bot answers a move just played (`line`, now ending at `fen`): its move goes on the end of the
-  // line, through `set`, if the line still ends there when it arrives. A move played again (stepping forward
-  // along moves already played) already has its answer after it, so nobody is asked.
-  const answer = <L extends { moves: PlayMove[]; at: number }>(line: L, fen: string, set: (f: (x: L | undefined) => L | undefined) => void) => {
+  // The chosen bot moves in `fen`, the end of a line; `land` puts its move on the end of that line if the line still
+  // ends there when it arrives. Asking again drops the answer to the request before.
+  const ask = (fen: string, land: (mv: PlayMove) => void) => {
     setBotError(null);
     const id = ++botReq.current;
-    if (bot.choice === "off" || gameOver(fen) || line.at < line.moves.length) { setBotBusy(false); return; }
+    if (bot.choice === "off" || gameOver(fen)) { setBotBusy(false); return; }
     setBotBusy(true);
     bot.move(fen).then((reply) => {
       if (id !== botReq.current) return;
       setBotBusy(false);
       const p = reply && uciParts(reply.uci);
       const bm = p && tryMove(fen, p.from, p.to, p.promotion);
-      if (!reply || !bm) return;
-      set((x) => (x && x.at === x.moves.length && x.moves[x.at - 1]?.fen === fen
-        ? { ...x, moves: [...x.moves, { ...bm, by: reply.by, p: reply.p }], at: x.at + 1 } : x));
+      if (reply && bm) land({ ...bm, by: reply.by, p: reply.p });
     }, (err: unknown) => {
       if (id !== botReq.current) return;
       setBotBusy(false);
       setBotError(err instanceof Error ? err.message : String(err));
     });
   };
+  /** The bot answers the move that ends side line `id` (its `len`th, reaching `fen`); the board follows if it's there. */
+  const answerVar = (id: number, len: number, fen: string) => ask(fen, (bm) => {
+    setVars((vs) => vs.map((v) => (v.id === id && v.moves.length === len && v.moves[len - 1].fen === fen ? { ...v, moves: [...v.moves, bm] } : v)));
+    setPos((p) => (p.line === id && p.at === len ? { line: id, at: len + 1 } : p));
+  });
+  const answerBranch = (key: CmpKey, fen: string) => ask(fen, (bm) => setBranches((bs) => {
+    const b = bs[key];
+    return b && b.at === b.moves.length && b.moves[b.at - 1]?.fen === fen ? { ...bs, [key]: { ...b, moves: [...b.moves, bm], at: b.at + 1 } } : bs;
+  }));
 
-  // Playing a move on the board starts Explore; playing the move that was taken back steps forward again.
+  // Picking a bot while it's the bot's turn (the board is at the end of a line and the last move there was played by
+  // hand) has it move now; an answer still coming from the bot picked before is dropped.
+  const onChoice = useEffectEvent(() => {
+    const last = side && pos.at === side.moves.length ? side.moves[pos.at - 1] : null;
+    const b = branch?.at && branch.at === branch.moves.length && !branch.moves[branch.at - 1].by ? branch : null;
+    if (side && last && !last.by) answerVar(side.id, pos.at, last.fen);
+    else if (b) answerBranch(active, branchFen(cmp!, active, b));
+    else hush();
+  });
+  useEffect(() => { onChoice(); }, [bot.choice]);
+
+  // A move played on the board. The next move along the line the board is on steps forward to it; a side line
+  // already played from here with it is followed; any other move goes on the end of the side line the board is at
+  // the end of, or starts a side line from here. The chosen bot answers a move that ends a side line.
   const play = (from: string, to: string, promotion?: string) => {
     const mv = tryMove(shownFen, from, to, promotion);
     if (!mv) return false;
-    const x = explore;
-    const next: Explore = !x ? { base: gameFen, from: labels[cur], moves: [mv], at: 1 }
-      : x.moves[x.at]?.uci === mv.uci ? { ...x, at: x.at + 1 }
-      : { ...x, moves: [...x.moves.slice(0, x.at), mv], at: x.at + 1 };
-    setExplore(next);
     setSelected(null);
-    answer(next, mv.fen, (f) => setExplore((e) => f(e ?? undefined) ?? null));
+    const { line, at } = pos, len = lineLen(line);
+    const ahead = line ? side!.moves[at] : at < n ? g.moves[at] : undefined;
+    if (ahead?.uci === mv.uci) { setPos({ line, at: at + 1 }); return true; }
+    const known = vars.find((v) => v.from === line && v.at === at && v.moves[0].uci === mv.uci);
+    if (known) {
+      setPos({ line: known.id, at: 1 });
+      if (known.moves.length === 1) answerVar(known.id, 1, mv.fen);
+      return true;
+    }
+    if (line && at === len) {
+      setVars((vs) => vs.map((v) => (v.id === line ? { ...v, moves: [...v.moves, mv] } : v)));
+      setPos({ line, at: at + 1 });
+      answerVar(line, at + 1, mv.fen);
+      return true;
+    }
+    const id = nextVar.current++;
+    setVars((vs) => [...vs, { id, from: line, at, moves: [mv] }]);
+    setPos({ line: id, at: 1 });
+    answerVar(id, 1, mv.fen);
     return true;
   };
 
@@ -260,10 +336,8 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
     setBranches((bs) => ({ ...bs, [key]: next }));
     setActive(key);
     setCmpSel(null);
-    answer(next, mv.fen, (f) => setBranches((bs) => {
-      const y = f(bs[key]);
-      return y && y !== bs[key] ? { ...bs, [key]: y } : bs;
-    }));
+    if (next.at === next.moves.length) answerBranch(key, mv.fen);
+    else hush();
     return true;
   };
 
@@ -274,28 +348,29 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
   };
 
   // What the board shows.
+  const sideMove = side ? side.moves[pos.at - 1] : null;
   let arrows: { uci: string; kind: ArrowKind }[] = [];
   let highlight: { uci: string; kind: HighlightKind } | null = null;
-  if (explore) {
-    if (explore.at) highlight = { uci: explore.moves[explore.at - 1].uci, kind: "them" };
+  if (sideMove) highlight = { uci: sideMove.uci, kind: sideMove.by ? "them" : "you" };
+  else if (m) highlight = { uci: m.uci, kind: mine ? "you" : "them" };
+  if (exploring) {
     if (liveLines[0]) arrows = [{ uci: liveLines[0].pv[0], kind: "live" }];
-  } else if (m) {
-    highlight = { uci: m.uci, kind: mine ? "you" : "them" };
-    if (mine) arrows = cmp ? [{ uci: cmp.best.ucis[0], kind: "best" }, { uci: m.uci, kind: "you" }] : [{ uci: m.uci, kind: "you" }];
+  } else if (m && mine) {
+    arrows = cmp ? [{ uci: cmp.best.ucis[0], kind: "best" }, { uci: m.uci, kind: "you" }] : [{ uci: m.uci, kind: "you" }];
   }
   if (threatLine) arrows = [...arrows, { uci: threatLine.pv[0], kind: "live" }];
-  const peek = usePeek(`${cur}:${mode}`);
+  const peek = usePeek(`${pos.line}:${pos.at}:${mode}`);
   const orientation: Side = flip ? opp : me;
   const toMove = sideToMove(shownFen);
 
-  // The eval bar: the stored score for game positions, the live engine's in Explore (until it answers, the
-  // stored one for the position Explore started from).
-  const exploreOutcome = exploreFen && over ? outcome(exploreFen) : null;
-  const bar: BarValue = !explore ? storedBar(g, fens, cur)
-    : exploreOutcome ? { win: winOfOutcome(exploreOutcome), outcome: exploreOutcome }
+  // The eval bar: the stored score for game positions, the live engine's in a side line or with the live engine on
+  // (until it answers, the stored one for a game position).
+  const liveOutcome = liveFen && over ? outcome(liveFen) : null;
+  const bar: BarValue = !exploring ? storedBar(g, fens, cur)
+    : liveOutcome ? { win: winOfOutcome(liveOutcome), outcome: liveOutcome }
     : liveLines[0] ? { win: winOf(liveLines[0].eval), ev: liveLines[0].eval }
-    : explore.at === 0 ? storedBar(g, fens, cur) : { win: null };
-  const barLive = !!explore && !exploreOutcome && !!liveLines[0];
+    : !inVar ? storedBar(g, fens, cur) : { win: null };
+  const barLive = exploring && !liveOutcome && !!liveLines[0];
 
   const startClock = Number(g.time_control.split("+")[0]);
   const clockOf = (side: Side) => {
@@ -319,22 +394,23 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
   const bars = useMemo<ThinkBar[]>(() => g.moves.filter((x) => x.side === me && x.think != null)
     .map((x) => ({ k: x.ply, t: x.think!, label: moveName(x.ply, x.san), severity: recAt.get(x.ply)?.severity ?? null })), [g, me, recAt]);
 
-  const explorePlayed = useMemo(() => (explore ? numberedLine(explore.base, explore.moves.map((x) => x.san)) : []), [explore]);
-  const lastBot = explore?.at && explore.moves[explore.at - 1].by ? explore.moves[explore.at - 1] : null;
+  const sideBase = side ? fenOf(branchOf(side)) : null;
+  const sideTokens = useMemo(() => (side ? numberedLine(sideBase!, side.moves.map((x) => x.san)) : []), [side, sideBase]);
+  const baseOf = (v: Var) => fenOf(branchOf(v));
 
-  const caption = explore ? (
-    <span><span className="live-badge">LIVE</span> <b>Explore</b> · {explore.at ? `${explore.at} from ${explore.from}` : `from ${explore.from}`}</span>
+  const caption = side ? (
+    <span><span className="live-badge">LIVE</span> <b>Side line</b> {startName(side)} · <b className="san">{posName(pos)}</b></span>
   ) : m ? (
     <span>After <b className="san">{moveName(cur, m.san)}</b> · {cur} of {n}</span>
   ) : <span>Start position</span>;
 
-  const [first, prev, next, last] = NAV[mode];
+  const [first, prev, next, last] = NAV[inVar ? "side" : mode === "explore" ? "game" : mode];
   const navbtns = (
     <div className={`navbtns viewer-nav ${mode}`}>
-      <button type="button" title={first} aria-label={first} disabled={at === 0} onClick={() => navTo(() => 0)}>⏮</button>
-      <button type="button" title={prev} aria-label={prev} disabled={at === 0} onClick={() => navTo((a) => a - 1)}>◀</button>
-      <button type="button" title={next} aria-label={next} disabled={at === end} onClick={() => navTo((a) => a + 1)}>▶</button>
-      <button type="button" title={last} aria-label={last} disabled={at === end} onClick={() => navTo((_, e) => e)}>⏭</button>
+      <button type="button" title={first} aria-label={first} disabled={atStart} onClick={() => navTo("first")}>⏮</button>
+      <button type="button" title={prev} aria-label={prev} disabled={atStart} onClick={() => navTo("prev")}>◀</button>
+      <button type="button" title={next} aria-label={next} disabled={atEnd} onClick={() => navTo("next")}>▶</button>
+      <button type="button" title={last} aria-label={last} disabled={atEnd} onClick={() => navTo("last")}>⏭</button>
       <button type="button" title="Flip the board (F)" aria-label="Flip the board" onClick={() => setFlip((f) => !f)}>⇅</button>
       {mode === "game" && (
         <button type="button" className="threat" aria-pressed={threat} disabled={!threat && !passTurn(gameFen)}
@@ -351,11 +427,12 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
       {mode === "compare" || mode === "play" ? (
         <button type="button" className="leave" title="Back to the game (Esc)" onClick={leave}>Back to the game</button>
       ) : (
-        <button type="button" className="live" aria-pressed={!!explore}
-          title={explore ? "Back to the game (Esc)"
-            : "Play any move here, against a bot or for both sides; the in-browser Stockfish scores it live, never saved"}
-          onClick={() => (explore ? leave() : setExplore({ base: gameFen, from: labels[cur], moves: [], at: 0 }))}>
-          {explore ? "Leave explore" : "Explore · live"}
+        <button type="button" className="live" aria-pressed={exploring}
+          title={inVar ? "Back to the game, at the move this side line leaves it (Esc)"
+            : liveOn ? "Turn the live engine off (Esc)"
+            : "The in-browser Stockfish's lines for each position, live, never saved. Play any move on the board to try a side line."}
+          onClick={() => (inVar ? leave() : setLiveOn((v) => !v))}>
+          {inVar ? "Back to the game" : liveOn ? "Leave explore" : "Explore · live"}
         </button>
       )}
     </div>
@@ -372,7 +449,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
               orientation={orientation} show={show} setShow={(s) => { setShow(s); setActive(s); }} mistakes={mistakes}
               onMistake={(p) => openCompare(p)} peek={peek.shown}
               branches={branches} active={active} live={live} sel={cmpSel} setSel={setCmpSel} onPlay={playOn}
-              onBranchAt={(key, k) => { botReq.current++; setBotBusy(false); setActive(key); setBranches((bs) => (bs[key] ? { ...bs, [key]: { ...bs[key]!, at: k } } : bs)); }}>
+              onBranchAt={(key, k) => { hush(); setActive(key); setBranches((bs) => (bs[key] ? { ...bs, [key]: { ...bs[key]!, at: k } } : bs)); }}>
               <PlayOn bots={summary.bots} bot={bot} busy={botBusy} error={botError} onStop={branches.you || branches.best ? stopPlaying : undefined}>
                 {playOver ? <b>{playOver}.</b>
                   : playFen ? <LiveBest fen={playFen} line={live.fen === playFen ? live.lines[0] ?? null : null} live={live} me={me} />
@@ -396,18 +473,19 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
                 <EvalBar value={bar} orientation={orientation} me={me} live={barLive}
                   note={barLive ? `live, depth ${live.depth}` : undefined} />
                 <Board id={`game-${g.id}`} fen={shownFen} orientation={orientation} arrows={arrows} highlight={highlight}
-                  selected={selected} dots={dots} onDrop={(from, to) => play(from, to)} onSquare={onSquare} peek={explore ? null : peek.shown}
-                  label={explore ? "Explore board: play any move" : m ? `Position after ${moveName(cur, m.san)}` : "Start position"} />
+                  selected={selected} dots={dots} onDrop={(from, to) => play(from, to)} onSquare={onSquare} peek={exploring ? null : peek.shown}
+                  label={side ? `Side line ${startName(side)}, after ${posName(pos)}: play any move`
+                    : m ? `Position after ${moveName(cur, m.san)}` : "Start position"} />
               </div>
               {strip(orientation)}
               {navbtns}
               {why && !cmp && <p className="muted small nav-note" role="status">{noCompare(m, me, g.opponent)}</p>}
               {threatFen && <Threat fen={threatFen} line={threatLine} depth={live.depth} status={live.status} error={live.error} me={me} />}
-              {explore && (
+              {exploring && (
                 <PlayOn bots={summary.bots} bot={bot} busy={botBusy} error={botError}>
                   {over ? <b>{over}.</b>
-                    : lastBot ? <>{lastBot.by} played <b className="san">{explorePlayed[explore.at - 1]}</b>
-                        {lastBot.p != null ? ` (${Math.round(lastBot.p * 100)}% of its choices here)` : ""}. Your move.</>
+                    : sideMove?.by ? <>{sideMove.by} played <b className="san">{posName(pos)}</b>
+                        {sideMove.p != null ? ` (${Math.round(sideMove.p * 100)}% of its choices here)` : ""}. Your move.</>
                     : <span className="muted">{bot.name ? `Make a move on the board and ${bot.name} answers.` : "Nobody answers: play any move, for either side."}</span>}
                 </PlayOn>
               )}
@@ -427,10 +505,11 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
           </section>
         </div>
         <div className="colB">
-          {explore ? (
-            <LivePanel live={live} lines={liveLines} explore={explore} played={explorePlayed} me={me} over={over}
+          {exploring ? (
+            <LivePanel live={live} lines={liveLines} fen={shownFen} me={me} over={over}
+              side={side ? { name: startName(side), tokens: sideTokens, moves: side.moves, at: pos.at } : null}
               onPlay={(uci) => { const p = uciParts(uci); play(p.from, p.to, p.promotion); }}
-              onAt={(k) => navTo(() => k)} onClose={leave} />
+              onAt={(k) => side && goPos({ line: side.id, at: k })} onClose={leave} />
           ) : (
             <Explain g={g} me={me} cur={cur} m={m} r={r} myWin={myWin} turning={turning} cmp={cmp} comparing={comparing}
               onCompare={(step) => openCompare(cur, step)} prev={cur >= 2 ? { fen: fens[cur - 2], uci: g.moves[cur - 2].uci } : null}
@@ -438,7 +517,8 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
           )}
           <section className="card v-moves">
             <div className="card-head"><h2>Moves</h2><span className="muted small">← → to step · F to flip</span></div>
-            <MoveList moves={g.moves.slice(0, n)} recAt={recAt} me={me} turning={turning} cur={explore ? -1 : cur} onPick={go} />
+            <MoveList moves={g.moves.slice(0, n)} recAt={recAt} me={me} turning={turning} pos={pos} vars={vars} baseOf={baseOf}
+              onPick={go} onPos={goPos} onDrop={dropVar} />
           </section>
         </div>
       </div>
@@ -558,7 +638,7 @@ function Compare({ id, cur, m, r, cmp, step, setStep, me, orientation, show, set
   );
 }
 
-/** Play on: who answers a move played on a board (a Compare board, or the board in Explore), and what's
+/** Play on: who answers a move played on a board (a Compare board, or a side line on the game's board), and what's
     happening: the bot at work, or `children` when it isn't. `onStop` goes back to the stored lines. */
 function PlayOn({ bots, bot, busy, error, onStop, children }: {
   bots: Summary["bots"]; bot: ReturnType<typeof useBot>; busy: boolean; error: string | null; onStop?: () => void;
@@ -744,11 +824,11 @@ function Threat({ fen, line, depth, status, error, me }: {
   );
 }
 
-function LivePanel({ live, lines, explore, played, me, over, onPlay, onAt, onClose }: {
-  live: LiveState; lines: LiveState["lines"]; explore: Explore; played: string[]; me: Side; over: string | null;
+function LivePanel({ live, lines, fen, me, over, side, onPlay, onAt, onClose }: {
+  live: LiveState; lines: LiveState["lines"]; fen: string; me: Side; over: string | null;
+  side: { name: string; tokens: string[]; moves: PlayMove[]; at: number } | null;
   onPlay: (uci: string) => void; onAt: (at: number) => void; onClose: () => void;
 }) {
-  const fen = explore.at ? explore.moves[explore.at - 1].fen : explore.base;
   return (
     <section className="card v-explain live-panel" aria-live="polite">
       <div className="card-head">
@@ -756,26 +836,28 @@ function LivePanel({ live, lines, explore, played, me, over, onPlay, onAt, onClo
         <span className="muted small">{live.engine}{live.depth ? ` · depth ${live.depth}` : ""}</span>
       </div>
       <p className="muted small" style={{ margin: 0 }}>
-        Play any move on the board; the bot chosen under the board answers it, or nobody and you play both sides. The
-        in-browser Stockfish shows its top lines, scored from your side. Live results are never saved.
+        Play any move on the board to try a side line; the bot chosen under the board answers it, or nobody and you play
+        both sides. ◀ ▶ follow the line you're on. The in-browser Stockfish shows its top lines, scored from your side.
+        Live results are never saved.
       </p>
-      <div className="chips played" role="group" aria-label="Moves played in Explore">
-        <span className="muted small">From {explore.from}:</span>
-        {played.length ? played.map((t, i) => {
-          const x = explore.moves[i];
-          return (
-            <button key={i} type="button" className={`san${x.by ? " bot" : ""}${i >= explore.at ? " redo" : ""}`}
-              aria-pressed={i === explore.at - 1}
-              title={x.by ? `${x.by}${x.p != null ? `: ${Math.round(x.p * 100)}% of its choices here` : ""}` : undefined}
-              onClick={() => onAt(i + 1)}>
-              {t}{x.p != null && <small className="num"> {Math.round(x.p * 100)}%</small>}
-            </button>
-          );
-        }) : <span className="muted small">no moves yet</span>}
-      </div>
+      {side && (
+        <div className="chips played" role="group" aria-label="This side line">
+          <span className="muted small">Side line {side.name}:</span>
+          {side.tokens.map((t, i) => {
+            const x = side.moves[i];
+            return (
+              <button key={i} type="button" className={`san${x.by ? " bot" : ""}${i >= side.at ? " redo" : ""}`}
+                aria-pressed={i === side.at - 1}
+                title={x.by ? `${x.by}${x.p != null ? `: ${Math.round(x.p * 100)}% of its choices here` : ""}` : undefined}
+                onClick={() => onAt(i + 1)}>
+                {t}{x.p != null && <small className="num"> {Math.round(x.p * 100)}%</small>}
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div className="actions">
-        <button type="button" className="btn ghost" onClick={() => onAt(explore.at - 1)} disabled={!explore.at}>Take back</button>
-        <button type="button" className="btn ghost" onClick={onClose}>Back to the game</button>
+        <button type="button" className="btn ghost" onClick={onClose}>{side ? "Back to the game" : "Leave explore"}</button>
       </div>
       {over ? (
         <p><b>{over}.</b></p>
@@ -818,25 +900,74 @@ const MoveCell = memo(function MoveCell({ m, r, mine, turning, current, onPick }
   );
 });
 
-function MoveList({ moves, recAt, me, turning, cur, onPick }: {
-  moves: Move[]; recAt: Map<number, MistakeRecord>; me: Side; turning: number | null; cur: number; onPick: (ply: number) => void;
+/** The game's moves, with the side lines played on the board under the move they're an alternative to, like
+    chess.com's variations: a side line from a White move splits that move's row. */
+function MoveList({ moves, recAt, me, turning, pos, vars, baseOf, onPick, onPos, onDrop }: {
+  moves: Move[]; recAt: Map<number, MistakeRecord>; me: Side; turning: number | null; pos: Pos; vars: Var[];
+  baseOf: (v: Var) => string; onPick: (ply: number) => void; onPos: (p: Pos) => void; onDrop: (id: number) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const list = ref.current, el = list?.querySelector<HTMLElement>(".mv.cur");
+    const list = ref.current, el = list?.querySelector<HTMLElement>(".cur");
     if (list && el) list.scrollTop = Math.max(0, el.offsetTop - list.clientHeight / 2 + el.clientHeight / 2);
-  }, [cur]);
+  }, [pos.line, pos.at, vars.length]);
+  const kids = new Map<string, Var[]>();   // side lines by where they start: "line:at"
+  for (const v of vars) kids.set(`${v.from}:${v.at}`, [...kids.get(`${v.from}:${v.at}`) ?? [], v]);
+  const sideLines = (at: string) => (kids.get(at) ?? []).map((v) => (
+    <SideLine key={`v${v.id}`} v={v} kids={kids} pos={pos} baseOf={baseOf} onPos={onPos} onDrop={onDrop} />
+  ));
   const rows: ReactNode[] = [];
-  const firstBlack = moves[0]?.side === "black";
-  for (let i = firstBlack ? -1 : 0; i < moves.length; i += 2) {
-    const w = moves[i], b = moves[i + 1];
-    const no = Math.ceil(((w ?? b).ply) / 2);
-    rows.push(<span key={`n${i}`} className="no">{no}.</span>);
-    for (const x of [w, b]) {
-      rows.push(x ? (
-        <MoveCell key={x.ply} m={x} r={recAt.get(x.ply)} mine={x.side === me} turning={x.ply === turning} current={x.ply === cur} onPick={onPick} />
-      ) : <span key={`e${i}${x === w ? "w" : "b"}`} />);
+  let open = false;   // a row's White move is out and its Black move goes next to it
+  for (const x of moves) {
+    if (x.side === "white" || !open) {
+      rows.push(<span key={`n${x.ply}`} className="no">{Math.ceil(x.ply / 2)}.</span>);
+      if (x.side === "black") rows.push(<span key={`g${x.ply}`} className="mv-gap">…</span>);
+    }
+    rows.push(<MoveCell key={x.ply} m={x} r={recAt.get(x.ply)} mine={x.side === me} turning={x.ply === turning}
+      current={!pos.line && x.ply === pos.at} onPick={onPick} />);
+    open = x.side === "white";
+    const alts = sideLines(`0:${x.ply - 1}`);
+    if (alts.length) {
+      if (open) rows.push(<span key={`f${x.ply}`} className="mv-gap">…</span>);
+      rows.push(...alts);
+      open = false;
     }
   }
+  const after = sideLines(`0:${moves.length}`);
+  if (after.length && open) rows.push(<span key="fend" />);
+  rows.push(...after);
   return <div className="moves" ref={ref}>{rows}</div>;
+}
+
+/** One side line in the move list, with the side lines that branch from it after the move they're an alternative to. */
+function SideLine({ v, kids, pos, baseOf, onPos, onDrop }: {
+  v: Var; kids: Map<string, Var[]>; pos: Pos; baseOf: (v: Var) => string; onPos: (p: Pos) => void; onDrop: (id: number) => void;
+}) {
+  const base = baseOf(v);
+  const items: ReactNode[] = [];
+  let numbered = true;   // a Black move gets its number at the start, and after a side line inside this one
+  v.moves.forEach((x, j) => {
+    const before = j ? v.moves[j - 1].fen : base;
+    const token = numbered || sideToMove(before) === "white" ? numberedLine(before, [x.san])[0] : x.san;
+    const current = pos.line === v.id && pos.at === j + 1;
+    items.push(
+      <button key={j} type="button" className={`vm san${x.by ? " bot" : ""}${current ? " cur" : ""}`}
+        aria-current={current ? "step" : undefined}
+        title={x.by ? `${x.by}${x.p != null ? `: ${Math.round(x.p * 100)}% of its choices here` : ""}` : "Played on the board"}
+        onClick={() => onPos({ line: v.id, at: j + 1 })}>
+        {token}{x.p != null && <small className="num"> {Math.round(x.p * 100)}%</small>}
+      </button>,
+    );
+    const inner = j ? kids.get(`${v.id}:${j}`) ?? [] : [];
+    for (const w of inner) items.push(<SideLine key={`v${w.id}`} v={w} kids={kids} pos={pos} baseOf={baseOf} onPos={onPos} onDrop={onDrop} />);
+    numbered = inner.length > 0;
+  });
+  const name = numberedLine(base, [v.moves[0].san])[0];
+  return (
+    <div className="var" role="group" aria-label={`Side line ${name}`}>
+      {items}
+      <button type="button" className="var-drop" title="Remove this side line" aria-label={`Remove the side line ${name}`}
+        onClick={() => onDrop(v.id)}>×</button>
+    </div>
+  );
 }

@@ -1,7 +1,7 @@
 // End-to-end check of the acceptance so far: every page at phone and desktop width in both themes (no
 // console errors, no sideways scroll), the numbers on screen match the exports, a 250-ply game steps
-// smoothly, the arrow buttons step the game, a comparison and Explore, Explore gets live lines from the
-// in-browser engine, hovering a move in an explanation shows it on the board, Threat gets the other side's
+// smoothly, the arrow buttons step the game, a comparison and side lines played on the board (back to the
+// game from a side line's first move, then along the game), Explore gets live lines from the in-browser engine, hovering a move in an explanation shows it on the board, Threat gets the other side's
 // move from the live engine, Compare sits in the button row (greyed out with its reason where there's
 // nothing to compare), Play on gets answers from Maia-2 and Stockfish on the Compare boards and from Maia-2
 // in Explore, a drill session from a leak works on a phone (Phase 5), and the training pages open offline
@@ -327,15 +327,15 @@ try {
   const label = await page.textContent(".live-panel .card-head");
   const isolated = await page.evaluate(() => crossOriginIsolated);
   check("explore: live lines appear", lines, `${label?.trim()} · crossOriginIsolated=${isolated}`);
-  // A move played in Explore is answered by the chosen bot, picked under the board.
+  // A move off the game starts a side line, answered by the bot picked under the board.
   await page.click('.v-board .playon-head .seg button:text-is("~800")');
   const at100 = fenAfter(longGame.initial_fen, longGame.moves.slice(0, 100).map((m) => m.uci));
-  const mine = new Chess(at100).moves({ verbose: true })[0];
+  const mine = new Chess(at100).moves({ verbose: true }).find((x) => x.from + x.to !== longGame.moves[100].uci.slice(0, 4));
   await page.click(`[id="game-${LONG_GAME}-square-${mine.from}"]`);
   await page.click(`[id="game-${LONG_GAME}-square-${mine.to}"]`);
-  const answer = await page.waitForSelector(".live-panel .played button.bot", { timeout: 90_000 })
+  const answer = await page.waitForSelector(".moves .var .vm.bot", { timeout: 90_000 })
     .then(async (e) => ({ text: await e.textContent(), title: await e.getAttribute("title") }), () => null);
-  check("explore: Maia ~800 answers a move played in Explore", /^Maia ~800: \d+% of its choices here$/.test(answer?.title ?? ""),
+  check("explore: Maia ~800 answers a side line played on the board", /^Maia ~800: \d+% of its choices here$/.test(answer?.title ?? ""),
     `${mine.san}, then ${answer?.text} [${answer?.title}]`);
   if (shots) await page.screenshot({ path: join(shots, "explore-1280-dark.png"), fullPage: true });
 
@@ -490,15 +490,20 @@ try {
   const liveBar = await phone.waitForSelector(".v-board .evalbar.live", { timeout: 10000 }).then(() => true, () => false);
   check("explore: the eval bar shows the live score", liveBar, "");
   if (shots) await phone.screenshot({ path: join(shots, "explore-390-dark.png"), fullPage: true });
-  // In Explore ◀ takes a move back and ▶ plays it again.
-  await phone.click('button[aria-label^="Take back a move"]');
+  // 1. e4 isn't the game's move (1. d4), so it's a side line: ◀ from its first move goes back to the start, ▶ there
+  // follows the game, and the side line stays in the move list, a tap away.
+  const onBoard = async (ucis) => same(await boardOn(phone, `game-${LONG_GAME}`), placementOf(fenAfter(longGame.initial_fen, ucis)));
+  await phone.click('button[aria-label^="Back a move"]');
   await phone.waitForTimeout(400);
-  const backOk = same(await boardOn(phone, `game-${LONG_GAME}`), placementOf(longGame.initial_fen));
-  const redo = await phone.$$eval(".live-panel .played button.redo", (els) => els.map((e) => e.textContent).join());
-  await phone.click('button[aria-label^="Play the next move again"]');
+  const backOk = await onBoard([]);
+  await phone.click('button[aria-label^="Next move"]');
   await phone.waitForTimeout(400);
-  const fwdOk = same(await boardOn(phone, `game-${LONG_GAME}`), placementOf(fenAfter(longGame.initial_fen, ["e2e4"])));
-  check("explore: ◀ takes 1. e4 back and ▶ plays it again", backOk && redo === "1. e4" && fwdOk, `back ${backOk}, redo "${redo}", forward ${fwdOk}`);
+  const gameOk = await onBoard([longGame.moves[0].uci]);
+  await phone.click('.moves .var .vm:text-is("1. e4")');
+  await phone.waitForTimeout(400);
+  const sideOk = await onBoard(["e2e4"]);
+  check("explore: ◀ leaves the side line 1. e4 for the start, ▶ follows the game, the move list goes back to it",
+    backOk && gameOk && sideOk, `back ${backOk}, game ${gameOk}, side line ${sideOk}`);
   await ctx2.close();
   plain.server.close();
 

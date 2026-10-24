@@ -100,8 +100,19 @@ this file wins.
   boards get at least 560 px between them, otherwise one board at a time with a You / Stockfish switch.
   Previous and next step through my mistakes in the game. Leak cards switch between the two lines.
 - **One set of arrows:** ◀ ▶ ⏮ ⏭ and the arrow keys step whatever the board shows: the game, the compared
-  lines, or the moves played in Explore (where ◀ takes a move back and ▶ plays it again). Esc goes back to
-  the game.
+  lines, or a side line. Esc goes back to the game.
+- **Side lines** (added 2026-10-25, replacing Explore's separate list of played moves, after the
+  bot picker seemed to need a reload and stepping in and out of Explore was confusing): as on chess.com, a
+  move played on the board that isn't the game's next move starts a side line, listed in the move list
+  under the move it's an alternative to (a White move's row splits around it), and lines branch from side
+  lines too. ◀ ▶ follow the line the board is on: ◀ from a side line's first move goes back to where it
+  leaves the game (or the line it branches from), and ▶ there follows that line again. Playing the line's
+  next move steps to it, a side line already played from a position is followed rather than started again,
+  and a move at the end of a side line goes on the end of it. ⏮ goes to the start of the game, ⏭ to the end
+  of the line. Side lines stay until they're removed (× on each, which takes the lines inside it too) or
+  the page is left; they're never stored. In a side line the board and eval bar are live and the panel
+  shows the live lines; "Explore · live" turns the same on for the game's own positions. Picking a bot
+  while it's the bot's turn (the end of a side line, last moved by hand) has it move at once.
 - **Openings** (Phase 4): one tree per colour, the line kept in the URL (`?line=d2d4,d7d5`). Each position
   shows what I play (games, score, average Win% change), Stockfish's best with its score, what Lichess
   players rated 1000–1399 in rapid choose, and the games that reached it; each game opens in the viewer at
@@ -223,7 +234,8 @@ this file wins.
   install.
   - *From any position* (added 2026-10-24, because Play on was only reachable through Compare): the same
     choice sits under the board in Explore, so a move played there is answered too, from any position in
-    the game. One choice is kept for both, on this device; "Nobody" is Explore as it was.
+    the game. One choice is kept for both, on this device; "Nobody" is Explore as it was. (Since
+    2026-10-25 those moves are side lines in the move list, below.)
   - *Compare in the button row*, next to Threat and Explore, so it's always in the same place (C on a
     keyboard). Where there's nothing to compare (the start, their moves, my book or best moves, a move
     with no stored line) it's greyed out, and tapping it says why. The explanation's "Compare side by

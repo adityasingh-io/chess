@@ -238,31 +238,94 @@ test("Compare is always in the button row: greyed out with the reason where ther
   expect(document.querySelector(".cmp")).not.toBeNull();
 }, 20_000);
 
-test("Explore: who answers your moves sits under the board; with nobody, you play both sides", async () => {
-  localStorage.clear();
-  localStorage.setItem("coach-bot", "off");
+/** Runs `body` with Worker stubbed out: the live engine and the bots start but never answer. */
+async function noWorkers(body: () => Promise<void>) {
   const engines = globalThis.Worker;
   globalThis.Worker = class { onmessage = null; onerror = null; postMessage() {} terminate() {} } as unknown as typeof Worker;
-  try {
+  try { await body(); } finally { globalThis.Worker = engines; }
+}
+/** A legal move in `fen` other than `not` (uci), as chess.js gives it. */
+const otherMove = (fen: string, not?: string) => new Chess(fen).moves({ verbose: true }).find((x) => x.from + x.to !== not?.slice(0, 4))!;
+const uciOf = (x: { from: string; to: string; promotion?: string }) => x.from + x.to + (x.promotion ?? "");
+const curPly = () => document.querySelector('.moves .mv[aria-current="step"]')?.getAttribute("data-ply") ?? null;
+
+test("Explore: a move off the game starts a side line under it; a bot picked on its turn answers at once", async () => {
+  localStorage.clear();
+  localStorage.setItem("coach-bot", "off");
+  await noWorkers(async () => {
     const id = "164948678288";
     const g = data<Game>(`games/${id}.json`);
     await open(`/games/${id}?ply=0`);
     await act(async () => { fireEvent.click(await screen.findByRole("button", { name: /^Explore/ }, SLOW)); });
     const who = screen.getByRole("group", { name: "Who answers your moves" });
     expect(within(who).getByRole("button", { pressed: true }).textContent).toBe("Nobody");
-    const mv = new Chess(g.initial_fen).moves({ verbose: true })[0];
+    const mv = otherMove(g.initial_fen, g.moves[0].uci);
     const sq = (s: string) => document.getElementById(`game-${id}-square-${s}`)!;
     await act(async () => { fireEvent.click(sq(mv.from)); });
     await act(async () => { fireEvent.click(sq(mv.to)); });
-    const played = screen.getByRole("group", { name: "Moves played in Explore" });
-    expect(within(played).getAllByRole("button").map((b) => b.textContent)).toEqual(numberedLine(g.initial_fen, [mv.san]));
+    const name = numberedLine(g.initial_fen, [mv.san])[0];
+    const line = screen.getByRole("group", { name: `Side line ${name}` });
+    expect(within(line).getByRole("button", { current: "step" }).textContent).toBe(name);
+    const panel = screen.getByRole("group", { name: "This side line" });
+    expect(within(panel).getAllByRole("button").map((b) => b.textContent)).toEqual([name]);
     expect(document.querySelector(".v-board .playon")!.textContent).toContain("Nobody answers: play any move, for either side.");
+    // It's the other side's turn at the end of the side line, so the bot picked now moves straight away.
     await act(async () => { fireEvent.click(within(who).getByRole("button", { name: "~800" })); });
     expect(localStorage.getItem("coach-bot")).toBe("maia-800");
-    expect(document.querySelector(".v-board .playon")!.textContent).toContain("Make a move on the board and Maia ~800 answers.");
-  } finally {
-    globalThis.Worker = engines;
-  }
+    expect(document.querySelector(".v-board .playon")!.textContent).toContain("Maia ~800 is choosing…");
+  });
+}, 20_000);
+
+test("◀ ▶ follow the side line the board is on, then the game again from where it leaves it", async () => {
+  localStorage.clear();
+  localStorage.setItem("coach-bot", "off");
+  await noWorkers(async () => {
+    const id = "164948678288";
+    const g = data<Game>(`games/${id}.json`);
+    const k = 10;
+    const fen = replay(g.initial_fen, g.moves.slice(0, k).map((x) => x.uci)).at(-1)!;
+    await open(`/games/${id}?ply=${k}`);
+    await screen.findByRole("button", { name: /^Explore/ }, SLOW);
+    const sq = (s: string) => document.getElementById(`game-${id}-square-${s}`)!;
+    const tapMove = async (x: { from: string; to: string }) => {
+      await act(async () => { fireEvent.click(sq(x.from)); });
+      await act(async () => { fireEvent.click(sq(x.to)); });
+    };
+    const nav = (label: RegExp) => act(async () => { fireEvent.click(screen.getByRole("button", { name: label })); });
+    // Two moves off the game, for both sides (nobody answers).
+    const a = otherMove(fen, g.moves[k].uci);
+    const afterA = replay(fen, [uciOf(a)])[0];
+    const b = otherMove(afterA);
+    await tapMove(a);
+    await tapMove(b);
+    const first = numberedLine(fen, [a.san])[0];
+    const line = screen.getByRole("group", { name: `Side line ${first}` });
+    expect(within(line).getAllByRole("button").map((x) => x.textContent)).toEqual([...numberedLine(fen, [a.san, b.san]), "×"]);
+    expect(screen.getByRole("button", { name: /^Forward along this side line/ }).hasAttribute("disabled")).toBe(true);
+    expect(curPly()).toBeNull();
+    // ◀ steps back along the side line, then onto the game where it leaves it; ▶ there follows the game.
+    await nav(/^Back a move/);
+    expect(within(line).getByRole("button", { current: "step" }).textContent).toBe(first);
+    await nav(/^Back a move/);
+    expect(curPly()).toBe(String(k));
+    await nav(/^Next move/);
+    expect(curPly()).toBe(String(k + 1));
+    // Back into the side line from the move list; a different move from its first position starts a side line
+    // inside it, listed after the move it's an alternative to.
+    await act(async () => { fireEvent.click(within(line).getByRole("button", { name: first })); });
+    const c = otherMove(afterA, uciOf(b));
+    await tapMove(c);
+    const inner = within(line).getByRole("group", { name: /^Side line / });
+    expect(within(inner).getByRole("button", { current: "step" })).toBeTruthy();
+    await nav(/^Back a move/);
+    expect(within(line).getByRole("button", { current: "step" }).textContent).toBe(first);
+    await nav(/^Forward along this side line/);
+    expect(within(line).getByRole("button", { current: "step" }).textContent).toBe(b.san);
+    // Removing the side line takes its inner one with it and puts the board back on the game.
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: `Remove the side line ${first}` })); });
+    expect(document.querySelector(".moves .var")).toBeNull();
+    expect(curPly()).toBe(String(k));
+  });
 }, 20_000);
 
 // Phase 5: drills. Moves are played by tapping squares, as on a phone.

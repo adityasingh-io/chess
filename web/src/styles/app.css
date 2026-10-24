@@ -349,6 +349,17 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .moves .mv.cur, .moves .mv.cur:hover { background: var(--best); color: var(--bg); }
 .moves .mv.cur .tag { color: var(--bg); border-color: color-mix(in srgb, var(--bg) 40%, transparent); }
 .moves .mv.turn { box-shadow: inset 3px 0 0 var(--bad); }
+.moves .mv-gap { padding: 5px 8px; color: var(--muted); }
+/* Side lines played on the board, under the move they're an alternative to; the bot's moves in the live colour. */
+.moves .var { grid-column: 1 / -1; position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin: 2px 6px 4px 1.6rem; padding: 2px 28px 2px 8px; border-left: 2px solid var(--line); }
+.moves .var .var { flex-basis: 100%; margin: 2px 0 2px .4rem; }
+.moves .vm { padding: 3px 6px; border: 0; border-radius: 3px; background: none; font: inherit; font-size: .84rem; color: var(--muted); cursor: pointer; }
+.moves .vm:hover { background: var(--soft); color: var(--ink); }
+.moves .vm.bot { color: var(--live); }
+.moves .vm small { font-size: .7rem; opacity: .8; }
+.moves .vm.cur, .moves .vm.cur:hover { background: var(--best); color: var(--bg); }
+.moves .var-drop { position: absolute; top: 2px; right: 0; padding: 2px 8px; border: 0; border-radius: 3px; background: none; color: var(--muted); font: inherit; cursor: pointer; }
+.moves .var-drop:hover { background: var(--soft); color: var(--bad); }
 
 /* Explore (live engine) */
 .live-panel { border: 1px solid var(--live); }
