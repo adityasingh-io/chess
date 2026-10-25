@@ -513,7 +513,8 @@ test("the dashboard's last game is the newest one, and ?game retries its puzzles
   const newest = data<GamesIndex>("games/index.json").games[0];
   await open("/");
   const card = (await screen.findByRole("region", { name: "Last game" }, SLOW));
-  expect(within(card).getByText(newest.opponent, { exact: false })).toBeTruthy();
+  // The "Your lines" note can name the opponent too, when it was their move that left my lines.
+  expect(within(card).getAllByText(newest.opponent, { exact: false }).length).toBeGreaterThan(0);
   cleanup();
   await open(`/puzzles?game=${g.id}`);
   expect(await screen.findByText(`Puzzle 1 of ${g.puzzles}`, {}, SLOW)).toBeTruthy();
