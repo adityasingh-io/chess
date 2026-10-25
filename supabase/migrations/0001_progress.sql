@@ -10,7 +10,9 @@ create table if not exists public.progress (
 
 alter table public.progress enable row level security;
 
-revoke all on public.progress from anon;
+-- Supabase's default privileges give both API roles everything on a new table, TRUNCATE included, which
+-- row-level security doesn't cover; start from nothing and grant only what the app does.
+revoke all on public.progress from anon, authenticated;
 grant select, insert, update on public.progress to authenticated;
 
 create policy "progress: read own row" on public.progress

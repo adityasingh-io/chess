@@ -227,7 +227,10 @@ this file wins.
   (from the repo-root `.env`; Vite exposes only `VITE_` variables). The client library loads only then.
   Magic-link sign-in without account creation; one `progress` row per user under row-level security
   (`supabase/migrations/0001_progress.sql`). A sync pulls, merges and pushes; it runs at start, when the
-  device comes back online and five seconds after a change. Setup steps: [DEPLOY.md](DEPLOY.md).
+  device comes back online and five seconds after a change. Setup steps: [DEPLOY.md](DEPLOY.md). Set up
+  2026-10-25: project `chess-coach` (Mumbai, free plan; "automatically expose new tables" off, so the
+  migration's grants are the only ones), my account invited, sign-ups off; the Pages build gets the two
+  values from repository variables.
 - **Installable and offline:** a web manifest and a service worker written at build time. Install caches
   the app shell, every built file and the training data (summary, insights, losses, games index, leaks,
   endgames, puzzles, repertoire). Pages and data are network-first with the cache as fallback; built assets and engine files

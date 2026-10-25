@@ -52,6 +52,8 @@ The user site `adityasingh-io.github.io` already serves `adityasingh.io`, so thi
 2. `.github/workflows/pages.yml` builds with `COACH_GITHUB_PAGES_BASE=/chess/` (the repo name) and
    deploys. It runs when CI passes on main, from the nightly after a data commit, and by hand (Actions →
    Pages → Run workflow). The sub-path build also writes `404.html`, which Pages serves for deep links.
+   For sync it passes the repository variables (not secrets: both are public) `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_PUBLISHABLE_KEY` (`gh variable set <name> --body <value>`).
 3. Pages can't send headers, so the service worker adds the cross-origin isolation ones: the engine runs
    single-threaded on a first visit and multi-threaded from the next page load.
 
