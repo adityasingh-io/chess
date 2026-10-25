@@ -121,7 +121,8 @@ commits the changed exports, which makes the host redeploy.
 1. **Seed the cache once from the Mac** (otherwise the Action would re-analyse every game, so it stops
    instead): `gh auth login`, then `uv run coach cache push`. It uploads the Stockfish results, explorer
    responses and notes (about 5 MB compressed) and the Lichess puzzle subset to a release named `cache`.
-   Later, `uv run coach cache pull` on the Mac takes what the Action added.
+   Later, `uv run coach cache pull` on the Mac takes what the Action added; `push` merges it in first too,
+   so a push never drops the Action's results.
 2. **Secrets** (repo → Settings → Secrets and variables → Actions → Secrets): `CHESSCOM_CONTACT_EMAIL` and
    `LICHESS_TOKEN`, the same values as in `.env`.
 3. **Try it:** Actions → Nightly update → Run workflow. With a few new games it should take minutes (a rough

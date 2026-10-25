@@ -323,7 +323,8 @@ this file wins.
   any pipeline secret (the `.env` file's non-`VITE_` variables and the CI secrets). It prints names only.
 - **Shared cache:** `coach cache push` uploads the `evals`, `explorer` and `notes` tables as one
   zstd-compressed SQLite file (about 5 MB) and the Lichess puzzle subset to the release `cache`; `pull`
-  merges with `INSERT OR IGNORE`, so rows already present stay. Games and moves are rebuilt from chess.com.
+  merges with `INSERT OR IGNORE`, so rows already present stay. The upload replaces the release's file, so
+  `push` pulls first (since 2026-10-25, after a push from the Mac dropped the nightly's newest results). Games and moves are rebuilt from chess.com.
   CI checks that the Linux Stockfish 19 reproduces results recorded on the Mac, which is what makes
   sharing sound. A fresh checkout's export keeps the last exported Lichess puzzles when the subset is
   missing.

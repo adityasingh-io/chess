@@ -213,7 +213,7 @@ def cache_pull() -> None:
 
 @cache_app.command("push")
 def cache_push() -> None:
-    """Upload this machine's Stockfish results, explorer responses and notes (merge with `pull` first)."""
+    """Merge the shared cache in, then upload this machine's Stockfish results, explorer responses and notes."""
     from coach import cache
 
     cfg, conn = _setup()

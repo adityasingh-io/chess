@@ -29,7 +29,7 @@ uv run coach tagger-check            # sub-type tagger vs Lichess puzzle themes
 uv run coach puzzles                 # pick the Lichess puzzle subset (streams the puzzle file once)
 uv run coach repertoire              # write the starter repertoire.pgn (edit it afterwards)
 uv run coach cache pull              # merge the shared cache (GitHub release `cache`) into data/
-uv run coach cache push              # upload this machine's engine results, explorer stats and notes
+uv run coach cache push              # merge the shared cache in, then upload this machine's results and notes
 uv run coach notes --dry-run         # AI notes (off in config.toml): what would be sent, without sending
 ```
 

@@ -3,7 +3,8 @@
 What is slow to rebuild goes up as one compressed SQLite file on a GitHub release named `cache`: Stockfish
 results, explorer responses and AI notes, with the Lichess puzzle subset next to it. Games and moves stay
 out, since `coach fetch` and `coach parse` rebuild them from chess.com in seconds. Pulling merges and never
-overwrites (a row already here stays), so either machine can add rows and push.
+overwrites (a row already here stays), so either machine can add rows and push. Pushing pulls first, since
+the upload replaces the release's file: rows the other machine added since this one last pulled stay in it.
 
 Uses the GitHub CLI: signed in with `gh auth login` on the Mac, GITHUB_TOKEN in the Action.
 """
@@ -82,6 +83,11 @@ def _gh(*args: str, check: bool = True) -> subprocess.CompletedProcess:
 
 
 def push(cfg: Config, conn: sqlite3.Connection, log) -> None:
+    if _gh("release", "view", RELEASE, check=False).returncode == 0:
+        _take(cfg, conn, log)
+    else:
+        _gh("release", "create", RELEASE, "--title", "Pipeline cache", "--latest=false", "--notes",
+            "Stockfish results, explorer responses and notes for `coach cache pull` (src/coach/cache.py).")
     with tempfile.TemporaryDirectory() as tmp:
         packed = Path(tmp) / DB_ASSET
         counts = pack(conn, packed)
@@ -89,9 +95,6 @@ def push(cfg: Config, conn: sqlite3.Connection, log) -> None:
         puzzles = cfg.data_dir / PUZZLES_ASSET
         if puzzles.exists():
             assets.append(str(puzzles))
-        if _gh("release", "view", RELEASE, check=False).returncode != 0:
-            _gh("release", "create", RELEASE, "--title", "Pipeline cache", "--latest=false", "--notes",
-                "Stockfish results, explorer responses and notes for `coach cache pull` (src/coach/cache.py).")
         _gh("release", "upload", RELEASE, *assets, "--clobber")
         size = packed.stat().st_size / 1e6
     log(f"cache: pushed {', '.join(f'{n} {t}' for t, n in counts.items())} ({size:.1f} MB)")
@@ -102,6 +105,12 @@ def pull(cfg: Config, conn: sqlite3.Connection, log) -> bool:
     if _gh("release", "view", RELEASE, check=False).returncode != 0:
         log("cache: no `cache` release yet; run `coach cache push` on a machine that has the analysis")
         return False
+    _take(cfg, conn, log)
+    return True
+
+
+def _take(cfg: Config, conn: sqlite3.Connection, log) -> None:
+    """Merge the release's rows into `conn`, and take its puzzle subset when there's none here."""
     with tempfile.TemporaryDirectory() as tmp:
         _gh("release", "download", RELEASE, "--dir", tmp, "--clobber", "--pattern", DB_ASSET, "--pattern", PUZZLES_ASSET)
         added = merge(conn, Path(tmp) / DB_ASSET)
@@ -111,4 +120,3 @@ def pull(cfg: Config, conn: sqlite3.Connection, log) -> bool:
             shutil.copyfile(puzzles, mine)
             log("cache: took the Lichess puzzle subset")
     log(f"cache: added {', '.join(f'{n} {t}' for t, n in added.items())}")
-    return True
