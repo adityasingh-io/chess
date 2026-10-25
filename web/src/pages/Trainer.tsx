@@ -1,18 +1,19 @@
 // Repertoire trainer: play my side of each line while the board plays the other side. A new line is shown
 // first (learn: the arrow gives each move and why); after that it's played from memory. Lines come from the
-// repertoire PGN, from leak positions in my games (moves to the position, then Stockfish's best) and from
-// lines I add in the opening tree. Each line is an FSRS card, kept on this device. Every score is stored
+// repertoire PGN, from the replies my opponents play (coverage), from leak positions in my games (moves to the
+// position, then Stockfish's best) and from lines I add in the opening tree. A line I left with my own move in
+// a game comes first among the lines to review. Each line is an FSRS card, kept on this device. Every score is stored
 // Stockfish output (or the live engine, labelled, for a move nothing stored covers) and every reason is
 // measured on the board by the pipeline (src/coach/why.py).
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Board } from "../components/Board";
 import { RefText, usePeek, type PeekControl } from "../components/RefText";
 import { numberedLine, replay, sideToMove, tryMove, uciParts, type Side } from "../lib/chess";
 import { useRepertoire } from "../lib/data";
 import { useLiveEngine } from "../lib/engine";
-import { evalFor, moveName, pct, plural, signed } from "../lib/format";
-import { cardId, dueLines, newLines, START, useLines, type Line } from "../lib/lines";
+import { day, evalFor, moveName, pct, plural, signed } from "../lib/format";
+import { cardId, dueLines, newLines, slipped, START, useLines, type Line } from "../lib/lines";
 import { useMoveInput } from "../lib/moveInput";
 import { grade, Rating, removeLine, useProgress, type Progress } from "../lib/progress";
 import { myKinds, type RefLine } from "../lib/refs";
@@ -21,19 +22,31 @@ import type { Alternative, Eval, LineStep } from "../types/export";
 
 const REPLY_MS = 420;
 const SESSION = 8;
-const SOURCE: { [s in Line["source"]]: [string, string] } = {
-  repertoire: ["Your repertoire", "From the repertoire PGN: a starter set built from named lines, Stockfish's moves for you and the most common replies at your level."],
-  leak: ["Leak positions", "Positions where your usual move costs you: the moves to get there, then Stockfish's best."],
-  tree: ["Added from the opening tree", "Lines you picked in Openings."],
+const SOURCE: { [s in Line["source"]]: [string, (minGames: number) => string] } = {
+  repertoire: ["Your repertoire", () => "From the repertoire PGN: a starter set built from named lines, Stockfish's moves for you and the most common replies at your level."],
+  coverage: ["Covering your opponents", (n) => `What your opponents play against you, each reply in at least ${n} of your games: your repertoire's moves where it has them, Stockfish's best where it doesn't. The moves your repertoire already has are played for you.`],
+  leak: ["Leak positions", () => "Positions where your usual move costs you: the moves to get there, then Stockfish's best."],
+  tree: ["Added from the opening tree", () => "Lines you picked in Openings."],
 };
 
 export default function Trainer() {
   const lines = useLines();
   const p = useProgress();
-  const [session, setSession] = useState<Line[] | null>(null);
+  const minGames = useRepertoire().cover_min_games;
+  const [params, setParams] = useSearchParams();
+  // ?line=<id> (from a game's "Drill the line") opens that line straight away.
+  const [session, setSession] = useState<Line[] | null>(() => {
+    const asked = lines.find((l) => l.id === params.get("line"));
+    return asked ? [asked] : null;
+  });
   const due = dueLines(lines, p), fresh = newLines(lines, p);
+  const left = due.filter((l) => slipped(l, p));
+  const close = () => {
+    setSession(null);
+    if (params.has("line")) { const next = new URLSearchParams(params); next.delete("line"); setParams(next, { replace: true }); }
+  };
 
-  if (session) return <Session lines={session} onClose={() => setSession(null)} />;
+  if (session) return <Session lines={session} onClose={close} />;
   return (
     <>
       <div className="page-head">
@@ -50,13 +63,22 @@ export default function Trainer() {
           </button>
         </div>
       </section>
-      {(["repertoire", "leak", "tree"] as const).map((src) => {
+      {left.length > 0 && (
+        <section className="card">
+          <div className="card-head"><h2>You left these in your games</h2><span className="muted small">{plural(left.length, "line")}</span></div>
+          <p className="muted small" style={{ margin: 0 }}>Lines where you played another move in a game since you last drilled them. They come first in your review.</p>
+          <div className="rows">
+            {left.map((l) => <LineRow key={l.id} line={l} p={p} onDrill={() => setSession([l])} />)}
+          </div>
+        </section>
+      )}
+      {(["repertoire", "coverage", "leak", "tree"] as const).map((src) => {
         const group = lines.filter((l) => l.source === src);
         if (!group.length && src !== "tree") return null;
         return (
           <section key={src} className="card">
             <div className="card-head"><h2>{SOURCE[src][0]}</h2><span className="muted small">{plural(group.length, "line")}</span></div>
-            <p className="muted small" style={{ margin: 0 }}>{SOURCE[src][1]}</p>
+            <p className="muted small" style={{ margin: 0 }}>{SOURCE[src][1](minGames)}</p>
             {group.length ? (
               <div className="rows">
                 {group.map((l) => <LineRow key={l.id} line={l} p={p} onDrill={() => setSession([l])} />)}
@@ -73,6 +95,7 @@ export default function Trainer() {
 
 function when(p: Progress, l: Line) {
   const item = p.items[cardId(l)];
+  if (slipped(l, p)) return "due";
   if (!item) return "new";
   const days = Math.ceil((item.card.due - Date.now()) / 86400000);
   return days <= 0 ? "due" : days === 1 ? "tomorrow" : `in ${days} days`;
@@ -83,12 +106,19 @@ function LineRow({ line, p, onDrill }: { line: Line; p: Progress; onDrill: () =>
   // A leak line's last move is the answer, so the row stops before it.
   const shown = numberedLine(START, line.san).slice(0, line.source === "leak" ? line.start : 12);
   const more = line.source === "leak" || shown.length < line.san.length;
+  const slip = line.slips[0];
   return (
     <div className="row line-row">
       <button type="button" className="t linkish" onClick={onDrill}>
         {line.name} <span className="muted small">· as {line.colour === "white" ? "White" : "Black"}</span>
       </button>
       <span className="s san">{shown.join(" ")}{more ? " …" : ""}</span>
+      {slip && (
+        <span className="s small">
+          You played <Link to={`/games/${slip.game}?ply=${slip.ply}`} className="san">{moveName(slip.ply, slip.san)}</Link> instead on {day(slip.ts)}
+          {line.slip_games > 1 && <span className="muted"> · left it in {plural(line.slip_games, "game")}</span>}
+        </span>
+      )}
       <span className="r">
         <span className={`pill ${status === "due" ? "due" : ""}`}>{status}</span>
         {line.source === "tree" && (
@@ -165,6 +195,7 @@ function StepWhy({ step, me, mine, alts, title, peek }: {
     step.eval || step.terminal ? `Stockfish ${scoreText(step.eval, step.terminal, me)}` : null,
     step.top === true ? "its top move here" : step.top === false && best ? `its top move is ${best.san} (${scoreText(best.eval, best.terminal, me)})` : null,
     step.share != null ? `${pct(step.share)} of players at your level play it${step.most_common ? `, the most common ${mine ? "move" : "reply"}` : ""}` : null,
+    step.masters_share != null ? `${pct(step.masters_share)} of masters` : null,
   ].filter(Boolean);
   return (
     <div className="step-why">
@@ -344,6 +375,7 @@ function WholeLine({ line, me, positions }: { line: Line; me: Side; positions: {
           s.eval || s.terminal ? `Stockfish ${scoreText(s.eval, s.terminal, me)}` : null,
           s.top === false && best ? `top: ${best.san}` : null,
           s.share != null ? `${pct(s.share)} at your level` : null,
+          s.masters_share != null ? `${pct(s.masters_share)} masters` : null,
         ].filter(Boolean).join(" · ");
         return (
           <li key={k} className={mine ? "mine" : "theirs"}>

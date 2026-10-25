@@ -1,10 +1,11 @@
 import { Link } from "react-router";
 import { RatingChart } from "../components/charts";
 import { Trend } from "../components/bits";
+import { RepertoireNote } from "../components/RepertoireNote";
 import { endgameStarts, readTally, resignedId, resignedStarts, thrownId, thrownStarts } from "../lib/playout";
 import { useEndgames, useGamesIndex, useGameSummaries, useInsights, useLeaks, useLosses, usePuzzleIndex, useSummary } from "../lib/data";
 import { dueIds } from "../lib/drill";
-import { dueLines, newLines, useLines } from "../lib/lines";
+import { dueLines, newLines, slipped, useLines } from "../lib/lines";
 import { streak, useProgress } from "../lib/progress";
 import { dateTime, day, moveName, n1, pct } from "../lib/format";
 import { RESULT_WORD, TYPE, tagName } from "../lib/names";
@@ -66,6 +67,7 @@ function Training() {
   const lines = useLines();
   const due = dueIds(p).length;
   const linesDue = dueLines(lines, p).length, linesNew = newLines(lines, p).length;
+  const linesSlipped = lines.filter((l) => slipped(l, p)).length;
   const top = s.top_leaks.find((l) => (index.mine[l.tag] ?? 0) + (index.lichess[l.tag] ?? 0) > 0);
   const tally = readTally();
   const losses = useLosses();
@@ -101,7 +103,9 @@ function Training() {
         <Link to="/trainer" className="train">
           <span className="label">Openings</span>
           <b className="num">{linesDue || linesNew}</b>
-          <span className="muted small">{linesDue ? "lines due" : linesNew ? "lines to learn" : "no lines yet"}</span>
+          <span className="muted small">
+            {linesDue ? (linesSlipped ? `lines due, ${linesSlipped} you left in a game` : "lines due") : linesNew ? "lines to learn" : "no lines yet"}
+          </span>
         </Link>
         <Link to="/play" className="train">
           <span className="label">Play it out</span>
@@ -136,6 +140,7 @@ function LastGame() {
         {counts.map(([n, word]) => <span key={word} className="muted"> · <span className="num">{n}</span> {n === 1 ? word : word === "inaccuracy" ? "inaccuracies" : `${word}s`}</span>)}
         {g.loss_cause && <> · why you lost: <b>{TYPE[g.loss_cause] ?? g.loss_cause}</b></>}
       </p>
+      {g.repertoire && <p className="small" style={{ margin: 0 }}><RepertoireNote c={g.repertoire} opponent={g.opponent} /></p>}
       <div className="puzzle-actions">
         {g.puzzles > 0 && <Link className="btn" to={`/puzzles?game=${g.id}`}>Retry its mistakes ({g.puzzles})</Link>}
         {thrown && thrownStarts([thrown]).length > 0 && (

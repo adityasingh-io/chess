@@ -6,6 +6,11 @@ and on the opponent's by the most common reply of players at my level (Lichess e
 `plies` moves or the explorer has fewer than `min_games` games there. Once written, the PGN is mine to
 edit; the pipeline only reads it. Each game in it is one or more lines (variations become their own
 lines), and its `Repertoire` header says which colour I play.
+
+Coverage lines fill the PGN's gaps with what my opponents actually play: every reply of theirs that at
+least `cover_min_games` of my games reached is followed until my games stop reaching the position. On my
+turn a line plays the PGN's move where it has one; elsewhere my most played move when its stored label is
+Excellent or better (`KEEP`), so a good habit stays, and Stockfish's stored best (pass 1) when it isn't.
 """
 
 from __future__ import annotations
@@ -13,6 +18,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import sqlite3
+from collections import defaultdict
 from pathlib import Path
 
 import chess
@@ -29,6 +35,7 @@ from coach.positions import position_key
 from coach.reports import Node, leak_positions, score, tree
 
 SIDES = {"white": chess.WHITE, "black": chess.BLACK}
+KEEP = ("book", "best", "excellent")   # labels of my usual move that a coverage line keeps
 
 
 def named_line(root: Path, name: str) -> list[str] | None:
@@ -176,6 +183,82 @@ def leak_lines(cfg: Config, models: list[GameModel], evals1: dict[str, dict]) ->
             name = f"{opening.name if opening else 'Leak'}, move {board.fullmove_number}"
             out.append((colour, name, [*moves, n.best], len(moves)))
     return out
+
+
+def taught(lines: list[tuple[str, str, list[str]]], colour: str) -> dict[str, set[str]]:
+    """Position key -> the PGN's moves there, for the lines I play as `colour`."""
+    out: dict[str, set[str]] = defaultdict(set)
+    for c, _, moves in lines:
+        if c != colour:
+            continue
+        board = chess.Board()
+        for uci in moves:
+            out[position_key(board)].add(uci)
+            board.push_uci(uci)
+    return out
+
+
+def coverage_lines(cfg: Config, models: list[GameModel], evals1: dict[str, dict],
+                   pgn: list[tuple[str, str, list[str]]]) -> list[tuple[str, str, list[str], int]]:
+    """(colour, name, moves, start) for each way my opponents take my games out of the PGN often enough.
+
+    `start` is the first of my moves the PGN doesn't have; the moves before it are played for me."""
+    n = cfg.repertoire.cover_min_games
+    names = load_openings(openings_dir(cfg.root), cfg.data_dir)
+    out = []
+    for colour in ("white", "black"):
+        me, nodes, book = SIDES[colour], tree(cfg, models, colour, evals1), taught(pgn, colour)
+
+        def emit(moves: list[str], start: int | None) -> None:
+            if start is None:
+                return  # all of it is in the PGN already
+            board, opening, theirs = chess.Board(), None, ""
+            for uci in moves:
+                if board.turn != me:  # named after their last move: lines branch on their replies
+                    number = f"{board.fullmove_number}. " if board.turn == chess.WHITE else f"{board.fullmove_number}…"
+                    theirs = number + board.san(chess.Move.from_uci(uci))
+                board.push_uci(uci)
+                opening = names.get(position_key(board), opening)
+            out.append((colour, f"{opening.name if opening else 'Your games'}, after {theirs}", moves, start))
+
+        def walk(board: chess.Board, moves: list[str], start: int | None, seen: frozenset[str]) -> None:
+            key = position_key(board)
+            node = nodes.get(key)
+            if node is None or key in seen:
+                if board.turn != me:
+                    emit(moves, start)  # a line ends on my move
+                return
+            seen = seen | {key}
+            if board.turn == me:
+                if key in book:
+                    ucis, first = sorted(book[key]), start
+                else:
+                    move = usual_move(node)
+                    move = move if move and node.moves[move][0].label in KEEP else node.best
+                    ucis, first = [move] if move else [], len(moves) if start is None else start
+                for uci in ucis:
+                    walk(_pushed(board, uci), [*moves, uci], first, seen)
+                return
+            replies = sorted(u for u, ps in node.moves.items() if len({p.move["game_id"] for p in ps}) >= n)
+            if not replies:
+                emit(moves, start)
+            for uci in replies:
+                walk(_pushed(board, uci), [*moves, uci], start, seen)
+
+        walk(chess.Board(), [], None, frozenset())
+    return out
+
+
+def usual_move(node: Node) -> str | None:
+    """The move I played here in the most games (ties: the first in UCI order)."""
+    games = {u: len({p.move["game_id"] for p in ps}) for u, ps in node.moves.items()}
+    return min(games, key=lambda u: (-games[u], u)) if games else None
+
+
+def _pushed(board: chess.Board, uci: str) -> chess.Board:
+    after = board.copy(stack=False)
+    after.push_uci(uci)
+    return after
 
 
 def pgn_text(moves: list[str]) -> str:

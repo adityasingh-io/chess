@@ -30,3 +30,23 @@ def test_fetch_backs_off_and_caches(recorded):
     stats = explorer.load(conn, cfg)[key]
     assert explorer.share(stats, "e7e5") == (50.0, 10)
     assert explorer.share(stats, "c7c5") == (0.0, 10)
+
+
+def test_masters_are_fetched_from_their_own_database_and_cached_apart(recorded):
+    cfg = replace(recorded.cfg, secrets=replace(recorded.cfg.secrets, lichess_token="test-token"))
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(200, json={"white": 40, "draws": 50, "black": 10, "moves": [
+            {"uci": "c7c5", "san": "c5", "white": 20, "draws": 25, "black": 5, "averageRating": 2450, "game": None, "opening": None}
+        ], "topGames": [], "opening": None})
+
+    client = explorer.Explorer(cfg, client=httpx.Client(transport=httpx.MockTransport(handler)), sleep=lambda _: None)
+    conn = db.connect(cfg.db_path)
+    key = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq -"
+    assert explorer.fetch(cfg, conn, [key], Console(quiet=True), client, database="masters") == 1
+    url = calls[0].url
+    assert str(url).startswith(cfg.explorer.masters_url) and "ratings" not in url.params and url.params["topGames"] == "0"
+    assert explorer.share(explorer.load(conn, cfg, "masters")[key], "c7c5") == (50.0, 100)
+    assert explorer.load(conn, cfg) == {}   # players at my level are still to fetch

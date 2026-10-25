@@ -54,9 +54,10 @@ npm run e2e        # every page at phone and desktop width in Chrome, step timin
 ```
 
 Dashboard, leaks, games with a move-by-move viewer and live engine (chess.com-style Brilliant, Great and Miss
-marks next to every label, with each game's counts), openings tree and report, endgames (with drills per
-endgame type), insights, puzzles from my games and Lichess with spaced repetition, a repertoire trainer that
-shows a new line move by move before asking for it from memory, and "Play it out": wins that got away, games
+marks next to every label, with each game's counts), openings tree (with what masters play) and report,
+endgames (with drills per endgame type), insights, puzzles from my games and Lichess with spaced repetition, a
+repertoire trainer that shows a new line move by move before asking for it from memory, covers the replies my
+opponents actually play and brings back a line I left in a game, and "Play it out": wins that got away, games
 I gave up while still playable and endgames I spoiled, played on against the in-browser Stockfish. Every mistake, puzzle and
 trainer move says what it does on the board, measured along Stockfish's lines, and every move or square it
 names shows on the board on hover or tap. Settings has board options (square names on every square,

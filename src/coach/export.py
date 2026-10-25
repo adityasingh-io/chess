@@ -6,7 +6,7 @@ Files are rewritten only when their content changes, so a re-run with no new gam
 from __future__ import annotations
 
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,14 +15,15 @@ from pydantic import BaseModel
 from pydantic.json_schema import models_json_schema
 
 from coach import schema as S
+from coach.book import book, check
 from coach.config import Config
 from coach.model import GameModel, Ply, Record
 from coach.puzzles import endgame_tags, lichess_puzzle, load_subset, my_puzzles
 from coach.reports import (
-    POINTS, as_of, by_time, endgame_table, insights, leak_positions, leaks, loss_summary, opening_families,
+    POINTS, as_of, by_time, coverage, endgame_table, insights, leak_positions, leaks, loss_summary, opening_families,
     score, surprises, top_leaks, tree,
 )
-from coach.trainer import repertoire_out
+from coach.trainer import all_lines, repertoire_out
 from coach.templates import explain, line_san, move_san, why
 from coach.why import solution_why
 
@@ -92,7 +93,7 @@ def move_out(p: Ply, evals1: dict[str, dict], record_ids: dict[int, str], plies:
 
 
 def game_out(cfg: Config, m: GameModel, evals1: dict[str, dict], evals2: dict[str, dict], notes: dict[str, str],
-             puzzles: int) -> S.Game:
+             puzzles: int, rep: dict | None) -> S.Game:
     row = m.row
     record_ids = {r.ply.number: r.id for r in m.records}
     loss = None
@@ -119,10 +120,11 @@ def game_out(cfg: Config, m: GameModel, evals1: dict[str, dict], evals2: dict[st
         moves=[move_out(p, evals1, record_ids, cfg.engine.pv_plies) for p in m.plies],
         records=[record_out(r, notes) for r in m.records], puzzles=puzzles,
         loss=loss, thrown=thrown, endgame=endgame_out(m, evals2, evals1),
+        repertoire=S.RepertoireCheck(**rep) if rep else None,
     )
 
 
-def game_summary(m: GameModel, puzzles: int) -> S.GameSummary:
+def game_summary(m: GameModel, puzzles: int, rep: dict | None) -> S.GameSummary:
     mine = Counter(p.label for p in m.mine())
     return S.GameSummary(
         id=m.id, start_ts=m.row["start_ts"], colour=m.row["my_color"], opponent=m.row["opp_username"],
@@ -130,6 +132,7 @@ def game_summary(m: GameModel, puzzles: int) -> S.GameSummary:
         opening=m.opening.family if m.opening else None, accuracy=r1(m.my_accuracy), plies=len(m.plies),
         inaccuracies=mine["inaccuracy"], mistakes=mine["mistake"], blunders=mine["blunder"],
         loss_cause=m.loss.cause if m.loss else None, thrown=m.thrown is not None, puzzles=puzzles,
+        repertoire=S.RepertoireCheck(**rep) if rep else None,
     )
 
 
@@ -152,7 +155,7 @@ def explorer_out(stats: dict | None, fen: str) -> S.ExplorerStats | None:
 
 
 def opening_out(cfg: Config, models: list[GameModel], colour: str, evals1: dict[str, dict],
-                explorer: dict[str, dict], stamp: int) -> S.OpeningReport:
+                explorer: dict[str, dict], masters: dict[str, dict], checks: dict[str, dict], stamp: int) -> S.OpeningReport:
     mine = [m for m in models if m.row["my_color"] == colour and m.plies]  # a game with no moves has no opening
     results = {m.id: m.row["result"] for m in models}
     nodes = tree(cfg, models, colour, evals1)
@@ -166,7 +169,7 @@ def opening_out(cfg: Config, models: list[GameModel], colour: str, evals1: dict[
             score=r1(100 * sum(POINTS[r] for r in n.results) / len(n.results)),
             moves=sorted((tree_move(u, ps, results, n.my_turn) for u, ps in n.moves.items()), key=lambda t: -t.games),
             stockfish_best=n.best, stockfish_best_san=best_san, stockfish_eval=ev(n.best_top),
-            explorer=explorer_out(stats, n.fen),
+            explorer=explorer_out(stats, n.fen), masters=explorer_out(masters.get(n.key), n.fen),
         )
 
     cards = []
@@ -198,7 +201,7 @@ def opening_out(cfg: Config, models: list[GameModel], colour: str, evals1: dict[
         as_of=stamp, colour=colour, games=len(mine), score=r1(colour_score), families=families,
         tree=[node_out(n) for n in sorted(nodes.values(), key=lambda n: -len(n.games))
               if len(n.games) >= cfg.analysis.openings.tree_min_games],
-        leaks=cards, surprises=surprise_cards,
+        leaks=cards, surprises=surprise_cards, coverage=S.Coverage(**coverage(cfg, models, checks, colour)),
     )
 
 
@@ -209,9 +212,17 @@ class Built:
 
 
 def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, dict], evals2: dict[str, dict],
-          explorer: dict[str, dict], notes: dict[str, str] | None = None) -> Built:
+          explorer: dict[str, dict], notes: dict[str, str] | None = None, masters: dict[str, dict] | None = None) -> Built:
     stamp = as_of(models)
     ordered = by_time(models)
+    masters = masters or {}
+    lines = all_lines(cfg, models, evals1)
+    bk = book(lines)
+    checks = {m.id: c for m in ordered if (c := check(bk, m))}
+    slips: dict[str, list[S.Slip]] = defaultdict(list)
+    for m in reversed(ordered):
+        if (c := checks.get(m.id)) and c["result"] == "mine":
+            slips[c["line"]].append(S.Slip(game=m.id, ts=m.row["start_ts"], ply=c["ply"], san=c["san"]))
     all_leaks = leaks(cfg, models)
     records = [r for m in ordered for r in m.records]
     lost = [m for m in ordered if m.loss]
@@ -224,7 +235,7 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
     mine = S.PuzzleSet(as_of=stamp, source="mine", puzzles=[S.Puzzle(**p, why=why(by_record[p["id"][2:]]))
                                                             for p in my_puzzles(cfg, ordered, evals2)])
     per_game = Counter(p.game for p in mine.puzzles)
-    games = {m.id: game_out(cfg, m, evals1, evals2, notes or {}, per_game[m.id]) for m in ordered}
+    games = {m.id: game_out(cfg, m, evals1, evals2, notes or {}, per_game[m.id], checks.get(m.id)) for m in ordered}
     record_index = [r for g in games.values() for r in g.records]
     lichess = S.PuzzleSet(as_of=stamp, source="lichess", puzzles=lichess_puzzles(cfg))
     files: dict[str, BaseModel] = {
@@ -241,7 +252,7 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
             bots=S.Bots(maia=[S.MaiaLevel(chesscom=c, lichess=cfg.rating_map.lichess_of(c)) for c in cfg.bots.maia_chesscom],
                         me_lichess=cfg.rating_map.lichess_of(rated[-1].row["my_rating"]) if rated else None),
         ),
-        "games/index.json": S.GamesIndex(as_of=stamp, games=[game_summary(m, per_game[m.id]) for m in reversed(ordered)]),
+        "games/index.json": S.GamesIndex(as_of=stamp, games=[game_summary(m, per_game[m.id], checks.get(m.id)) for m in reversed(ordered)]),
         "mistakes/index.json": S.MistakesIndex(as_of=stamp, records=record_index),
         "losses.json": S.Losses(
             as_of=stamp, total=len(lost), causes=dict(loss_summary(models)), causes_30_days=dict(loss_summary(models, month_ago)),
@@ -260,8 +271,8 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
                    previous=None if l.previous is None else round(l.previous, 3),
                    win_lost=r1(l.win_lost), records=l.records)
             for l in all_leaks]),
-        "openings/white.json": opening_out(cfg, models, "white", evals1, explorer, stamp),
-        "openings/black.json": opening_out(cfg, models, "black", evals1, explorer, stamp),
+        "openings/white.json": opening_out(cfg, models, "white", evals1, explorer, masters, checks, stamp),
+        "openings/black.json": opening_out(cfg, models, "black", evals1, explorer, masters, checks, stamp),
         "endgames.json": S.Endgames(
             as_of=stamp, games=sum(1 for m in models if m.endgame),
             table={k: dict(v) for k, v in endgame_table(models).items()},
@@ -271,11 +282,11 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
                                     spoiler_win=r1(m.endgame.spoiler.win_before) if m.endgame.spoiler else None)
                       for m in ordered if m.endgame],
         ),
-        "insights.json": S.Insights(as_of=stamp, **_rounded(insights(cfg, models))),
+        "insights.json": S.Insights(as_of=stamp, **_rounded(insights(cfg, models, checks))),
         "puzzles/mine.json": mine,
         "puzzles/lichess.json": lichess,
         "puzzles/index.json": S.PuzzleIndex(as_of=stamp, mine=tag_counts(mine), lichess=tag_counts(lichess)),
-        "repertoire.json": repertoire_out(cfg, models, evals1, explorer, stamp),
+        "repertoire.json": repertoire_out(cfg, lines, evals1, explorer, masters, slips, stamp),
     }
     return Built(files, games)
 

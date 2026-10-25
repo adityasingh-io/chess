@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { lineSan, numberedLine, posKey, replay } from "../src/lib/chess";
-import { evalFor, sanTokens } from "../src/lib/format";
+import { evalFor, grouped, moveName, n1, plural, sanTokens } from "../src/lib/format";
+import { START } from "../src/lib/lines";
 import { grade, normalise, Rating, setProgress } from "../src/lib/progress";
 import { ENDGAME_TYPE, OUTCOME } from "../src/lib/names";
 import { routes } from "../src/router";
@@ -207,6 +208,12 @@ test("insights show the exported group scores, leak rates and time losses", asyn
   const converted = screen.getByRole("link", { name: /^Winning ones converted/ });
   expect(within(converted).getByText(`${w.converted} of ${w.winning}`)).toBeTruthy();
   expect(screen.getByText(`Last ${w.endgames} endgames`)).toBeTruthy();
+  // Openings: how far my games stayed in my lines, lately against before, and by month.
+  const o = ins.openings!;
+  const card = screen.getByRole("heading", { name: "Are your openings improving?" }).closest("section") as HTMLElement;
+  expect(within(card).getByText(`Last ${o.recent.games} games`)).toBeTruthy();
+  expect(within(card).getAllByText(n1(o.recent.stayed!)).length).toBeGreaterThan(0);
+  expect(within(card).getByRole("img", { name: /per month/ })).toBeTruthy();
 }, 20_000);
 
 test("Play on: a move on a Compare board plays on from its line, and Esc goes back to the lines", async () => {
@@ -466,6 +473,7 @@ test("Drill this line adds the tree's line to the trainer", async () => {
   expect(screen.getByRole("link", { name: "In the trainer" })).toBeTruthy();
   const lines = Object.values(progress().lines) as { moves: string[]; colour: string }[];
   expect(lines).toEqual([expect.objectContaining({ moves: ["d2d4", "d7d5", "c2c4"], colour: "white" })]);
+  cleanup();
   await open("/trainer");
   expect(await screen.findByRole("button", { name: /^1\. d4 d5 2\. c4/ }, SLOW)).toBeTruthy();
 }, 30_000);
@@ -602,4 +610,62 @@ test("the coordinates drill counts the squares tapped in time", async () => {
   expect(target()).not.toBe(first);
   await tap("coords", target() === "a1" ? "h8" : "a1");
   expect(tally()).toContain("1 missed");
+}, 20_000);
+
+test("Openings: masters' moves next to my level's, and how far my games stay in my lines", async () => {
+  const report = data<OpeningReport>("openings/black.json");
+  const root = report.tree[0], c = report.coverage;
+  await open("/openings/black");
+  const tree = await screen.findByRole("region", { name: "Your opening tree as Black" }, SLOW);
+  expect(within(tree).getByRole("columnheader", { name: "Masters" })).toBeTruthy();
+  const top = root.masters!.moves[0];
+  expect(within(tree).getAllByText(`${n1(top.share)}% of ${grouped(root.masters!.games)} games`).length).toBeGreaterThan(0);
+  const card = screen.getByRole("region", { name: "Your lines in your games" });
+  expect(within(card).getByText(n1(c.stayed!))).toBeTruthy();
+  expect(within(card).getByText(`you left them: ${c.mine} of ${c.games}`)).toBeTruthy();
+  expect(within(card).getByText(`your opponent did: ${c.theirs} of ${c.games}`)).toBeTruthy();
+  const gaps = within(card).getAllByRole("button");
+  expect(gaps).toHaveLength(c.gaps.length);
+  // A reply with no line opens in the tree, where it can be added.
+  await act(async () => { fireEvent.click(gaps[0]); });
+  const last = numberedLine(START, lineSan(START, c.gaps[0].moves)).at(-1)!;
+  expect(within(tree).getByRole("button", { name: last, pressed: true })).toBeTruthy();
+}, 20_000);
+
+test("a game says where it left my lines; the move shows on the board and Drill the line opens it", async () => {
+  const s = data<GamesIndex>("games/index.json").games.find((g) => g.repertoire?.result === "mine")!;
+  const g = data<Game>(`games/${s.id}.json`);
+  const c = g.repertoire!;
+  expect(c).toEqual(s.repertoire);
+  await open(`/games/${s.id}?ply=0`);
+  const note = (await screen.findByText("Your lines", {}, SLOW)).closest("p") as HTMLElement;
+  expect(within(note).getByText(c.expected.map((x) => moveName(c.ply, x)).join(" or "))).toBeTruthy();
+  expect(within(note).getByRole("link", { name: "Drill the line →" }).getAttribute("href")).toBe(`/trainer?line=${c.line}`);
+  await act(async () => { fireEvent.click(within(note).getByRole("button", { name: moveName(c.ply, c.san!) })); });
+  expect(screen.getByText(`${c.ply} of ${g.moves.length}`, { exact: false })).toBeTruthy();
+  cleanup();
+  // The dashboard's last game says the same for the newest game.
+  const newest = data<GamesIndex>("games/index.json").games[0];
+  await open("/");
+  const last = await screen.findByRole("region", { name: "Last game" }, SLOW);
+  if (newest.repertoire) expect(within(last).getByText(/your lines/)).toBeTruthy();
+}, 20_000);
+
+test("the trainer covers my opponents' replies, puts lines I left in a game first, and ?line opens one", async () => {
+  localStorage.clear();
+  const rep = data<Repertoire>("repertoire.json");
+  const coverage = rep.lines.filter((l) => l.source === "coverage");
+  const left = rep.lines.filter((l) => l.slips.length > 0);
+  await open("/trainer");
+  const cov = (await screen.findByRole("heading", { name: "Covering your opponents" }, SLOW)).closest("section") as HTMLElement;
+  expect(within(cov).getByText(plural(coverage.length, "line"))).toBeTruthy();
+  expect(within(cov).getByText(new RegExp(`at least ${rep.cover_min_games} of your games`))).toBeTruthy();
+  const card = screen.getByRole("heading", { name: "You left these in your games" }).closest("section") as HTMLElement;
+  expect(within(card).getByText(plural(left.length, "line"))).toBeTruthy();
+  // Nothing drilled yet, so the lines to review are exactly the ones I left in a game.
+  expect(screen.getByRole("button", { name: `Review due lines (${left.length})` })).toBeTruthy();
+  const latest = [...left].sort((a, b) => b.slips[0].ts - a.slips[0].ts)[0];
+  cleanup();
+  await open(`/trainer?line=${latest.id}`);
+  expect(await screen.findByRole("heading", { name: latest.name }, SLOW)).toBeTruthy();
 }, 20_000);

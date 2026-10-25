@@ -95,6 +95,94 @@
    "title": "Bots",
    "type": "object"
   },
+  "Coverage": {
+   "additionalProperties": false,
+   "description": "How far my games in this colour stayed in the trainer's lines (book.py).",
+   "properties": {
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "stayed": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Stayed"
+    },
+    "mine": {
+     "title": "Mine",
+     "type": "integer"
+    },
+    "theirs": {
+     "title": "Theirs",
+     "type": "integer"
+    },
+    "ended": {
+     "title": "Ended",
+     "type": "integer"
+    },
+    "gaps": {
+     "items": {
+      "$ref": "#/$defs/CoverageGap"
+     },
+     "title": "Gaps",
+     "type": "array"
+    },
+    "min_games": {
+     "title": "Min Games",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "games",
+    "stayed",
+    "mine",
+    "theirs",
+    "ended",
+    "gaps",
+    "min_games"
+   ],
+   "title": "Coverage",
+   "type": "object"
+  },
+  "CoverageGap": {
+   "additionalProperties": false,
+   "description": "A reply that took my games out of the trainer's lines, in too few games for a coverage line.",
+   "properties": {
+    "moves": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Moves",
+     "type": "array"
+    },
+    "san": {
+     "title": "San",
+     "type": "string"
+    },
+    "ply": {
+     "title": "Ply",
+     "type": "integer"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "moves",
+    "san",
+    "ply",
+    "games"
+   ],
+   "title": "CoverageGap",
+   "type": "object"
+  },
   "EndgameGame": {
    "additionalProperties": false,
    "properties": {
@@ -759,6 +847,16 @@
        "type": "null"
       }
      ]
+    },
+    "repertoire": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/RepertoireCheck"
+      },
+      {
+       "type": "null"
+      }
+     ]
     }
    },
    "required": [
@@ -785,7 +883,8 @@
     "puzzles",
     "loss",
     "thrown",
-    "endgame"
+    "endgame",
+    "repertoire"
    ],
    "title": "Game",
    "type": "object"
@@ -904,6 +1003,16 @@
     "puzzles": {
      "title": "Puzzles",
      "type": "integer"
+    },
+    "repertoire": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/RepertoireCheck"
+      },
+      {
+       "type": "null"
+      }
+     ]
     }
    },
    "required": [
@@ -923,7 +1032,8 @@
     "blunders",
     "loss_cause",
     "thrown",
-    "puzzles"
+    "puzzles",
+    "repertoire"
    ],
    "title": "GameSummary",
    "type": "object"
@@ -1123,6 +1233,16 @@
        "type": "null"
       }
      ]
+    },
+    "openings": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/OpeningTrend"
+      },
+      {
+       "type": "null"
+      }
+     ]
     }
    },
    "required": [
@@ -1138,7 +1258,8 @@
     "time_losses",
     "rating",
     "leak_rates",
-    "endgames"
+    "endgames",
+    "openings"
    ],
    "title": "Insights",
    "type": "object"
@@ -1448,6 +1569,17 @@
      "title": "Most Common",
      "type": "boolean"
     },
+    "masters_share": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Masters Share"
+    },
     "opening": {
      "anyOf": [
       {
@@ -1473,6 +1605,7 @@
     "top",
     "share",
     "most_common",
+    "masters_share",
     "opening",
     "reason"
    ],
@@ -1945,6 +2078,42 @@
    "title": "Move",
    "type": "object"
   },
+  "OpeningMonth": {
+   "additionalProperties": false,
+   "properties": {
+    "month": {
+     "title": "Month",
+     "type": "string"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "stayed": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Stayed"
+    },
+    "left_mine": {
+     "title": "Left Mine",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "month",
+    "games",
+    "stayed",
+    "left_mine"
+   ],
+   "title": "OpeningMonth",
+   "type": "object"
+  },
   "OpeningRef": {
    "additionalProperties": false,
    "properties": {
@@ -2043,6 +2212,9 @@
      },
      "title": "Surprises",
      "type": "array"
+    },
+    "coverage": {
+     "$ref": "#/$defs/Coverage"
     }
    },
    "required": [
@@ -2053,9 +2225,98 @@
     "families",
     "tree",
     "leaks",
-    "surprises"
+    "surprises",
+    "coverage"
    ],
    "title": "OpeningReport",
+   "type": "object"
+  },
+  "OpeningTrend": {
+   "additionalProperties": false,
+   "properties": {
+    "recent": {
+     "$ref": "#/$defs/OpeningWindow"
+    },
+    "previous": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/OpeningWindow"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "months": {
+     "items": {
+      "$ref": "#/$defs/OpeningMonth"
+     },
+     "title": "Months",
+     "type": "array"
+    }
+   },
+   "required": [
+    "recent",
+    "previous",
+    "months"
+   ],
+   "title": "OpeningTrend",
+   "type": "object"
+  },
+  "OpeningWindow": {
+   "additionalProperties": false,
+   "description": "A run of my games: how far they stayed in my lines and how the openings went (stored analysis).",
+   "properties": {
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "stayed": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Stayed"
+    },
+    "left_mine": {
+     "title": "Left Mine",
+     "type": "integer"
+    },
+    "win_after_opening": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Win After Opening"
+    },
+    "accuracy": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Accuracy"
+    }
+   },
+   "required": [
+    "games",
+    "stayed",
+    "left_mine",
+    "win_after_opening",
+    "accuracy"
+   ],
+   "title": "OpeningWindow",
    "type": "object"
   },
   "PhaseStat": {
@@ -2717,6 +2978,10 @@
      ],
      "title": "Pgn"
     },
+    "cover_min_games": {
+     "title": "Cover Min Games",
+     "type": "integer"
+    },
     "lines": {
      "items": {
       "$ref": "#/$defs/RepertoireLine"
@@ -2738,10 +3003,69 @@
    "required": [
     "as_of",
     "pgn",
+    "cover_min_games",
     "lines",
     "positions"
    ],
    "title": "Repertoire",
+   "type": "object"
+  },
+  "RepertoireCheck": {
+   "additionalProperties": false,
+   "description": "Where the game left the trainer's lines (book.py): the first move no line has, and whose it was.",
+   "properties": {
+    "result": {
+     "enum": [
+      "mine",
+      "theirs",
+      "end",
+      "over"
+     ],
+     "title": "Result",
+     "type": "string"
+    },
+    "ply": {
+     "title": "Ply",
+     "type": "integer"
+    },
+    "san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "San"
+    },
+    "expected": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Expected",
+     "type": "array"
+    },
+    "line": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Line"
+    }
+   },
+   "required": [
+    "result",
+    "ply",
+    "san",
+    "expected",
+    "line"
+   ],
+   "title": "RepertoireCheck",
    "type": "object"
   },
   "RepertoireLine": {
@@ -2766,6 +3090,7 @@
     "source": {
      "enum": [
       "repertoire",
+      "coverage",
       "leak"
      ],
      "title": "Source",
@@ -2795,6 +3120,17 @@
      },
      "title": "Steps",
      "type": "array"
+    },
+    "slips": {
+     "items": {
+      "$ref": "#/$defs/Slip"
+     },
+     "title": "Slips",
+     "type": "array"
+    },
+    "slip_games": {
+     "title": "Slip Games",
+     "type": "integer"
     }
    },
    "required": [
@@ -2805,9 +3141,41 @@
     "moves",
     "san",
     "start",
-    "steps"
+    "steps",
+    "slips",
+    "slip_games"
    ],
    "title": "RepertoireLine",
+   "type": "object"
+  },
+  "Slip": {
+   "additionalProperties": false,
+   "description": "A game where I left a line with my own move.",
+   "properties": {
+    "game": {
+     "title": "Game",
+     "type": "string"
+    },
+    "ts": {
+     "title": "Ts",
+     "type": "integer"
+    },
+    "ply": {
+     "title": "Ply",
+     "type": "integer"
+    },
+    "san": {
+     "title": "San",
+     "type": "string"
+    }
+   },
+   "required": [
+    "game",
+    "ts",
+    "ply",
+    "san"
+   ],
+   "title": "Slip",
    "type": "object"
   },
   "Summary": {
@@ -3333,6 +3701,16 @@
        "type": "null"
       }
      ]
+    },
+    "masters": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/ExplorerStats"
+      },
+      {
+       "type": "null"
+      }
+     ]
     }
    },
    "required": [
@@ -3346,7 +3724,8 @@
     "stockfish_best",
     "stockfish_best_san",
     "stockfish_eval",
-    "explorer"
+    "explorer",
+    "masters"
    ],
    "title": "TreeNode",
    "type": "object"

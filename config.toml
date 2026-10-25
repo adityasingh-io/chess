@@ -103,6 +103,7 @@ length_buckets = [40, 60, 80, 100]   # game length bucket edges, plies
 
 [explorer]                      # Lichess opening explorer (token from .env, no scopes)
 url = "https://explorer.lichess.org/lichess"
+masters_url = "https://explorer.lichess.org/masters"   # what masters play (OTB games), shown next to my level
 speeds = ["rapid"]
 ratings = [1000, 1200]          # buckets for players at my level; see rating_map
 moves = 12
@@ -123,6 +124,7 @@ lichess_endgame_min = 100       # and on top, this many of each Lichess endgame 
 pgn = "repertoire.pgn"
 plies = 20                      # starter lines run to this many plies (fewer if players at my level stop)
 min_games = 50                  # stop a line where the explorer has fewer games at my level
+cover_min_games = 5             # an opponent's reply in at least this many of my games gets a trainer line (coverage)
 white = ["Queen's Gambit Declined", "Queen's Gambit Accepted", "Slav Defense", "Queen's Gambit Declined: Albin Countergambit"]
 black = ["Caro-Kann Defense: Classical Variation", "Caro-Kann Defense: Advance Variation",
          "Caro-Kann Defense: Exchange Variation", "Slav Defense"]

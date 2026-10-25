@@ -242,7 +242,63 @@ def previous_result(cfg: Config, models: list[GameModel]) -> dict[str, str]:
     return out
 
 
-def insights(cfg: Config, models: list[GameModel]) -> dict:
+def stayed(checks: list[dict]) -> float | None:
+    """Moves my games stayed in the trainer's lines, on average (book.check: the ply that left them)."""
+    return mean((c["ply"] - 1) / 2 for c in checks)
+
+
+def coverage(cfg: Config, models: list[GameModel], checks: dict[str, dict], colour: str, shown: int = 8) -> dict:
+    """How far my games as `colour` stayed in my lines, and the replies that most often took them out."""
+    mine = [m for m in by_time(models) if m.row["my_color"] == colour and checks.get(m.id)]
+    results = Counter(checks[m.id]["result"] for m in mine)
+    gaps: dict[str, dict] = {}   # by position and reply
+    for m in reversed(mine):   # newest first, so a gap's moves come from my latest game
+        c = checks[m.id]
+        if c["result"] != "theirs":
+            continue
+        p = m.plies[c["ply"] - 1]   # counted as coverage lines count: the same reply in the same position
+        gap = gaps.setdefault(f"{p.move['key_before']} {p.move['uci']}", {"moves": [q.move["uci"] for q in m.plies[: c["ply"]]],
+                                                                          "san": c["san"], "ply": c["ply"], "games": 0})
+        gap["games"] += 1
+    return {"games": len(mine), "stayed": stayed([checks[m.id] for m in mine]), "mine": results["mine"],
+            "theirs": results["theirs"], "ended": results["end"],
+            "gaps": sorted(gaps.values(), key=lambda g: (-g["games"], g["ply"]))[:shown],
+            "min_games": cfg.repertoire.cover_min_games}
+
+
+def opening_window(cfg: Config, models: list[GameModel], checks: dict[str, dict]) -> dict:
+    after = 2 * cfg.analysis.phases.opening_moves
+    checked = [checks[m.id] for m in models if checks.get(m.id)]
+    return {
+        "games": len(models),
+        "stayed": stayed(checked),
+        "left_mine": sum(1 for c in checked if c["result"] == "mine"),
+        "win_after_opening": mean(m.my_win[after] for m in models if len(m.my_win) > after),
+        "accuracy": mean(p.accuracy for m in models for p in m.mine() if p.phase == "opening" and not p.book),
+    }
+
+
+def opening_trend(cfg: Config, models: list[GameModel], checks: dict[str, dict]) -> dict | None:
+    """My last recent_games games against the recent_games before them, and how far games stayed in my lines
+    by month."""
+    n = cfg.analysis.insights.recent_games
+    played = [m for m in by_time(models) if m.plies]
+    if not played:
+        return None
+    months: dict[str, list[GameModel]] = defaultdict(list)
+    for m in played:
+        months[m.row["month"]].append(m)
+    previous = played[-2 * n:-n]
+    return {
+        "recent": opening_window(cfg, played[-n:], checks),
+        "previous": opening_window(cfg, previous, checks) if previous else None,
+        "months": [{"month": k, "games": len(g), "stayed": stayed([checks[m.id] for m in g if checks.get(m.id)]),
+                    "left_mine": sum(1 for m in g if (checks.get(m.id) or {}).get("result") == "mine")}
+                   for k, g in sorted(months.items())],
+    }
+
+
+def insights(cfg: Config, models: list[GameModel], checks: dict[str, dict]) -> dict:
     i = cfg.analysis.insights
     tz = ZoneInfo(cfg.export.timezone)
     after = previous_result(cfg, models)
@@ -286,6 +342,7 @@ def insights(cfg: Config, models: list[GameModel]) -> dict:
         "rating": [{"ts": m.row["end_ts"], "rating": m.row["my_rating"]} for m in rated],
         "leak_rates": {"recent": rates(recent), "previous": rates(previous), "games": [len(recent), len(previous)]},
         "endgames": endgame_trend(cfg, models),
+        "openings": opening_trend(cfg, models, checks),
     }
 
 

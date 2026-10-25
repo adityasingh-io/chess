@@ -152,6 +152,7 @@ class Analysis:
 @dataclass(frozen=True)
 class Explorer:
     url: str
+    masters_url: str
     speeds: tuple[str, ...]
     ratings: tuple[int, ...]
     moves: int
@@ -210,6 +211,7 @@ class Repertoire:
     pgn: str
     plies: int
     min_games: int
+    cover_min_games: int
     white: tuple[str, ...]
     black: tuple[str, ...]
 

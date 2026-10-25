@@ -41,8 +41,10 @@ def load_inputs(cfg: Config, conn: sqlite3.Connection) -> tuple:
 
 
 def fetch_explorer(cfg: Config, conn: sqlite3.Connection, console: Console) -> int:
+    """Both databases for my tree's positions: players at my level, and masters."""
     _, models, evals1, _ = load_inputs(cfg, conn)
-    return explorer.fetch(cfg, conn, explorer_keys(cfg, models, evals1), console)
+    keys = explorer_keys(cfg, models, evals1)
+    return explorer.fetch(cfg, conn, keys, console) + explorer.fetch(cfg, conn, keys, console, database="masters")
 
 
 def fetch_puzzles(cfg: Config, conn: sqlite3.Connection, console: Console, refresh: bool = False) -> int:
@@ -72,6 +74,6 @@ def run_build(cfg: Config, conn: sqlite3.Connection, console: Console) -> BuildR
     stats = explorer.load(conn, cfg)
     missing = len(explorer_keys(cfg, models, evals1) - set(stats))
     worded = notes.load(conn, cfg, notes.costliest(cfg, models)) if cfg.notes.enabled else {}
-    built = build(cfg, models, len(games), evals1, evals2, stats, worded)
+    built = build(cfg, models, len(games), evals1, evals2, stats, worded, explorer.load(conn, cfg, "masters"))
     written, unchanged = write(cfg, built)
     return BuildResult(len(games), models, built, written, unchanged, time.perf_counter() - started, missing)

@@ -5,6 +5,7 @@ import { EvalBar, type BarValue } from "../components/EvalBar";
 import { EvalChart, ThinkChart, type ThinkBar } from "../components/charts";
 import { LineChips, MarkBadge, Nag } from "../components/bits";
 import { RefText, usePeek, type PeekControl } from "../components/RefText";
+import { RepertoireNote } from "../components/RepertoireNote";
 import { resignedId, thrownId, WINNING } from "../lib/playout";
 import { useGame, useSummary } from "../lib/data";
 import { useBot } from "../lib/bot";
@@ -447,7 +448,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
   return (
     <>
       <GameHead g={g} me={me} opp={opp} onTurning={turning != null ? () => go(turning) : undefined} broken={n < g.moves.length ? n : null}
-        onClass={nextOfClass} />
+        onClass={nextOfClass} onGo={go} />
       <div className={`viewer${comparing ? " comparing" : ""}`}>
         <div className="colA">
           {comparing ? (
@@ -696,8 +697,9 @@ function LiveBest({ fen, line, live, me }: { fen: string; line: LiveLine | null;
   );
 }
 
-function GameHead({ g, me, opp, onTurning, broken, onClass }: {
+function GameHead({ g, me, opp, onTurning, broken, onClass, onGo }: {
   g: Game; me: Side; opp: Side; onTurning?: () => void; broken: number | null; onClass: (side: Side, c: string) => void;
+  onGo: (ply: number) => void;
 }) {
   const turning = g.loss?.turning_ply ?? null;
   // Each move's class as chess.com counts them: its mark (Brilliant, Great, Miss) if it has one, else its label.
@@ -730,6 +732,12 @@ function GameHead({ g, me, opp, onTurning, broken, onClass }: {
         <a href={g.url} target="_blank" rel="noopener noreferrer">Open on chess.com ↗</a>
         {g.puzzles > 0 && <Link to={`/puzzles?game=${g.id}`}>Retry its mistakes ({g.puzzles}) →</Link>}
       </div>
+      {g.repertoire && (
+        <p className="small rep-note">
+          <span className="label">Your lines</span>{" "}
+          <RepertoireNote c={g.repertoire} opponent={g.opponent} onMove={g.repertoire.san ? () => onGo(g.repertoire!.ply) : undefined} />
+        </p>
+      )}
       {g.loss && (
         <div className="chips">
           {onTurning && turning != null ? (

@@ -1,6 +1,7 @@
 // Openings, per colour: the tree of positions from my games, showing what I play there next to Stockfish's
-// best and what players at my level choose (Lichess explorer), then the opening report: families, leak
-// positions and surprises. Every number comes from openings/<colour>.json.
+// best and what players at my level and masters choose (Lichess explorer), how far my games stay in the
+// trainer's lines, then the opening report: families, leak positions and surprises. Every number comes from
+// openings/<colour>.json.
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type Ref } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { Board, type ArrowKind } from "../components/Board";
@@ -8,6 +9,7 @@ import { EvalBar } from "../components/EvalBar";
 import { useGameSummaries, useOpenings } from "../lib/data";
 import { day, evalFor, grouped, moveName, n1, plural, signed } from "../lib/format";
 import { lineSan, numberedLine, posKey, replay, sideToMove, type Side } from "../lib/chess";
+import { START } from "../lib/lines";
 import { activeLines, addLine, removeLine, useProgress } from "../lib/progress";
 import { winOf } from "../lib/winpct";
 import type { ExplorerMove, Family, LeakCard, OpeningReport, TreeMove, TreeNode, Variation } from "../types/export";
@@ -17,6 +19,7 @@ const NAME = { white: "White", black: "Black" } as const;
 const RES = { win: ["1", "Won"], loss: ["0", "Lost"], draw: ["½", "Drew"] } as const;
 const GAMES_SHOWN = 8, SURPRISES_SHOWN = 10;
 const LEVEL_MIN_SHARE = 1;   // explorer moves under this share of games at my level aren't listed
+const MASTERS_MIN_SHARE = 5; // nor masters' moves under this share of their games
 
 export default function Openings() {
   const { colour = "white" } = useParams();
@@ -97,6 +100,7 @@ function OpeningsFor({ colour }: { colour: Side }) {
       ) : (
         <div className="empty">No opening positions as {NAME[colour]} yet.</div>
       )}
+      <CoverageCard report={report} onLine={(ucis) => { setLine(ucis); treeRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" }); }} />
       <Families report={report} colour={colour} />
       <LeakCards report={report} colour={colour} onShow={show} />
       <Surprises report={report} colour={colour} />
@@ -104,7 +108,7 @@ function OpeningsFor({ colour }: { colour: Side }) {
   );
 }
 
-type Row = { uci: string; san: string; you?: TreeMove; level?: ExplorerMove; best: boolean; child?: TreeNode };
+type Row = { uci: string; san: string; you?: TreeMove; level?: ExplorerMove; masters?: ExplorerMove; best: boolean; child?: TreeNode };
 
 function Tree({ ref, report, colour, byKey, root, line, fens, setLine }: {
   ref: Ref<HTMLElement>; report: OpeningReport; colour: Side; byKey: Map<string, TreeNode>; root: TreeNode;
@@ -125,6 +129,7 @@ function Tree({ ref, report, colour, byKey, root, line, fens, setLine }: {
     };
     for (const m of node.moves) row(m.uci, m.san).you = m;
     for (const e of node.explorer?.moves ?? []) if (e.share >= LEVEL_MIN_SHARE || out.has(e.uci)) row(e.uci, e.san).level = e;
+    for (const e of node.masters?.moves ?? []) if (e.share >= MASTERS_MIN_SHARE || out.has(e.uci)) row(e.uci, e.san).masters = e;
     if (node.stockfish_best) row(node.stockfish_best, node.stockfish_best_san ?? node.stockfish_best);
     for (const r of out.values()) {
       const after = replay(node.fen, [r.uci])[0];
@@ -151,6 +156,7 @@ function Tree({ ref, report, colour, byKey, root, line, fens, setLine }: {
   const myTurn = sideToMove(fen) === colour;
   const mostPlayed = node?.moves[0];
   const levelTop = node?.explorer?.moves[0];
+  const mastersTop = node?.masters?.moves[0];
   const arrows: { uci: string; kind: ArrowKind }[] = [];
   const addArrow = (uci: string | null | undefined, kind: ArrowKind) => {
     if (uci && !arrows.some((a) => a.uci === uci)) arrows.push({ uci, kind });
@@ -213,6 +219,10 @@ function Tree({ ref, report, colour, byKey, root, line, fens, setLine }: {
                   <span><span className="key them" />At your level: <b className="san">{moveName(nextPly(node.fen), levelTop.san)}</b>{" "}
                     <span className="num">{n1(levelTop.share)}% of {grouped(node.explorer.games)} games</span></span>
                 )}
+                {mastersTop && node.masters && (
+                  <span><span className="key" />Masters: <b className="san">{moveName(nextPly(node.fen), mastersTop.san)}</b>{" "}
+                    <span className="num">{n1(mastersTop.share)}% of {grouped(node.masters.games)} games</span></span>
+                )}
               </div>
               <MovesTable rows={rows} myTurn={myTurn} ply={nextPly(node.fen)} onPick={(uci) => setLine([...line, uci])} />
               <Reached key={node.key} node={node} />
@@ -224,7 +234,8 @@ function Tree({ ref, report, colour, byKey, root, line, fens, setLine }: {
       </div>
       <p className="muted small" style={{ margin: 0 }}>
         Out of {plural(report.games, "game")}; scores count a win as 100 and a draw as 50. “At your level” is the Lichess database
-        for rapid games between players rated 1000 to 1399.
+        for rapid games between players rated 1000 to 1399; “Masters” is the Lichess masters database of over-the-board games
+        between titled players.
       </p>
     </section>
   );
@@ -292,6 +303,7 @@ function MovesTable({ rows, myTurn, ply, onPick }: { rows: Row[]; myTurn: boolea
           <th scope="col" className="n">Your score</th>
           {myTurn && <th scope="col" className="n" title="Average Win% change from your move">Win% ±</th>}
           <th scope="col" className="n">At your level</th>
+          <th scope="col" className="n">Masters</th>
         </tr>
       </thead>
       <tbody>
@@ -309,10 +321,50 @@ function MovesTable({ rows, myTurn, ply, onPick }: { rows: Row[]; myTurn: boolea
             <td className="n">{r.you ? pctText(r.you.score) : "–"}</td>
             {myTurn && <td className="n">{r.you?.avg_drop != null ? signed(-r.you.avg_drop) : "–"}</td>}
             <td className="n">{r.level ? pctText(r.level.share) : "–"}</td>
+            <td className="n">{r.masters ? pctText(r.masters.share) : "–"}</td>
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+// How far my games in this colour stay in the trainer's lines, and the replies that take them out most often
+// without a line yet (each opens in the tree, where "Drill this line" adds it).
+function CoverageCard({ report, onLine }: { report: OpeningReport; onLine: (ucis: string[]) => void }) {
+  const c = report.coverage;
+  if (!c.games) return null;
+  const tally: [number, string][] = [[c.mine, "you left them"], [c.theirs, "your opponent did"], [c.ended, "reached a line's end"]];
+  return (
+    <section className="card" aria-label="Your lines in your games">
+      <div className="card-head">
+        <h2>Your lines in your games</h2>
+        <Link to="/trainer" className="small">Trainer →</Link>
+      </div>
+      <p style={{ margin: 0 }}>
+        Your games stay in your trainer lines for <b className="num">{c.stayed != null ? n1(c.stayed) : "–"}</b> moves on average.
+      </p>
+      <div className="facts num">
+        {tally.map(([n, what]) => <span key={what}>{what}: {n} of {c.games}</span>)}
+      </div>
+      {c.gaps.length > 0 && (
+        <>
+          <div className="label">Replies with no line yet</div>
+          <div className="rows">
+            {c.gaps.map((g) => (
+              <button key={g.moves.join(",")} type="button" className="row" onClick={() => onLine(g.moves)}>
+                <span className="t san">{numberedLine(START, lineSan(START, g.moves)).join(" ")}</span>
+                <span className="r muted small num">{plural(g.games, "game")}</span>
+              </button>
+            ))}
+          </div>
+          <p className="muted small" style={{ margin: 0 }}>
+            A reply in {c.min_games} or more of your games gets a line in the trainer by itself. Open one of these in the tree and
+            pick “Drill this line” to add it now.
+          </p>
+        </>
+      )}
+    </section>
   );
 }
 

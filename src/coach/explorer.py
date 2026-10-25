@@ -1,7 +1,9 @@
-"""Lichess opening explorer: what players at my level play in a position.
+"""Lichess opening explorer: what players at my level play in a position, and what masters play.
 
 Fetched by the pipeline only, one request at a time as the Lichess API asks, and cached in
-SQLite; the frontend gets the numbers from the export and never sees the token.
+SQLite; the frontend gets the numbers from the export and never sees the token. Two databases:
+"lichess" (rapid games at my level, `[explorer]` speeds and ratings) and "masters" (over-the-board
+games of titled players), each cached under its own parameters.
 """
 
 from __future__ import annotations
@@ -18,13 +20,15 @@ from coach import __version__
 from coach.config import Config
 
 
-def params_key(cfg: Config) -> str:
+def params_key(cfg: Config, database: str = "lichess") -> str:
     e = cfg.explorer
+    if database == "masters":
+        return f"masters;moves={e.moves}"
     return f"speeds={','.join(e.speeds)};ratings={','.join(map(str, e.ratings))};moves={e.moves}"
 
 
-def load(conn: sqlite3.Connection, cfg: Config) -> dict[str, dict]:
-    rows = conn.execute("SELECT key, result FROM explorer WHERE params = ?", (params_key(cfg),))
+def load(conn: sqlite3.Connection, cfg: Config, database: str = "lichess") -> dict[str, dict]:
+    rows = conn.execute("SELECT key, result FROM explorer WHERE params = ?", (params_key(cfg, database),))
     return {row["key"]: json.loads(row["result"]) for row in rows}
 
 
@@ -42,13 +46,16 @@ class Explorer:
         self.sleep = sleep
         self.max_attempts = max_attempts
 
-    def position(self, key: str) -> dict:
+    def position(self, key: str, database: str = "lichess") -> dict:
         e = self.cfg.explorer
-        params = {"variant": "standard", "fen": key, "speeds": ",".join(e.speeds),
-                  "ratings": ",".join(map(str, e.ratings)), "moves": e.moves, "topGames": 0, "recentGames": 0}
+        if database == "masters":
+            url, params = e.masters_url, {"fen": key, "moves": e.moves, "topGames": 0}
+        else:
+            url, params = e.url, {"variant": "standard", "fen": key, "speeds": ",".join(e.speeds),
+                                  "ratings": ",".join(map(str, e.ratings)), "moves": e.moves, "topGames": 0, "recentGames": 0}
         for attempt in range(self.max_attempts):
             try:
-                response = self.client.get(e.url, params=params)
+                response = self.client.get(url, params=params)
             except httpx.TransportError:
                 self.sleep(10 * (attempt + 1))  # a dropped or slow connection: wait and try again
                 continue
@@ -62,24 +69,25 @@ class Explorer:
 
 
 def fetch(cfg: Config, conn: sqlite3.Connection, keys: Iterable[str], console: Console,
-          explorer: Explorer | None = None) -> int:
+          explorer: Explorer | None = None, database: str = "lichess") -> int:
     """Fetch every key not cached yet. Safe to interrupt: each response is stored as it arrives."""
-    params = params_key(cfg)
+    params = params_key(cfg, database)
     have = {row["key"] for row in conn.execute("SELECT key FROM explorer WHERE params = ?", (params,))}
     todo = sorted(set(keys) - have)
+    label = "explorer" if database == "lichess" else f"explorer ({database})"
     if not todo:
-        console.print(f"explorer: all {len(have)} positions cached")
+        console.print(f"{label}: all {len(have)} positions cached")
         return 0
     explorer = explorer or Explorer(cfg)
     started = time.perf_counter()
     for i, key in enumerate(todo, 1):
-        result = explorer.position(key)
+        result = explorer.position(key, database)
         conn.execute("INSERT OR REPLACE INTO explorer (key, params, result, fetched_at) VALUES (?, ?, ?, ?)",
                      (key, params, json.dumps(result, separators=(",", ":")), int(time.time())))
         conn.commit()
         if i % 100 == 0:
-            console.print(f"explorer: {i}/{len(todo)} positions")
-    console.print(f"explorer: fetched {len(todo)} positions in {(time.perf_counter() - started) / 60:.1f} min")
+            console.print(f"{label}: {i}/{len(todo)} positions")
+    console.print(f"{label}: fetched {len(todo)} positions in {(time.perf_counter() - started) / 60:.1f} min")
     return len(todo)
 
 

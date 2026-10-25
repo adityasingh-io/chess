@@ -47,6 +47,33 @@ chesscom: number
 lichess: number
 }
 /**
+ * How far my games in this colour stayed in the trainer's lines (book.py).
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "Coverage".
+ */
+export interface Coverage {
+games: number
+stayed: (number | null)
+mine: number
+theirs: number
+ended: number
+gaps: CoverageGap[]
+min_games: number
+}
+/**
+ * A reply that took my games out of the trainer's lines, in too few games for a coverage line.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "CoverageGap".
+ */
+export interface CoverageGap {
+moves: string[]
+san: string
+ply: number
+games: number
+}
+/**
  * This interface was referenced by `Export`'s JSON-Schema
  * via the `definition` "EndgameGame".
  */
@@ -205,6 +232,7 @@ puzzles: number
 loss: (LossInfo | null)
 thrown: (ThrownInfo | null)
 endgame: (EndgameInfo | null)
+repertoire: (RepertoireCheck | null)
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -320,6 +348,19 @@ san: (string | null)
 drop: (number | null)
 }
 /**
+ * Where the game left the trainer's lines (book.py): the first move no line has, and whose it was.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "RepertoireCheck".
+ */
+export interface RepertoireCheck {
+result: ("mine" | "theirs" | "end" | "over")
+ply: number
+san: (string | null)
+expected: string[]
+line: (string | null)
+}
+/**
  * This interface was referenced by `Export`'s JSON-Schema
  * via the `definition` "GameSummary".
  */
@@ -341,6 +382,7 @@ blunders: number
 loss_cause: (string | null)
 thrown: boolean
 puzzles: number
+repertoire: (RepertoireCheck | null)
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -386,6 +428,7 @@ leak_rates: {
 } | number[]
 }
 endgames: (EndgameTrend | null)
+openings: (OpeningTrend | null)
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -414,6 +457,38 @@ mistake_or_worse_rate: number
 export interface RatingPoint {
 ts: number
 rating: number
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "OpeningTrend".
+ */
+export interface OpeningTrend {
+recent: OpeningWindow
+previous: (OpeningWindow | null)
+months: OpeningMonth[]
+}
+/**
+ * A run of my games: how far they stayed in my lines and how the openings went (stored analysis).
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "OpeningWindow".
+ */
+export interface OpeningWindow {
+games: number
+stayed: (number | null)
+left_mine: number
+win_after_opening: (number | null)
+accuracy: (number | null)
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "OpeningMonth".
+ */
+export interface OpeningMonth {
+month: string
+games: number
+stayed: (number | null)
+left_mine: number
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -483,6 +558,7 @@ win: (number | null)
 top: (boolean | null)
 share: (number | null)
 most_common: boolean
+masters_share: (number | null)
 opening: (string | null)
 reason: string
 }
@@ -557,6 +633,7 @@ families: Family[]
 tree: TreeNode[]
 leaks: LeakCard[]
 surprises: Surprise[]
+coverage: Coverage
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -574,6 +651,7 @@ stockfish_best: (string | null)
 stockfish_best_san: (string | null)
 stockfish_eval: (Eval | null)
 explorer: (ExplorerStats | null)
+masters: (ExplorerStats | null)
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -649,6 +727,7 @@ puzzles: Puzzle[]
 export interface Repertoire {
 as_of: number
 pgn: (string | null)
+cover_min_games: number
 lines: RepertoireLine[]
 positions: {
 [k: string]: Alternative[]
@@ -662,11 +741,25 @@ export interface RepertoireLine {
 id: string
 colour: ("white" | "black")
 name: string
-source: ("repertoire" | "leak")
+source: ("repertoire" | "coverage" | "leak")
 moves: string[]
 san: string[]
 start: number
 steps: LineStep[]
+slips: Slip[]
+slip_games: number
+}
+/**
+ * A game where I left a line with my own move.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "Slip".
+ */
+export interface Slip {
+game: string
+ts: number
+ply: number
+san: string
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema

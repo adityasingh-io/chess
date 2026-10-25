@@ -32,7 +32,10 @@ this file wins.
 - **Explorer host** is `https://explorer.lichess.org/lichess` (the API docs moved it from
   `explorer.lichess.ovh`). Buckets per the docs: `0` = 0–999, `1000` = 1000–1199, …, `2500`+. OAuth2 with
   no scopes, so a token with no scopes ticked. Confirmed against the live API on 2026-10-24: it takes a
-  burst of about 30 requests, then answers 429 and we wait a minute, so about 25 positions a minute.
+  burst of about 30 requests, then answers 429 and we wait a minute, so about 25 positions a minute. The
+  masters database (`/masters`, added 2026-10-25: `fen`, `moves`, `topGames`; same token) is fetched for the
+  same positions and cached apart (`params` = `masters;moves=12`); the first fetch of 1,348 positions (the
+  tree's and the trainer lines') took about 65 minutes at that rate, and the nightly fetches only new ones.
 - **Maia-2 picks the human-like bots' moves in Play on** (decided 2026-10-24; an exception to "one engine"):
   Stockfish's rating setting starts at 1320 and is measured against engines, so it can't play like an
   800. Maia-2 (CSSLab, MIT licence), trained on Lichess rapid games, predicts the move a player of a given
@@ -133,9 +136,11 @@ this file wins.
 - **Openings** (Phase 4): one tree per colour, the line kept in the URL (`?line=d2d4,d7d5`). Each position
   shows what I play (games, score, average Win% change), Stockfish's best with its score, what Lichess
   players rated 1000–1399 in rapid choose, and the games that reached it; each game opens in the viewer at
-  that position (`?pos=`, matched by the first four FEN fields). ▶ follows my most played move. Below it:
-  families with their variations, leak cards (each can show itself in the tree) and surprises, which open in
-  Compare at my reply.
+  that position (`?pos=`, matched by the first four FEN fields). ▶ follows my most played move. Each
+  position also shows what masters play (the Lichess masters database; moves under 5% of their games left
+  out). Below it: how far my games stay in the trainer's lines (see *Repertoire check*), with the replies
+  that most often take them out and have no line yet, each opening in the tree; then families with their
+  variations, leak cards (each can show itself in the tree) and surprises, which open in Compare at my reply.
 - **Endgames** (Phase 4): a type × outcome table whose cells filter the list below. Spoiled endgames open
   in Compare at the spoiling move; the others at the endgame's first move. *Practice* (added 2026-10-25):
   a drill per endgame type (`/puzzles?drill=endgame_<type>`: up to five of my puzzles that start in that
@@ -145,7 +150,10 @@ this file wins.
 - **Insights** (Phase 4): rating, leak rates for the last 20 games against the 20 before, accuracy and
   mistakes by phase, mistake share by think time, score and accuracy by colour, previous result, opponent
   rating, game length (in moves, from the exported ply buckets), hour and opening, and time losses per
-  month. Groups under 5 games are drawn faint. *Are your endgames improving?* (added 2026-10-25): for my
+  month. Groups under 5 games are drawn faint. *Are your openings improving?* (added 2026-10-25): for my
+  last 20 games against the 20 before, the moves they stayed in my lines, the share I left them by my own
+  move, my stored Win% after move 12 and my accuracy in the opening; then the moves in my lines by month.
+  *Are your endgames improving?* (added 2026-10-25): for my
   last 20 endgames against the 20 before, the share of winning starts converted, balanced ones held and
   losing ones saved (the Endgames bands), and my accuracy from the endgame's first move on.
 - **Phone navigation** (changed in Phase 5): the bottom bar holds the training loop, Home, Leaks, Puzzles,
@@ -177,8 +185,14 @@ this file wins.
   `coach repertoire` from the named chess-openings lines in `config.toml`, extended by Stockfish's pass-2
   move on my turns and the explorer's most common reply on theirs, up to 20 plies, stopping where fewer
   than 50 explorer games remain. Editing the PGN is how the repertoire changes; the next `coach build`
-  picks it up. Leak lines are the moves to each opening leak position from my games, then Stockfish's
-  pass-1 best; the drill asks only that last move. "Drill this line" in the tree adds the current line,
+  picks it up. Coverage lines (added 2026-10-25) cover what my opponents actually play: from the start,
+  every reply of theirs that at least `cover_min_games` (5) of my games reached is followed, with the PGN's
+  move on my turn where it has one; where it doesn't, my most played move when its stored label is
+  Excellent, Best or Book (a good habit stays), else Stockfish's stored best (pass 1, as in the tree). A line
+  ends when my games stop reaching the position; the drill asks from the first move the PGN doesn't have (40
+  lines, 57 of my moves, on the 612 games then; keeping good habits cut the games left by my own move from
+  354 to 282). Leak lines are the moves to each opening leak position from
+  my games, then Stockfish's pass-1 best; the drill asks only that last move. "Drill this line" in the tree adds the current line,
   and the tree lists any of my moves along it that aren't Stockfish's best. A line I've never drilled is
   shown first: the arrow gives each of my moves, with Stockfish's score for it, whether it's Stockfish's
   top move, how often players at my level play it (explorer), the opening it reaches and what it does on
@@ -186,7 +200,16 @@ this file wins.
   with pass-1 settings on the position after it (as each move of a game is), so a slip shows its stored
   score next to the line's move and what happens along Stockfish's line after it. Lines added from the
   tree have no stored scores; a slip there is scored by the in-browser engine, labelled live. A finished
-  line lists every move with its score, share and reason.
+  line lists every move with its score, share and reason. Each move also shows how often masters play it.
+  A line I left with my own move in a game since I last drilled it is due at once, first in the review
+  (latest game first) and listed on its own; `/trainer?line=<id>` opens one line.
+- **Repertoire check** (`src/coach/book.py`, added 2026-10-25): each game records the first move that left
+  the trainer's lines (the PGN's, coverage and leak lines; a leak line counts only its last move, since the
+  moves before it are just how a game got there), matched by position so transpositions stay in. It says
+  whose move it was, or that the game reached a line's end or ended inside the lines; when it was mine, what
+  my lines play there and the line to drill. On the 612 games then, before coverage lines, 515 left the
+  PGN by the opponent's move, most by move 2. The viewer's header and the dashboard's last game show it;
+  the move shows on the board, and "Drill the line" opens the trainer on that line.
 - **Explanations** (`src/coach/why.py`): measured on the board along Stockfish's stored lines, never
   judged. For a move: what it takes (or takes back), develops, castles, promotes, checks or mates; what it
   newly attacks (a piece worth more than the attacker, or undefended), opens an attack on, pins, or
@@ -346,8 +369,8 @@ this file wins.
     formula and parsing tests use hand-computed numbers.
 11. The starter repertoire is generated from data (chess-openings named lines, extended by Stockfish's
     top move on my turns and the most common reply at my level on theirs), never written from memory.
-12. Explorer stats are fetched by the pipeline and exported only for positions in my tree; the frontend
-    never holds the token.
+12. Explorer stats (players at my level and masters) are fetched by the pipeline and exported only for
+    positions in my tree and the trainer's lines; the frontend never holds the token.
 13. Exchanges: if the opponent just captured and my move or Stockfish's best move captures back on that
     square, net material is counted from before their capture. Recapturing isn't "winning" material, and
     recapturing wrongly can still lose it.

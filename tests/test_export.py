@@ -78,3 +78,27 @@ def test_chesscom_ratings_on_lichess_scale():
     from coach.config import RatingMap
     m = RatingMap(chesscom=(600, 700, 800, 1000, 1100), lichess=(980, 1070, 1165, 1350, 1440))
     assert [m.lichess_of(r) for r in (500, 600, 654, 800, 900, 1100, 1300)] == [980, 980, 1029, 1165, 1258, 1440, 1440]
+
+
+def test_each_game_says_where_it_left_my_lines_and_coverage_adds_it_up(recorded):
+    r = recorded
+    (r.cfg.root / r.cfg.repertoire.pgn).write_text('[Repertoire "white"]\n\n1. d4 d5 2. c4 *\n\n[Repertoire "black"]\n\n1. e4 c6 *\n')
+    built = build(r.cfg, r.models, len(r.games), r.evals1, r.evals2, {})
+    index = {g.id: g for g in built.files["games/index.json"].games}
+    for colour in ("white", "black"):
+        cov = built.files[f"openings/{colour}.json"].coverage
+        checks = [built.games[m.id].repertoire for m in r.models if m.row["my_color"] == colour and m.plies]
+        assert cov.games == len(checks) and all(checks)
+        assert cov.mine + cov.theirs + cov.ended + sum(c.result == "over" for c in checks) == cov.games
+        assert sum(g.games for g in cov.gaps) <= cov.theirs
+    lines = {l.id: l for l in built.files["repertoire.json"].lines}
+    for m in r.models:
+        c = built.games[m.id].repertoire
+        assert c == index[m.id].repertoire
+        if c and c.result == "mine":
+            assert c.line in lines and any(s.game == m.id for s in lines[c.line].slips) and c.expected
+        elif c:
+            assert c.line is None and not c.expected
+    trend = built.files["insights.json"].openings
+    assert trend.recent.games == min(len([m for m in r.models if m.plies]), r.cfg.analysis.insights.recent_games)
+    assert sum(mo.games for mo in trend.months) == len([m for m in r.models if m.plies])

@@ -34,9 +34,9 @@ def test_export_has_a_step_per_move_and_every_move_where_it_asks(recorded):
     (r.cfg.root / r.cfg.repertoire.pgn).write_text(
         '[Repertoire "white"]\n[Opening "Test"]\n\n1. d4 d5 2. c4 e6 (2... c6 3. Nf3) 3. Nc3 *\n'
         '\n[Repertoire "black"]\n[Opening "Test"]\n\n1. e4 c6 2. d4 d5 *\n')
-    rep = repertoire_out(r.cfg, r.models, r.evals1, {}, 0)
-    assert len(rep.lines) >= 3
-    assert rep.lines and len(rep.lines) == len(all_lines(r.cfg, r.models, r.evals1))
+    lines = all_lines(r.cfg, r.models, r.evals1)
+    rep = repertoire_out(r.cfg, lines, r.evals1, {}, {}, {}, 0)
+    assert len(rep.lines) >= 3 and len(rep.lines) == len(lines)
     for line in rep.lines:
         assert len(line.steps) == len(line.moves) and [s.san for s in line.steps] == line.san
         board = chess.Board()

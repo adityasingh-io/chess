@@ -136,6 +136,15 @@ class EndgameInfo(Model):
     spoiler_best_line_san: str | None
 
 
+class RepertoireCheck(Model):
+    """Where the game left the trainer's lines (book.py): the first move no line has, and whose it was."""
+    result: Literal["mine", "theirs", "end", "over"]   # I left them, my opponent did, a line ended, the game did
+    ply: int                   # the ply of that move (for "over", one past the last)
+    san: str | None            # the move played there
+    expected: list[str]        # "mine": what my lines play there (SAN)
+    line: str | None           # "mine": the trainer line to drill (RepertoireLine.id)
+
+
 class Game(Model):
     id: str
     url: str
@@ -161,6 +170,7 @@ class Game(Model):
     loss: LossInfo | None
     thrown: ThrownInfo | None
     endgame: EndgameInfo | None
+    repertoire: RepertoireCheck | None
 
 
 class GameSummary(Model):
@@ -181,6 +191,7 @@ class GameSummary(Model):
     loss_cause: str | None
     thrown: bool
     puzzles: int               # my puzzles from this game
+    repertoire: RepertoireCheck | None
 
 
 class GamesIndex(Model):
@@ -251,7 +262,7 @@ class Leaks(Model):
 class ExplorerMove(Model):
     uci: str
     san: str
-    share: float               # percent of explorer games at my level
+    share: float               # percent of the explorer's games in this position
     games: int
 
 
@@ -279,7 +290,8 @@ class TreeNode(Model):
     stockfish_best: str | None
     stockfish_best_san: str | None
     stockfish_eval: Eval | None
-    explorer: ExplorerStats | None
+    explorer: ExplorerStats | None   # players at my level
+    masters: ExplorerStats | None    # the Lichess masters database
 
 
 class OpeningStats(Model):
@@ -330,6 +342,25 @@ class Surprise(Model):
     record: str | None
 
 
+class CoverageGap(Model):
+    """A reply that took my games out of the trainer's lines, in too few games for a coverage line."""
+    moves: list[str]           # UCI from the start, ending with their move (from my latest such game)
+    san: str
+    ply: int
+    games: int
+
+
+class Coverage(Model):
+    """How far my games in this colour stayed in the trainer's lines (book.py)."""
+    games: int                 # games checked
+    stayed: float | None       # moves my games stayed in the lines, on average
+    mine: int                  # games I left the lines with my own move
+    theirs: int                # games my opponent left them
+    ended: int                 # games that reached a line's end
+    gaps: list[CoverageGap]    # the most common replies still without a line, most games first
+    min_games: int             # a reply in at least this many games gets a coverage line
+
+
 class OpeningReport(Model):
     as_of: int
     colour: Colour
@@ -339,6 +370,7 @@ class OpeningReport(Model):
     tree: list[TreeNode]
     leaks: list[LeakCard]
     surprises: list[Surprise]
+    coverage: Coverage
 
 
 class EndgameGame(Model):
@@ -402,6 +434,28 @@ class EndgameTrend(Model):
     previous: EndgameWindow | None   # the recent_games before them
 
 
+class OpeningWindow(Model):
+    """A run of my games: how far they stayed in my lines and how the openings went (stored analysis)."""
+    games: int
+    stayed: float | None       # moves in the trainer's lines, on average
+    left_mine: int             # games I left the lines with my own move
+    win_after_opening: float | None   # my Win% after the opening moves, on average
+    accuracy: float | None     # my move accuracy in the opening, book moves left out
+
+
+class OpeningMonth(Model):
+    month: str                 # YYYY-MM
+    games: int
+    stayed: float | None
+    left_mine: int
+
+
+class OpeningTrend(Model):
+    recent: OpeningWindow      # my last recent_games games
+    previous: OpeningWindow | None
+    months: list[OpeningMonth]
+
+
 class Insights(Model):
     as_of: int
     by_colour: list[GroupStat]
@@ -416,6 +470,7 @@ class Insights(Model):
     rating: list[RatingPoint]
     leak_rates: dict[str, dict[str, float | None] | list[int]]
     endgames: EndgameTrend | None
+    openings: OpeningTrend | None
 
 
 class TopLeak(Model):
@@ -515,24 +570,36 @@ class LineStep(Model):
     top: bool | None           # asked moves: no other legal move has a higher stored score
     share: float | None        # percent of games at my level with this move here (Lichess explorer)
     most_common: bool          # the explorer's most played move here
+    masters_share: float | None   # percent of masters' games with this move here (Lichess masters database)
     opening: str | None        # the named opening the move reaches, when the name changes
     reason: str                # what the move does on the board (measured, why.py); empty when nothing measured
+
+
+class Slip(Model):
+    """A game where I left a line with my own move."""
+    game: str
+    ts: int
+    ply: int
+    san: str                   # what I played instead
 
 
 class RepertoireLine(Model):
     id: str                    # stable across builds: from the colour and the moves
     colour: Colour             # the side I play
     name: str
-    source: Literal["repertoire", "leak"]
+    source: Literal["repertoire", "coverage", "leak"]
     moves: list[str]           # UCI from the start position
     san: list[str]
     start: int                 # plies played for me before the drill asks (a leak line asks only at its end)
     steps: list[LineStep]      # one per move
+    slips: list[Slip]          # the latest games where I left it, newest first
+    slip_games: int            # how many games I left it in
 
 
 class Repertoire(Model):
     as_of: int
     pgn: str | None            # the PGN the lines were read from (None when there isn't one yet)
+    cover_min_games: int       # coverage lines follow replies in at least this many of my games
     lines: list[RepertoireLine]
     positions: dict[str, list[Alternative]]   # every legal move where a drill asks for mine, best first
 

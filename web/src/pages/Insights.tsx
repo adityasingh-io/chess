@@ -7,7 +7,7 @@ import { Nag, Trend } from "../components/bits";
 import { useInsights, useSummary } from "../lib/data";
 import { grouped, n1, plural } from "../lib/format";
 import { FLAG, TYPE, tagName } from "../lib/names";
-import type { EndgameWindow, GroupStat } from "../types/export";
+import type { EndgameWindow, GroupStat, OpeningTrend as OpeningTrendData, OpeningWindow } from "../types/export";
 
 const FEW = 5;                 // groups with fewer games are drawn faint: too few to read much into
 const OPENINGS_SHOWN = 8;
@@ -151,6 +151,7 @@ export default function Insights() {
             <MistakeRateChart data={think} />
           </section>
         </div>
+        {ins.openings && <OpeningTrend trend={ins.openings} />}
         {ins.endgames && <EndgameTrend recent={ins.endgames.recent} previous={ins.endgames.previous} />}
         <section className="card">
           <div className="card-head"><h2>By colour</h2></div>
@@ -243,6 +244,62 @@ function EndgameTrend({ recent, previous }: { recent: EndgameWindow; previous: E
         Accuracy in these endgames: <b className="num">{recent.accuracy != null ? n1(recent.accuracy) : "–"}</b>
         {previous && <span className="muted"> · <span className="num">{previous.accuracy != null ? n1(previous.accuracy) : "–"}</span> before</span>}
       </p>
+    </section>
+  );
+}
+
+const OPENING_ROWS: { label: string; value: (w: OpeningWindow) => number | null; unit: string; higherIsBetter: boolean; max?: number }[] = [
+  { label: "Moves in your lines", value: (w) => w.stayed, unit: "", higherIsBetter: true },
+  { label: "Games you left your lines", value: (w) => share(w.left_mine, w.games), unit: "%", higherIsBetter: false, max: 100 },
+  { label: "Win% after the opening", value: (w) => w.win_after_opening, unit: "%", higherIsBetter: true, max: 100 },
+  { label: "Accuracy in the opening", value: (w) => w.accuracy, unit: "", higherIsBetter: true, max: 100 },
+];
+
+/** My last games against the ones before: how far they stayed in the trainer's lines and how the opening went,
+    then the lines by month. */
+function OpeningTrend({ trend }: { trend: OpeningTrendData }) {
+  const { recent, previous } = trend;
+  const months = trend.months.map((m): MonthPoint => ({
+    month: m.month, n: m.stayed != null ? Math.round(m.stayed * 10) / 10 : 0,
+    label: new Date(`${m.month}-01T12:00:00`).toLocaleDateString("en-GB", { month: "long" }),
+  }));
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h2>Are your openings improving?</h2>
+        <Link to="/openings" className="small">Openings →</Link>
+      </div>
+      <div className="keys">
+        <span><i className="key-bar now" />Last {recent.games} games</span>
+        {previous && <span><i className="key-bar then" />The {previous.games} before</span>}
+      </div>
+      <p className="muted small" style={{ margin: 0 }}>
+        Your lines are the trainer's; leaving them means playing a move none of them has. Win% after the opening is
+        Stockfish's, after move 12.
+      </p>
+      <div className="causes">
+        {OPENING_ROWS.map((r) => {
+          const now = r.value(recent), before = previous ? r.value(previous) : null;
+          const top = r.max ?? Math.max(now ?? 0, before ?? 0, 1);
+          const text = (v: number | null) => (v == null ? "–" : `${n1(v)}${r.unit}`);
+          return (
+            <div key={r.label} className="cause">
+              <span className="cname">{r.label}</span>
+              <span className="cval">
+                <b className="num">{text(now)}</b>
+                {before != null && <> <span className="muted num">· {text(before)} before</span></>}
+                {now != null && before != null && <> <Trend now={now} before={before} higherIsBetter={r.higherIsBetter} /></>}
+              </span>
+              <span className="cbars" aria-hidden="true">
+                <i className="now" style={{ width: `${((100 * (now ?? 0)) / top).toFixed(1)}%` }} />
+                {before != null && <i className="then" style={{ width: `${((100 * before) / top).toFixed(1)}%` }} />}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="label">Moves in your lines, by month</div>
+      <MonthChart data={months} what="Moves your games stayed in your lines, on average, per month" />
     </section>
   );
 }
