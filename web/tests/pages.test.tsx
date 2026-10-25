@@ -2,7 +2,7 @@
 // be the exported ones.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { lineSan, numberedLine, posKey, replay } from "../src/lib/chess";
 import { evalFor, grouped, moveName, n1, plural, sanTokens } from "../src/lib/format";
@@ -48,10 +48,12 @@ test("the viewer steps through a game with the keyboard", async () => {
   const g = data<Game>(`games/${id}.json`);
   await open(`/games/${id}?ply=0`);
   expect(await screen.findByText("Start position", {}, SLOW)).toBeTruthy();
+  // "Start position" can show before the moves load, and a key pressed then has nothing to step to.
+  await waitFor(() => expect(document.querySelector(`.mv[data-ply="${g.moves.length}"]`)).toBeTruthy(), SLOW);
   for (let i = 0; i < 3; i++) await act(async () => { fireEvent.keyDown(window, { key: "ArrowRight" }); });
-  expect(screen.getByText(`3 of ${g.moves.length}`, { exact: false })).toBeTruthy();
+  expect(await screen.findByText(`3 of ${g.moves.length}`, { exact: false })).toBeTruthy();
   await act(async () => { fireEvent.keyDown(window, { key: "End" }); });
-  expect(screen.getByText(`${g.moves.length} of ${g.moves.length}`, { exact: false })).toBeTruthy();
+  expect(await screen.findByText(`${g.moves.length} of ${g.moves.length}`, { exact: false })).toBeTruthy();
   // A mistake record's explanation is the pipeline's template text, shown as is.
   const r = g.records[0];
   fireEvent.click(document.querySelector(`.mv[data-ply="${r.ply}"]`)!);
