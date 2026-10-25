@@ -232,6 +232,9 @@ this file wins.
   migration's grants are the only ones), my account invited and confirmed in SQL (see DEPLOY.md),
   sign-ups off; the Pages build gets the two values from repository variables. Sign-in stays the emailed
   link: a 6-digit code would need custom SMTP, since the built-in sender's templates can't be edited.
+  Supabase pauses a free project after 7 days without database activity, and an API call counts only if
+  it runs a query, so the nightly Action calls `public.keep_awake()` (returns `now()`, executable by the
+  signed-out role only; `supabase/migrations/0002_keep_awake.sql`) once a day with the publishable key.
 - **Installable and offline:** a web manifest and a service worker written at build time. Install caches
   the app shell, every built file and the training data (summary, insights, losses, games index, leaks,
   endgames, puzzles, repertoire). Pages and data are network-first with the cache as fallback; built assets and engine files

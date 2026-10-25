@@ -13,7 +13,11 @@ merges with the server when it's online (for each puzzle or line the newer answe
 1. **Project.** Create a project on the free plan at supabase.com.
 2. **Table.** In the SQL editor, run [`supabase/migrations/0001_progress.sql`](../supabase/migrations/0001_progress.sql).
    It makes one `progress` table with row-level security, so a signed-in user can read and write only
-   their own row. (With the Supabase CLI linked to the project, `supabase db push` does the same.)
+   their own row. Then run [`0002_keep_awake.sql`](../supabase/migrations/0002_keep_awake.sql): a function
+   that returns the database's clock, which the nightly Action calls once a day, because a free project
+   pauses after a week without database activity (an API call counts only if it runs a query). Supabase
+   emails a week before pausing; a paused project comes back, data and all, from the dashboard. (With the
+   Supabase CLI linked to the project, `supabase db push` runs both.)
 3. **Sign-in.** Authentication → Sign In / Providers: keep Email on (the app uses magic links, no
    passwords). Under URL Configuration, set the Site URL to the deployed address and add
    `https://<your site>/settings` and `http://localhost:5173/settings` to the redirect URLs.
@@ -122,7 +126,9 @@ To allow indexing, set `COACH_NOINDEX=0` in the host's build environment (and re
 
 `.github/workflows/nightly.yml` runs at 03:00 India time: it installs the pinned Stockfish 19 Linux build
 (checksum-checked), pulls the shared cache, runs `coach update` for the new games, pushes the cache and
-commits the changed exports, which makes the host redeploy.
+commits the changed exports, which makes the host redeploy. When the `VITE_SUPABASE_URL` variable is set,
+a separate job also calls Supabase's `keep_awake` so progress sync never pauses; if it fails, that job
+shows it, but the run still counts as a successful update.
 
 1. **Seed the cache once from the Mac** (otherwise the Action would re-analyse every game, so it stops
    instead): `gh auth login`, then `uv run coach cache push`. It uploads the Stockfish results, explorer

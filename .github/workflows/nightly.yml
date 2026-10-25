@@ -79,6 +79,26 @@ jobs:
             echo "committed=true" >> "$GITHUB_OUTPUT"
           fi
 
+  # Progress sync's free Supabase project pauses after a week without database activity, and the app can go
+  # that long unopened: one query a day keeps it awake (supabase/migrations/0002_keep_awake.sql). A failure
+  # shows on this job but leaves the run's result alone, since the Worker and the app's update card read it
+  # as the update's; Supabase also emails a week before pausing.
+  keep-sync-awake:
+    if: vars.VITE_SUPABASE_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions: {}
+    steps:
+      - name: Ping Supabase
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          curl -sSf --retry 3 --retry-all-errors -X POST "$SUPABASE_URL/rest/v1/rpc/keep_awake" \
+            -H "apikey: $SUPABASE_KEY" -H "Content-Type: application/json" -d '{}'
+          echo
+
   # The data commit was pushed with the workflow's token, which starts no other workflow, so publish here.
   pages:
     needs: update
