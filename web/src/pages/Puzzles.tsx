@@ -6,20 +6,17 @@
 import { Suspense, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Loading } from "../components/AppShell";
-import { PuzzleBoard, type Outcome } from "../components/PuzzleBoard";
+import { PuzzleBoard } from "../components/PuzzleBoard";
 import { usePuzzles } from "../lib/data";
-import { byLevel, byNewestGame, drillQueue, dueIds, dueQueue, hasTag, missed, queue, SESSION } from "../lib/drill";
+import { byLevel, byNewestGame, drillQueue, dueIds, dueQueue, hasTag, missed, queue, recordPuzzle, SESSION, type Outcome } from "../lib/drill";
 import { dateTime, grouped, moveName, plural } from "../lib/format";
 import { tagName } from "../lib/names";
-import { getProgress, grade, rateLevel, Rating, tagStats, useProgress } from "../lib/progress";
+import { getProgress, Rating, tagStats, useProgress } from "../lib/progress";
 import type { Puzzle } from "../types/export";
 
 type Tab = "mine" | "lichess" | "due" | "missed" | "drill" | "game";
 const NONE: Puzzle[] = [];
 const TABS: [Tab, string][] = [["mine", "My mistakes"], ["lichess", "Same kind"], ["due", "Due today"], ["missed", "Missed"]];
-
-export const gradeOf = (o: Outcome) =>
-  o.revealed || o.wrong >= 2 ? Rating.Again : o.wrong || o.hint ? Rating.Hard : Rating.Good;
 
 export default function Puzzles() {
   const [params, setParams] = useSearchParams();
@@ -101,8 +98,7 @@ function Session({ tab, tag, replay, onTag, onAgain }: {
   }, [pool, tab]);
 
   const onDone = (z: Puzzle, o: Outcome) => {
-    grade(z.id, "puzzle", gradeOf(o), z.tags);
-    if (z.source === "lichess" && z.rating != null) rateLevel(z.rating, o.solved && !o.wrong && !o.hint);
+    recordPuzzle(z, o);
     setResults((r) => [...r, o]);
   };
   const solved = results.filter((o) => o.solved && !o.wrong && !o.hint).length;

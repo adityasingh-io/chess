@@ -221,8 +221,26 @@ this file wins.
   score measures. A mistake's text starts with the verdict: Stockfish's best move with its score and what
   its line does to material, then my move with its score and what its line does. Puzzles show it for the
   solution once they're over.
-- **Dashboard training card:** puzzles due, a drill on the top leak that has puzzles, the opening lines
-  due or to learn, and answers today against a goal of ten, with a streak of days.
+- **Home** (changed 2026-10-25): Today's session first; then the rating, its change over the last 30 days and
+  the weekly pace the goal needs next to the last 30 days' (no red "since January"); a scoreboard of three
+  counts that lose games (hung pieces, wins thrown away, games given up while playable) in the last 20 games
+  against the 20 before; the last game; more practice (reviews due, the drill on what loses my games, opening
+  lines, Play it out); Why I lost, top leaks and winning games not won; the rating chart last.
+- **Today** (added 2026-10-25): one session from Home (`/today`, `web/src/lib/today.ts`). In order: the key
+  moments of my newest 10 games not tried yet (up to 3); 5 puzzles never tried on the two drillable causes of
+  most of my losses in the last 30 days (3 and 2, all time breaking ties; drillable are hung a piece, allowed
+  mate, walked into a tactic, missed mate and missed a win, since a quiet mistake, the clock, giving up and
+  being outplayed aren't one move a puzzle trains); the reviews due today (up to 5, puzzles of any kind and
+  key moments, longest overdue first); one win that got away to win again (the newest not won again yet,
+  from a game whose key moment isn't in the session when there's one, at the Play it out skill). Once
+  started, the plan is fixed for the day and kept on the device (`coach-today-v1`); one not started is made
+  again with the newest data. Skip moves on, and each answer counts as it does on its own page.
+- **Key moment review** (added 2026-10-25): `/games/<id>?key=1`, from Home's Review it, the viewer header and
+  Today. The position before my key-moment move (reading 25): a move tried gets its stored label, so Best,
+  Excellent or Good finds a better move, and anything else snaps back with its drop and what Stockfish's
+  line does after it. Hint marks the piece Stockfish's move moves; Show Stockfish's move ends it. Then
+  Stockfish's line, my move's line, the record's explanation and the other good moves. An answer schedules
+  the key moment's next review (FSRS, graded as a puzzle is).
 - **Sync:** Supabase, off unless the build has `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
   (from the repo-root `.env`; Vite exposes only `VITE_` variables). The client library loads only then.
   Magic-link sign-in without account creation; one `progress` row per user under row-level security
@@ -258,7 +276,7 @@ this file wins.
   `losses.json` carries each start position and its Win%, `endgames.json` the spoiled endgames' (each
   spoiled game's position before the spoiling move and my Win% there).
 - **Last game and retrying a game:** the dashboard shows the newest game (result, accuracy, label counts,
-  why I lost) with links to review it, retry its mistakes (`/puzzles?game=<id>`: my puzzles from that game
+  why I lost) with links to review it (at its key moment when it has one), retry its mistakes (`/puzzles?game=<id>`: my puzzles from that game
   in move order), and play its thrown win again or play on from where I gave it up. Game summaries and game files carry their puzzle count.
 - **Quality of life** (added 2026-10-24 from what chess.com and Lichess players ask for):
   - *Hover to show:* every move and square an explanation names is a button. Hovering one (or focusing it
@@ -402,6 +420,17 @@ this file wins.
 22. `tagger-check` measures the first 20,000 puzzles of the Lichess puzzle stream (cached locally).
 23. A game resigned or abandoned before any move is modelled from its initial position, so a loss still gets
     exactly one cause from Stockfish's stored Win% there. It has no opening, so opening reports leave it out.
+24. Why I lost, step 3, has a second rule (added 2026-10-25): with no move from 40 or more to 25 or less, the
+    turning point is the move after which my Win% never got back to 40, when it's my record and lost 15 or
+    more (`turning_drop`, where Blunder starts). Only then is a loss Outplayed slowly. 23 of the 32 losses
+    filed as Outplayed slowly had turned on one such blunder that landed between 25 and 40 (12…Rf8 on
+    2026-10-25 took me from 91.6 to 28.3, and the next move lost the rest). Exports say which rule fired.
+25. Each game has a key moment (added 2026-10-25): the loss's turning point, else the move that threw a win
+    away, else my costliest move, and always a Mistake or Blunder record, so a win with neither has none.
+    Every legal move there is scored with pass 1 on the position after it, as the trainer does, so a move
+    tried in the review gets the drop and the label it would have got in the game. A key moment is
+    exported once all of its moves are scored. Only my newest 50 games' are scored (`key_moments.games`, about
+    35 positions a game), so the nightly run's share stays small; one scored earlier stays exported.
 
 ## Phases
 

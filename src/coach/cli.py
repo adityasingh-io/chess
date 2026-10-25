@@ -61,7 +61,7 @@ def analyze(last: Last = None, reviewed: Reviewed = 0, pass1_only: bool = False,
 def update(last: Last = None, reviewed: Reviewed = 0,
            notes: Annotated[bool, typer.Option(help="Also ask for AI notes when they're on in config.toml.")] = True) -> None:
     """Fetch, parse, analyse, fetch explorer stats and export, touching only what's new."""
-    from coach.build import fetch_explorer, fetch_puzzles, fetch_trainer, run_build
+    from coach.build import fetch_explorer, fetch_key_moments, fetch_puzzles, fetch_trainer, run_build
 
     cfg, conn = _setup()
     timings: dict[str, float] = {}
@@ -81,6 +81,7 @@ def update(last: Last = None, reviewed: Reviewed = 0,
     else:
         console.print("LICHESS_TOKEN not set: skipping explorer stats")
     step("trainer", fetch_trainer, cfg, conn, console)
+    step("key moments", fetch_key_moments, cfg, conn, console)
     step("puzzles", fetch_puzzles, cfg, conn, console)
     if notes and cfg.notes.enabled:
         from coach.build import write_notes

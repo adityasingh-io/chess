@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { gameOver, numberedLine, replay, sideToMove, tryMove, uciParts } from "../lib/chess";
+import type { Outcome } from "../lib/drill";
 import { moveName, n1 } from "../lib/format";
 import { useMoveInput } from "../lib/moveInput";
 import { tagName } from "../lib/names";
@@ -15,7 +16,6 @@ import type { Puzzle } from "../types/export";
 import { Board, type ArrowKind } from "./Board";
 import { RefText, usePeek } from "./RefText";
 
-export type Outcome = { solved: boolean; wrong: number; hint: boolean; revealed: boolean };
 type Status = "play" | "solved" | "revealed";
 /** Stepping through a line once it's over: the solution, or (a puzzle from my game) my move and its answer. */
 type View = { line: "solution" | "played"; k: number };

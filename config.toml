@@ -80,8 +80,12 @@ after_loss_minutes = 30         # game started within this many minutes of a los
 [analysis.losses]
 playable = 40.0                 # lost on time / gave up with my Win% at least this
 turning_from = 40.0             # turning point: my first move from at least this
-turning_to = 25.0               # to this or below
+turning_to = 25.0               # to this or below; with no such move, the move after which my Win% never got
+turning_drop = 15.0             # back to turning_from, if it lost at least this (15 is where Blunder starts)
 winning = 80.0                  # winning games not won: my Win% reached this
+
+[key_moments]                   # each game's key moment (PLAN.md, reading 25): every legal move there scored with pass 1
+games = 50                      # for my newest this many games (about 35 positions each); older ones keep theirs once scored
 
 [analysis.openings]
 leak_drop = 10.0                # leak position: my move there loses this much Win% on average,

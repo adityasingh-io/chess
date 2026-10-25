@@ -231,6 +231,7 @@ records: Record[]
 puzzles: number
 loss: (LossInfo | null)
 thrown: (ThrownInfo | null)
+key: (KeyMoment | null)
 endgame: (EndgameInfo | null)
 repertoire: (RepertoireCheck | null)
 }
@@ -335,6 +336,7 @@ cause: string
 subtype: (string | null)
 flags: string[]
 turning_ply: (number | null)
+turning_rule: (("to_losing" | "no_way_back") | null)
 record: (string | null)
 }
 /**
@@ -346,6 +348,37 @@ peak: number
 ply: (number | null)
 san: (string | null)
 drop: (number | null)
+}
+/**
+ * The move to look at again after a game (PLAN.md, reading 25): the loss's turning point, else the move that
+ * threw a win away, else my costliest move; a Mistake or Blunder record each time.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "KeyMoment".
+ */
+export interface KeyMoment {
+kind: ("turning" | "thrown" | "costliest")
+ply: number
+record: string
+fen: string
+win_before: number
+moves: KeyMove[]
+}
+/**
+ * A move I could have played at a key moment, labelled as a move of my games is (pass 1).
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "KeyMove".
+ */
+export interface KeyMove {
+uci: string
+san: string
+eval: (Eval | null)
+terminal: (("white" | "black" | "draw") | null)
+win: (number | null)
+why: string
+drop: (number | null)
+label: (string | null)
 }
 /**
  * Where the game left the trainer's lines (book.py): the first move no line has, and whose it was.
@@ -381,6 +414,7 @@ mistakes: number
 blunders: number
 loss_cause: (string | null)
 thrown: boolean
+key_ply: (number | null)
 puzzles: number
 repertoire: (RepertoireCheck | null)
 }
@@ -573,6 +607,7 @@ cause: string
 subtype: (string | null)
 flags: string[]
 turning_ply: (number | null)
+turning_rule: (("to_losing" | "no_way_back") | null)
 record: (string | null)
 colour: ("white" | "black")
 opponent: string

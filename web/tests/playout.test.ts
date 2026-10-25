@@ -17,7 +17,7 @@ test("only positions stored at the winning threshold or above are offered, newes
 
 test("games given up start where they ended, newest first, and are saved by not losing", () => {
   const loss = (game: string, ts: number, cause: string): LossEntry => ({
-    game, ts, cause, subtype: null, flags: [], turning_ply: null, record: null, colour: "black", opponent: "x",
+    game, ts, cause, subtype: null, flags: [], turning_ply: null, turning_rule: null, record: null, colour: "black", opponent: "x",
     final_fen: "8/8/8/3k4/8/8/8/Q3K3 w - - 0 1", final_win: 55,
   });
   const list = resignedStarts([loss("a", 1, "gave_up"), loss("b", 2, "hung_piece"), loss("c", 3, "gave_up")]);

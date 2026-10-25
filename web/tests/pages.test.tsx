@@ -12,6 +12,9 @@ import { ENDGAME_TYPE, OUTCOME } from "../src/lib/names";
 import { routes } from "../src/router";
 import { Chess } from "chess.js";
 import { endgameStarts } from "../src/lib/playout";
+import { keyId } from "../src/lib/drill";
+import { losingTags, newKeys } from "../src/lib/today";
+import { tagName } from "../src/lib/names";
 import type { Endgames, Game, GamesIndex, Insights, Leaks, Losses, OpeningReport, PuzzleIndex, PuzzleSet, Repertoire, Summary } from "../src/types/export";
 
 const data = <T,>(p: string): T => JSON.parse(readFileSync(join(__dirname, "../public/data", p), "utf8"));
@@ -30,6 +33,13 @@ const para = (text: string) => (_: string, el: Element | null) => el?.tagName ==
 test("dashboard shows the exported rating and loss shares", async () => {
   await open("/");
   expect(await screen.findByText(String(summary.rating), { selector: ".big" }, SLOW)).toBeTruthy();
+  // Today's session comes first; the scoreboard counts hung pieces in the last 20 games from the leak rates.
+  const today = screen.getByRole("region", { name: "Today" });
+  expect(within(today).getByRole("link", { name: "Start" }).getAttribute("href")).toBe("/today");
+  expect(screen.getByText(/in the last 30 days$/)).toBeTruthy();
+  const rates = data<Insights>("insights.json").leak_rates as { recent: { [t: string]: number }; games: number[] };
+  const hung = within(screen.getByRole("region", { name: "Scoreboard" })).getByRole("link", { name: /^Hung pieces/ });
+  expect(within(hung).getByText(String(Math.round(rates.recent.hung_piece * rates.games[0])))).toBeTruthy();
   const total = Object.values(losses.causes_30_days).reduce((a, b) => a + b, 0);
   expect(screen.getByText(`Last 30 days (${total} losses)`)).toBeTruthy();
   const [cause, count] = Object.entries(losses.causes_30_days).sort((a, b) => b[1] - a[1])[0];
@@ -672,3 +682,48 @@ test("the trainer covers my opponents' replies, puts lines I left in a game firs
   await open(`/trainer?line=${latest.id}`);
   expect(await screen.findByRole("heading", { name: latest.name }, SLOW)).toBeTruthy();
 }, 20_000);
+
+test("?key=1 opens a game's key moment: the move played snaps back, a stored Good or better move finds it", async () => {
+  localStorage.clear();
+  setProgress(normalise({}));   // the module keeps progress between tests
+  const s = data<GamesIndex>("games/index.json").games.find((x) => x.key_ply != null)!;
+  const g = data<Game>(`games/${s.id}.json`);
+  const k = g.key!, r = g.records.find((x) => x.id === k.record)!;
+  expect(k.ply).toBe(s.key_ply);
+  await open(`/games/${g.id}?key=1`);
+  expect(await screen.findByRole("region", { name: "Key moment" }, SLOW)).toBeTruthy();
+  const board = `key-${g.id}`;
+  await tap(board, r.uci.slice(0, 2));
+  await tap(board, r.uci.slice(2, 4));
+  expect(await screen.findByText(/the move you played/)).toBeTruthy();
+  const good = k.moves.find((x) => ["best", "excellent", "good"].includes(x.label ?? "") && x.uci.length === 4)!;
+  await tap(board, good.uci.slice(0, 2));
+  await tap(board, good.uci.slice(2, 4));
+  expect(await screen.findByText(/^Found, with help/)).toBeTruthy();
+  const p = progress();
+  expect(p.items[keyId(g.id, k.ply)].kind).toBe("key");
+  expect(p.attempts.at(-1).grade).toBe(Rating.Hard);   // one wrong try
+  // Review the whole game leaves the key moment for the viewer, at that move.
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Review the whole game" })); });
+  expect(screen.getByText(`${k.ply} of ${g.moves.length}`, { exact: false })).toBeTruthy();
+}, 30_000);
+
+test("Today: my newest games' key moments first, then the drill on what loses games; Skip moves on", async () => {
+  localStorage.clear();
+  setProgress(normalise({}));   // the module keeps progress between tests
+  const games = data<GamesIndex>("games/index.json").games;
+  const keys = newKeys(games, normalise({}));
+  const top = losingTags(losses, data<PuzzleIndex>("puzzles/index.json"))[0];
+  await open("/today");
+  expect(await screen.findByRole("heading", { name: "Today" }, SLOW)).toBeTruthy();
+  const steps = await screen.findByRole("list", { name: "Today's session" }, SLOW);
+  expect(within(steps).getByText("Key moments").parentElement!.textContent).toBe(`Key moments 0 of ${keys.length}`);
+  for (const g of keys) {
+    expect(await screen.findByRole("heading", { name: `Key moment · vs ${g.opponent}` }, SLOW)).toBeTruthy();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Skip this step" })); });
+  }
+  expect(await screen.findByRole("heading", { name: `Drill: ${tagName(top)}` }, SLOW)).toBeTruthy();
+  const plan = JSON.parse(localStorage.getItem("coach-today-v1")!);
+  expect(plan.at).toBe(keys.length);
+  expect(plan.marks.slice(0, keys.length)).toEqual(keys.map(() => "skipped"));
+}, 30_000);

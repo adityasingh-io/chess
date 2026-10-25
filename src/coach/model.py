@@ -27,6 +27,8 @@ PRIMARY_TYPES = ("allowed_mate", "hung_piece", "tactic", "missed_mate", "missed_
 SEVERITIES = ("inaccuracy", "mistake", "blunder")
 FLAGS = ("threw_away_win", "opening", "endgame", "fast", "time_trouble", "after_loss")
 LOSS_CAUSES = ("clock", "gave_up", *PRIMARY_TYPES, "outplayed")
+TURNING_RULES = ("to_losing", "no_way_back")
+KEY_KINDS = ("turning", "thrown", "costliest")
 ENDGAME_OUTCOMES = ("converted", "spoiled", "held", "saved", "lost_as_expected")
 
 
@@ -414,12 +416,19 @@ class LossCause:
     flags: list[str] = field(default_factory=list)
     turning_point: Ply | None = None
     record: Record | None = None
+    rule: str | None = None   # which turning-point rule found it (TURNING_RULES)
 
 
 @dataclass
 class ThrownWin:
     peak: float
     move: Ply | None         # my move with the largest Win% drop after first reaching the threshold
+
+
+@dataclass
+class KeyMoment:
+    kind: str                # KEY_KINDS: the loss's turning point, the move that threw a win away, my costliest mistake
+    record: Record
 
 
 @dataclass(eq=False)
@@ -434,6 +443,7 @@ class GameModel:
     records: list[Record] = field(default_factory=list)
     loss: LossCause | None = None
     thrown: ThrownWin | None = None
+    key: KeyMoment | None = None
 
     @property
     def id(self) -> str:
@@ -585,7 +595,7 @@ def build_records(cfg: Config, model: GameModel, evals1: dict[str, dict], evals2
 
 
 def loss_cause(cfg: Config, model: GameModel) -> LossCause | None:
-    """Exactly one cause for every lost game (BRIEF.md, Why I lost)."""
+    """Exactly one cause for every lost game (BRIEF.md, Why I lost; PLAN.md, reading 24)."""
     if model.row["result"] != "loss":
         return None
     l = cfg.analysis.losses
@@ -599,7 +609,14 @@ def loss_cause(cfg: Config, model: GameModel) -> LossCause | None:
     for p in model.mine():
         if p.win_before >= l.turning_from and p.win_after <= l.turning_to and p.number in by_ply:
             r = by_ply[p.number]
-            return LossCause(r.primary, r.subtype, r.flags, p, r)
+            return LossCause(r.primary, r.subtype, r.flags, p, r, "to_losing")
+    # No move went that far: the one after which my Win% never got back to turning_from, if it lost turning_drop.
+    last = max((i for i, w in enumerate(model.my_win) if w >= l.turning_from), default=None)
+    if last is not None and last < len(model.plies):
+        p = model.plies[last]
+        if p.mine and p.drop >= l.turning_drop and p.number in by_ply:
+            r = by_ply[p.number]
+            return LossCause(r.primary, r.subtype, r.flags, p, r, "no_way_back")
     return LossCause("outplayed")
 
 
@@ -615,9 +632,23 @@ def thrown_win(cfg: Config, model: GameModel) -> ThrownWin | None:
     return ThrownWin(max(wins), max(later, key=lambda p: p.drop, default=None))
 
 
+def key_moment(model: GameModel) -> KeyMoment | None:
+    """The move to look at again after a game (PLAN.md, reading 25): the loss's turning point, else the move that
+    threw a win away, else my costliest move; always one of my records labelled Mistake or Blunder."""
+    serious = [r for r in model.records if r.severity in ("mistake", "blunder")]
+    by_ply = {r.ply.number: r for r in serious}
+    if model.loss and model.loss.turning_point and (r := by_ply.get(model.loss.turning_point.number)):
+        return KeyMoment("turning", r)
+    if model.thrown and model.thrown.move and (r := by_ply.get(model.thrown.move.number)):
+        return KeyMoment("thrown", r)
+    if serious:
+        return KeyMoment("costliest", max(serious, key=lambda r: (r.ply.drop, -r.ply.number)))
+    return None
+
+
 def build_all(cfg: Config, games: list[Game], evals1: dict[str, dict], evals2: dict[str, dict],
               openings: dict[str, Opening]) -> list[GameModel]:
-    """Every game with complete pass-1 results, with records, loss causes and thrown wins."""
+    """Every game with complete pass-1 results, with records, loss causes, thrown wins and key moments."""
     models = [m for g in games if (m := build_game(cfg, g, evals1, openings)) is not None]
     fast = think_thresholds(cfg, models)
     after_loss = after_loss_ids(cfg, games)
@@ -625,4 +656,5 @@ def build_all(cfg: Config, games: list[Game], evals1: dict[str, dict], evals2: d
         build_records(cfg, m, evals1, evals2, fast, after_loss)
         m.loss = loss_cause(cfg, m)
         m.thrown = thrown_win(cfg, m)
+        m.key = key_moment(m)
     return models

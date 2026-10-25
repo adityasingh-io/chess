@@ -838,6 +838,16 @@
       }
      ]
     },
+    "key": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/KeyMoment"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
     "endgame": {
      "anyOf": [
       {
@@ -883,6 +893,7 @@
     "puzzles",
     "loss",
     "thrown",
+    "key",
     "endgame",
     "repertoire"
    ],
@@ -1000,6 +1011,17 @@
      "title": "Thrown",
      "type": "boolean"
     },
+    "key_ply": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Key Ply"
+    },
     "puzzles": {
      "title": "Puzzles",
      "type": "integer"
@@ -1032,6 +1054,7 @@
     "blunders",
     "loss_cause",
     "thrown",
+    "key_ply",
     "puzzles",
     "repertoire"
    ],
@@ -1262,6 +1285,143 @@
     "openings"
    ],
    "title": "Insights",
+   "type": "object"
+  },
+  "KeyMoment": {
+   "additionalProperties": false,
+   "description": "The move to look at again after a game (PLAN.md, reading 25): the loss's turning point, else the move that\nthrew a win away, else my costliest move; a Mistake or Blunder record each time.",
+   "properties": {
+    "kind": {
+     "enum": [
+      "turning",
+      "thrown",
+      "costliest"
+     ],
+     "title": "Kind",
+     "type": "string"
+    },
+    "ply": {
+     "title": "Ply",
+     "type": "integer"
+    },
+    "record": {
+     "title": "Record",
+     "type": "string"
+    },
+    "fen": {
+     "title": "Fen",
+     "type": "string"
+    },
+    "win_before": {
+     "title": "Win Before",
+     "type": "number"
+    },
+    "moves": {
+     "items": {
+      "$ref": "#/$defs/KeyMove"
+     },
+     "title": "Moves",
+     "type": "array"
+    }
+   },
+   "required": [
+    "kind",
+    "ply",
+    "record",
+    "fen",
+    "win_before",
+    "moves"
+   ],
+   "title": "KeyMoment",
+   "type": "object"
+  },
+  "KeyMove": {
+   "additionalProperties": false,
+   "description": "A move I could have played at a key moment, labelled as a move of my games is (pass 1).",
+   "properties": {
+    "uci": {
+     "title": "Uci",
+     "type": "string"
+    },
+    "san": {
+     "title": "San",
+     "type": "string"
+    },
+    "eval": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Eval"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "terminal": {
+     "anyOf": [
+      {
+       "enum": [
+        "white",
+        "black",
+        "draw"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Terminal"
+    },
+    "win": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Win"
+    },
+    "why": {
+     "title": "Why",
+     "type": "string"
+    },
+    "drop": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Drop"
+    },
+    "label": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Label"
+    }
+   },
+   "required": [
+    "uci",
+    "san",
+    "eval",
+    "terminal",
+    "win",
+    "why",
+    "drop",
+    "label"
+   ],
+   "title": "KeyMove",
    "type": "object"
   },
   "Leak": {
@@ -1656,6 +1816,21 @@
      ],
      "title": "Turning Ply"
     },
+    "turning_rule": {
+     "anyOf": [
+      {
+       "enum": [
+        "to_losing",
+        "no_way_back"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Turning Rule"
+    },
     "record": {
      "anyOf": [
       {
@@ -1695,6 +1870,7 @@
     "subtype",
     "flags",
     "turning_ply",
+    "turning_rule",
     "record",
     "colour",
     "opponent",
@@ -1740,6 +1916,21 @@
      ],
      "title": "Turning Ply"
     },
+    "turning_rule": {
+     "anyOf": [
+      {
+       "enum": [
+        "to_losing",
+        "no_way_back"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Turning Rule"
+    },
     "record": {
      "anyOf": [
       {
@@ -1757,6 +1948,7 @@
     "subtype",
     "flags",
     "turning_ply",
+    "turning_rule",
     "record"
    ],
    "title": "LossInfo",

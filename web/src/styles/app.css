@@ -148,6 +148,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .rank { font-family: var(--font-num); font-weight: 600; font-size: 1.4rem; color: var(--muted); }
 .topleak .nm { font-weight: 650; }
 .topleak .sub { font-size: .84rem; color: var(--muted); }
+.score-row { grid-template-columns: minmax(0, 1fr) auto 5.5rem; }
+.score-row .score b { font-size: 1.2rem; }
+.score-row .trend { justify-self: end; }
 .trend { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; font-size: .84rem; white-space: nowrap; }
 .trend.better { color: var(--good); } .trend.worse { color: var(--bad); } .trend.flat { color: var(--muted); }
 .rows { display: grid; }
@@ -264,6 +267,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .acc div { display: grid; }
 .acc .v { font-family: var(--font-num); font-weight: 600; font-size: 1.25rem; }
 .cause-chip { border: 1px solid var(--bad); background: transparent; border-radius: 999px; padding: 3px 12px; cursor: pointer; font-size: .86rem; }
+.key-chip { border-color: var(--best); }
 .viewer { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
 .viewer > .colA, .viewer > .colB { display: contents; }
 .v-board { order: 1; display: grid; gap: 8px; min-width: 0; align-content: start; }
@@ -504,6 +508,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .puzzle-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .puzzle-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .puzzle-card { gap: 12px; }
+.today-steps { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 0 12px; padding: 0; }
+.today-steps li { display: flex; gap: 6px; align-items: baseline; padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px;
+  font-size: .86rem; background: var(--soft); }
+.today-steps li.now { border-color: var(--best); }
+.today-steps li.done { color: var(--muted); }
+.today-skip { display: flex; justify-content: flex-end; }
 .tag-filter button { font-family: var(--font-body); }
 .chip { display: inline-flex; align-items: center; border: 1px solid var(--line); background: var(--soft); border-radius: 4px; padding: 3px 8px; font-size: .84rem; }
 .session-done { display: grid; gap: 10px; justify-items: start; }

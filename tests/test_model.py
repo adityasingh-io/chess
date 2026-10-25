@@ -45,13 +45,65 @@ def test_a_loss_with_no_moves_still_gets_one_cause(recorded):
     assert sum(f["games"] for f in opening_families(cfg, models, row["my_color"])) == played
 
 
+def _to_losing(l, m):
+    """My first record that took me from turning_from or more to turning_to or less."""
+    records = {r.ply.number for r in m.records}
+    return next((p for p in m.mine() if p.win_before >= l.turning_from and p.win_after <= l.turning_to
+                 and p.number in records), None)
+
+
+def _no_way_back(l, m):
+    """The move after which my Win% stayed below turning_from, when it's my record and lost turning_drop or more."""
+    records = {r.ply.number for r in m.records}
+    above = [i for i, w in enumerate(m.my_win) if w >= l.turning_from]
+    p = m.plies[above[-1]] if above and above[-1] < len(m.plies) else None
+    return p if p and p.mine and p.drop >= l.turning_drop and p.number in records else None
+
+
 def test_turning_point_matches_its_record(recorded):
     l = recorded.cfg.analysis.losses
+    rules = set()
     for m in recorded.models:
         if m.loss and m.loss.turning_point:
             p = m.loss.turning_point
-            assert p.win_before >= l.turning_from and p.win_after <= l.turning_to
+            rules.add(m.loss.rule)
+            if m.loss.rule == "to_losing":
+                assert p is _to_losing(l, m)
+            else:
+                assert m.loss.rule == "no_way_back" and _to_losing(l, m) is None and p is _no_way_back(l, m)
+                assert all(w < l.turning_from for w in m.my_win[p.number:])
             assert m.loss.record.ply is p and m.loss.cause == m.loss.record.primary
+        elif m.loss:
+            assert m.loss.rule is None
+    assert rules == {"to_losing", "no_way_back"}
+
+
+def test_outplayed_slowly_means_no_turning_point_by_either_rule(recorded):
+    l = recorded.cfg.analysis.losses
+    outplayed = [m for m in recorded.models if m.loss and m.loss.cause == "outplayed"]
+    assert outplayed
+    for m in outplayed:
+        assert m.my_win[-1] < l.playable or m.row["my_code"] not in ("timeout", "resigned", "abandoned")
+        assert _to_losing(l, m) is None and _no_way_back(l, m) is None
+
+
+def test_key_moment_is_the_turning_point_then_the_thrown_move_then_the_costliest(recorded):
+    kinds = set()
+    for m in recorded.models:
+        serious = [r for r in m.records if r.severity in ("mistake", "blunder")]
+        k = m.key
+        if not serious:
+            assert k is None
+            continue
+        kinds.add(k.kind)
+        assert k.record in serious
+        if m.loss and m.loss.turning_point:
+            assert (k.kind, k.record) == ("turning", m.loss.record)
+        elif m.thrown and m.thrown.move and m.thrown.move.number in {r.ply.number for r in serious}:
+            assert k.kind == "thrown" and k.record.ply is m.thrown.move
+        else:
+            assert k.kind == "costliest" and k.record.ply.drop == max(r.ply.drop for r in serious)
+    assert kinds == {"turning", "thrown", "costliest"}
 
 
 def test_labels(recorded):
@@ -140,12 +192,12 @@ def test_marks_follow_their_rules(recorded):
 
 
 def test_a_line_that_stops_at_the_capture_is_not_brilliant(recorded):
-    """185617083548 ply 16 ...Bg6: Stockfish's second line is just Bxg6, with no move after it, so it doesn't show
-    whether the bishop is taken back (at more nodes the line goes on hxg6: a trade)."""
-    m = next(m for m in recorded.models if m.id == "185617083548")
-    p = m.plies[15]
-    assert p.move["san"] == "Bg6" and p.label in ("best", "excellent")
-    assert recorded.evals1[p.move["key_after"]]["lines"][1]["pv"] == ["d3g6"]
+    """185492359042 ply 13 7.Bd3: Stockfish's second line is just ...Bxd3, with no move after it, so it doesn't show
+    whether the bishop is taken back. Counted at the capture alone, White would be 3 points down."""
+    m = next(m for m in recorded.models if m.id == "185492359042")
+    p = m.plies[12]
+    assert p.move["san"] == "Bd3" and p.label in ("best", "excellent")
+    assert recorded.evals1[p.move["key_after"]]["lines"][1]["pv"] == ["f5d3"]
     assert p.mark is None or p.mark.kind != "brilliant"
 
 

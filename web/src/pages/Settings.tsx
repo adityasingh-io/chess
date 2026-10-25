@@ -48,6 +48,7 @@ export default function Settings() {
           <dl className="pos-facts">
             <div><dt>Puzzles tried</dt><dd className="num">{grouped(items.filter((i) => i.kind === "puzzle").length)}</dd></div>
             <div><dt>Lines tried</dt><dd className="num">{grouped(items.filter((i) => i.kind === "line").length)}</dd></div>
+            <div><dt>Key moments tried</dt><dd className="num">{grouped(items.filter((i) => i.kind === "key").length)}</dd></div>
             <div><dt>Answers</dt><dd className="num">{grouped(p.attempts.length)}</dd></div>
             <div><dt>Puzzle level</dt><dd className="num">{p.level}</dd></div>
             <div><dt>Last change</dt><dd>{p.updated ? dateTime(p.updated / 1000) : "–"}</dd></div>

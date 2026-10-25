@@ -62,6 +62,14 @@ def fetch_trainer(cfg: Config, conn: sqlite3.Connection, console: Console) -> No
     trainer.analyse(cfg, conn, trainer.all_lines(cfg, models, evals1), console)
 
 
+def fetch_key_moments(cfg: Config, conn: sqlite3.Connection, console: Console) -> None:
+    """Score every move I could have played at each game's key moment."""
+    from coach import keymoments
+
+    _, models, _, _ = load_inputs(cfg, conn)
+    keymoments.analyse(cfg, conn, models, console)
+
+
 def write_notes(cfg: Config, conn: sqlite3.Connection, console: Console) -> tuple[int, int]:
     """Ask Claude to reword the explanations of my costliest mistakes that have no cached note yet."""
     _, models, _, _ = load_inputs(cfg, conn)

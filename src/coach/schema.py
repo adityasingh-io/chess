@@ -115,6 +115,9 @@ class LossInfo(Model):
     subtype: str | None
     flags: list[str]
     turning_ply: int | None
+    # How the turning point was found (PLAN.md, reading 24): my first move from 40%+ to 25% or less, or, with no
+    # such move, the 15%+ drop after which I never got back to 40%.
+    turning_rule: Literal["to_losing", "no_way_back"] | None
     record: str | None
 
 
@@ -145,6 +148,34 @@ class RepertoireCheck(Model):
     line: str | None           # "mine": the trainer line to drill (RepertoireLine.id)
 
 
+class Alternative(Model):
+    """One legal move where the trainer asks for mine, scored like a move in my games (pass 1, the position
+    after it)."""
+    uci: str
+    san: str
+    eval: Eval | None          # Stockfish's score after it; None when it ends the game or isn't analysed yet
+    terminal: Literal["white", "black", "draw"] | None   # the move ends the game
+    win: float | None          # my Win% after it
+    why: str                   # what it does on the board along Stockfish's line after it (measured, why.py)
+
+
+class KeyMove(Alternative):
+    """A move I could have played at a key moment, labelled as a move of my games is (pass 1)."""
+    drop: float | None         # the Win% it loses against the stored score before it; None while not analysed
+    label: str | None          # best, excellent, good, inaccuracy, mistake or blunder
+
+
+class KeyMoment(Model):
+    """The move to look at again after a game (PLAN.md, reading 25): the loss's turning point, else the move that
+    threw a win away, else my costliest move; a Mistake or Blunder record each time."""
+    kind: Literal["turning", "thrown", "costliest"]
+    ply: int                   # my move there
+    record: str                # its mistake record
+    fen: str                   # the position before it (full FEN)
+    win_before: float          # my Win% there (pass 1)
+    moves: list[KeyMove]       # every legal move there, best first; exported once all are scored
+
+
 class Game(Model):
     id: str
     url: str
@@ -169,6 +200,7 @@ class Game(Model):
     puzzles: int               # my puzzles from this game
     loss: LossInfo | None
     thrown: ThrownInfo | None
+    key: KeyMoment | None
     endgame: EndgameInfo | None
     repertoire: RepertoireCheck | None
 
@@ -190,6 +222,7 @@ class GameSummary(Model):
     blunders: int
     loss_cause: str | None
     thrown: bool
+    key_ply: int | None        # the key moment's move, when the game file has one
     puzzles: int               # my puzzles from this game
     repertoire: RepertoireCheck | None
 
@@ -211,6 +244,7 @@ class LossEntry(Model):
     subtype: str | None
     flags: list[str]
     turning_ply: int | None
+    turning_rule: Literal["to_losing", "no_way_back"] | None
     record: str | None
     colour: Colour
     opponent: str
@@ -547,17 +581,6 @@ class PuzzleIndex(Model):
     as_of: int
     mine: dict[str, int]
     lichess: dict[str, int]
-
-
-class Alternative(Model):
-    """One legal move where the trainer asks for mine, scored like a move in my games (pass 1, the position
-    after it)."""
-    uci: str
-    san: str
-    eval: Eval | None          # Stockfish's score after it; None when it ends the game or isn't analysed yet
-    terminal: Literal["white", "black", "draw"] | None   # the move ends the game
-    win: float | None          # my Win% after it
-    why: str                   # what it does on the board along Stockfish's line after it (measured, why.py)
 
 
 class LineStep(Model):

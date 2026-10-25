@@ -2,8 +2,14 @@
 
 import json
 
+import chess
+
 from coach import schema as S
+from coach.analysis import evaluation, needs_engine
 from coach.export import build, write
+from coach.model import band
+from coach.positions import position_key
+from coach.winpct import for_side, position_win_pct
 
 
 def test_export_validates_and_is_idempotent(recorded):
@@ -37,6 +43,60 @@ def test_losses_cover_every_loss(recorded):
     losses = build(r.cfg, r.models, len(r.games), r.evals1, r.evals2, {}).files["losses.json"]
     lost = sum(1 for m in r.models if m.row["result"] == "loss")
     assert losses.total == lost == sum(losses.causes.values()) == len(losses.losses)
+
+
+def test_turning_points_say_which_rule_found_them(recorded):
+    r = recorded
+    built = build(r.cfg, r.models, len(r.games), r.evals1, r.evals2, {})
+    entries = {e.game: e for e in built.files["losses.json"].losses}
+    for m in r.models:
+        if m.loss:
+            assert built.games[m.id].loss.turning_rule == entries[m.id].turning_rule == m.loss.rule
+
+
+def _after_each_move(fen: str) -> list[str]:
+    board = chess.Board(fen)
+    out = []
+    for move in board.legal_moves:
+        board.push(move)
+        out.append(position_key(board))
+        board.pop()
+    return out
+
+
+def test_key_moments_score_every_legal_move_as_a_game_move(recorded):
+    """Every legal move at a key moment gets the Win%, drop and label a move of the game gets from pass 1. A key
+    moment is exported once all of them are scored."""
+    r = recorded
+    built = build(r.cfg, r.models, len(r.games), r.evals1, r.evals2, {})
+    index = {g.id: g for g in built.files["games/index.json"].games}
+    kinds, unscored = set(), 0
+    for m in r.models:
+        k = built.games[m.id].key
+        assert index[m.id].key_ply == (k.ply if k else None)
+        if not m.key:
+            assert k is None
+            continue
+        ply = m.key.record.ply
+        if any(needs_engine(key) and key not in r.evals1 for key in _after_each_move(ply.move["fen_before"])):
+            assert k is None
+            unscored += 1
+            continue
+        assert k and (k.kind, k.ply, k.record, k.fen) == (m.key.kind, ply.number, m.key.record.id, ply.move["fen_before"])
+        assert k.win_before == round(ply.win_before, 1)
+        kinds.add(k.kind)
+        board = chess.Board(k.fen)
+        assert sorted(x.uci for x in k.moves) == sorted(mv.uci() for mv in board.legal_moves)
+        assert [x.win for x in k.moves] == sorted((x.win for x in k.moves), reverse=True)
+        for x in k.moves:
+            board.push(chess.Move.from_uci(x.uci))
+            win = for_side(position_win_pct(evaluation(position_key(board), r.evals1)), ply.white)
+            board.pop()
+            assert x.win == round(win, 1) and x.drop == round(ply.win_before - win, 1)
+            assert x.label == ("best" if x.uci == ply.best else band(r.cfg, ply.win_before - win))
+        played = next(x for x in k.moves if x.uci == ply.move["uci"])
+        assert played.label == m.key.record.severity
+    assert kinds == {"turning", "thrown", "costliest"} and unscored
 
 
 def test_spoiled_endgames_start_before_the_spoiling_move(recorded):

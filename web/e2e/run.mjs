@@ -28,6 +28,7 @@ const summary = data("summary.json");
 const LONG_GAME = process.env.E2E_GAME ?? "164948678288";
 const longGame = data(`games/${LONG_GAME}.json`);
 const retryGame = data("games/index.json").games.find((g) => g.puzzles > 0);
+const keyGame = data("games/index.json").games.find((g) => g.key_ply != null);
 
 let base = process.env.E2E_URL, server = null;
 if (!base) {
@@ -114,6 +115,8 @@ try {
     { path: "/trainer", name: "trainer", ready: ".line-row" },
     { path: "/play", name: "play-it-out", ready: ".playout-row" },
     { path: `/puzzles?game=${retryGame.id}`, name: "retry-game", ready: ".puzzle .board" },
+    { path: "/today", name: "today", ready: ".puzzle .board" },
+    { path: `/games/${keyGame.id}?key=1`, name: "key-moment", ready: ".key-moment .board" },
     { path: "/settings", name: "settings", ready: ".card h2" },
     { path: "/coordinates", name: "coordinates", ready: ".board" },
     { path: "/puzzles?tab=missed", name: "missed", ready: ".card h2" },
@@ -158,8 +161,10 @@ try {
   await page.waitForSelector(".big");
   const big = await page.textContent(".big");
   check("dashboard: rating matches summary.json", Number(big) === summary.rating, `${big} vs ${summary.rating}`);
-  const leakNames = await page.$$eval(".topleak .nm", (els) => els.map((e) => e.textContent));
+  const leakNames = await page.$$eval('[aria-label="Top leaks"] .topleak .nm', (els) => els.map((e) => e.textContent));
   check("dashboard: three top leaks", leakNames.length === summary.top_leaks.length, leakNames.join(", "));
+  const scores = await page.$$eval('[aria-label="Scoreboard"] .score-row .nm', (els) => els.map((e) => e.textContent));
+  check("dashboard: the scoreboard's three counts", scores.length === 3, scores.join(", "));
   const recentLosses = Object.values(summary.why_i_lost_30_days).reduce((a, b) => a + b, 0);
   const keyText = await page.textContent(".keys");
   check("dashboard: 30-day loss count matches", keyText.includes(`(${recentLosses} `), keyText);

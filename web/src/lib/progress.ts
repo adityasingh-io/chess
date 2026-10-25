@@ -1,11 +1,11 @@
 // Training progress, kept on this device first (localStorage) so drills work offline: an FSRS card for
-// every puzzle and repertoire line I've tried, a log of attempts for the stats, lines I added from the
+// every puzzle, repertoire line and game key moment I've tried, a log of attempts for the stats, lines I added from the
 // opening tree, and my puzzle level for picking Lichess puzzles. Sync (lib/sync.ts) merges the same
 // structure with the server when it's configured. Export and import use it as JSON.
 import { useSyncExternalStore } from "react";
 import { createEmptyCard, fsrs, Rating, type Card, type Grade } from "ts-fsrs";
 
-export type Kind = "puzzle" | "line";
+export type Kind = "puzzle" | "line" | "key";   // key: a game's key moment (components/KeyMoment.tsx)
 export type StoredCard = Omit<Card, "due" | "last_review"> & { due: number; last_review: number | null };
 export type Item = { kind: Kind; card: StoredCard; updated: number };
 export type Attempt = { id: string; kind: Kind; at: number; grade: Grade; tags: string[] };

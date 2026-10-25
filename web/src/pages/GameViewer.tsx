@@ -4,8 +4,10 @@ import { Board, type ArrowKind, type HighlightKind, type Peek } from "../compone
 import { EvalBar, type BarValue } from "../components/EvalBar";
 import { EvalChart, ThinkChart, type ThinkBar } from "../components/charts";
 import { LineChips, MarkBadge, Nag } from "../components/bits";
+import { KeyMomentBoard } from "../components/KeyMoment";
 import { RefText, usePeek, type PeekControl } from "../components/RefText";
 import { RepertoireNote } from "../components/RepertoireNote";
+import { recordKey } from "../lib/drill";
 import { resignedId, thrownId, WINNING } from "../lib/playout";
 import { useGame, useSummary } from "../lib/data";
 import { useBot } from "../lib/bot";
@@ -23,9 +25,10 @@ export default function GameViewerRoute() {
   const ply = params.get("ply");
   const compare = params.get("compare") === "1";
   const pos = params.get("pos");   // a position key: open at the first move that reaches it
+  const key = params.get("key") === "1";   // open on the key moment: find a better move than the one played
   return (
-    <GameViewer key={`${id}:${ply ?? ""}:${compare}:${pos ?? ""}`} id={id} startCompare={compare} startPos={pos}
-      startPly={ply != null && /^\d+$/.test(ply) ? Number(ply) : null} />
+    <GameViewer key={`${id}:${ply ?? ""}:${compare}:${pos ?? ""}:${key}`} id={id} startCompare={compare} startPos={pos}
+      startPly={ply != null && /^\d+$/.test(ply) ? Number(ply) : null} startKey={key} />
   );
 }
 
@@ -103,8 +106,8 @@ const NAV = {
   play: ["Back to where you started playing (Home)", "Take back a move (←)", "Play the next move again (→)", "Play every move again (End)"],
 };
 
-function GameViewer({ id, startPly, startCompare, startPos }: {
-  id: string; startPly: number | null; startCompare: boolean; startPos: string | null;
+function GameViewer({ id, startPly, startCompare, startPos, startKey }: {
+  id: string; startPly: number | null; startCompare: boolean; startPos: string | null; startKey: boolean;
 }) {
   const g = useGame(id);
   const summary = useSummary();
@@ -138,6 +141,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
   const [botBusy, setBotBusy] = useState(false);
   const [botError, setBotError] = useState<string | null>(null);
   const [why, setWhy] = useState(false);   // the greyed-out Compare button was tapped: say why, until the next step
+  const [keyMode, setKeyMode] = useState(startKey && g.key != null);   // the key moment in place of the viewer
   const bot = useBot(summary.bots);
   const botReq = useRef(0);   // the latest request: answers to older ones are dropped
   const hush = useCallback(() => {
@@ -173,6 +177,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
     setWhy(false);
   }, [closeCompare]);
   const go = useCallback((k: number) => goPos({ line: 0, at: clamp(k) }), [goPos, clamp]);
+  const goGame = (k: number) => { setKeyMode(false); go(k); };
   const openCompare = useCallback((ply: number, step = 0) => {
     setPos({ line: 0, at: ply });
     setCompare(step);
@@ -242,7 +247,7 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
   };
 
   const onKey = useEffectEvent((e: KeyboardEvent) => {
-    if (e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement).closest?.("input, select, textarea")) return;
+    if (keyMode || e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement).closest?.("input, select, textarea")) return;
     if (e.key === "ArrowLeft") navTo("prev");
     else if (e.key === "ArrowRight") navTo("next");
     else if (e.key === "Home") navTo("first");
@@ -447,89 +452,100 @@ function GameViewer({ id, startPly, startCompare, startPos }: {
 
   return (
     <>
-      <GameHead g={g} me={me} opp={opp} onTurning={turning != null ? () => go(turning) : undefined} broken={n < g.moves.length ? n : null}
-        onClass={nextOfClass} onGo={go} />
-      <div className={`viewer${comparing ? " comparing" : ""}`}>
-        <div className="colA">
-          {comparing ? (
-            <Compare id={`game-${g.id}`} cur={cur} m={m!} r={r} cmp={cmp} step={compare} me={me}
-              setStep={(k) => { stopPlaying(); setCompare(k); }}
-              orientation={orientation} show={show} setShow={(s) => { setShow(s); setActive(s); }} mistakes={mistakes}
-              onMistake={(p) => openCompare(p)} peek={peek.shown}
-              branches={branches} active={active} live={live} sel={cmpSel} setSel={setCmpSel} onPlay={playOn}
-              onBranchAt={(key, k) => { hush(); setActive(key); setBranches((bs) => (bs[key] ? { ...bs, [key]: { ...bs[key]!, at: k } } : bs)); }}>
-              <PlayOn bots={summary.bots} bot={bot} busy={botBusy} error={botError} onStop={branches.you || branches.best ? stopPlaying : undefined}>
-                {playOver ? <b>{playOver}.</b>
-                  : playFen ? <LiveBest fen={playFen} line={live.fen === playFen ? live.lines[0] ?? null : null} live={live} me={me} />
-                  : <span className="muted">Make a move on either board and {bot.name ? `${bot.name} answers` : "play both sides"}.</span>}
-              </PlayOn>
-              {navbtns}
-            </Compare>
-          ) : (
-            <div className="v-board">
-              <div className="board-cap">
-                {caption}
-                {arrows.length > 1 && (
-                  <span className="board-keys">
-                    <span><i style={{ background: "var(--you)" }} />Your move</span>
-                    <span><i style={{ background: "var(--best)" }} />Stockfish's best</span>
-                  </span>
+      <GameHead g={g} me={me} opp={opp} onTurning={turning != null ? () => goGame(turning) : undefined} broken={n < g.moves.length ? n : null}
+        onClass={(s, c) => { setKeyMode(false); nextOfClass(s, c); }} onGo={goGame}
+        onKey={g.key && !keyMode ? () => setKeyMode(true) : undefined} />
+      {keyMode && g.key ? (
+        <section className="card puzzle-card" aria-label="Key moment">
+          <div className="card-head">
+            <h2>Key moment · <span className="san">{moveName(g.key.ply, g.moves[g.key.ply - 1]?.san ?? "")}</span></h2>
+            <span className="muted small">find a better move than the one you played</span>
+          </div>
+          <KeyMomentBoard g={g} onDone={(o) => recordKey(g, o)} onWhole={() => goGame(g.key!.ply)} />
+        </section>
+      ) : (
+        <div className={`viewer${comparing ? " comparing" : ""}`}>
+          <div className="colA">
+            {comparing ? (
+              <Compare id={`game-${g.id}`} cur={cur} m={m!} r={r} cmp={cmp} step={compare} me={me}
+                setStep={(k) => { stopPlaying(); setCompare(k); }}
+                orientation={orientation} show={show} setShow={(s) => { setShow(s); setActive(s); }} mistakes={mistakes}
+                onMistake={(p) => openCompare(p)} peek={peek.shown}
+                branches={branches} active={active} live={live} sel={cmpSel} setSel={setCmpSel} onPlay={playOn}
+                onBranchAt={(key, k) => { hush(); setActive(key); setBranches((bs) => (bs[key] ? { ...bs, [key]: { ...bs[key]!, at: k } } : bs)); }}>
+                <PlayOn bots={summary.bots} bot={bot} busy={botBusy} error={botError} onStop={branches.you || branches.best ? stopPlaying : undefined}>
+                  {playOver ? <b>{playOver}.</b>
+                    : playFen ? <LiveBest fen={playFen} line={live.fen === playFen ? live.lines[0] ?? null : null} live={live} me={me} />
+                    : <span className="muted">Make a move on either board and {bot.name ? `${bot.name} answers` : "play both sides"}.</span>}
+                </PlayOn>
+                {navbtns}
+              </Compare>
+            ) : (
+              <div className="v-board">
+                <div className="board-cap">
+                  {caption}
+                  {arrows.length > 1 && (
+                    <span className="board-keys">
+                      <span><i style={{ background: "var(--you)" }} />Your move</span>
+                      <span><i style={{ background: "var(--best)" }} />Stockfish's best</span>
+                    </span>
+                  )}
+                </div>
+                {strip(orientation === "white" ? "black" : "white")}
+                <div className="board-row">
+                  <EvalBar value={bar} orientation={orientation} me={me} live={barLive}
+                    note={barLive ? `live, depth ${live.depth}` : undefined} />
+                  <Board id={`game-${g.id}`} fen={shownFen} orientation={orientation} arrows={arrows} highlight={highlight}
+                    selected={selected} dots={dots} onDrop={(from, to) => play(from, to)} onSquare={onSquare} peek={exploring ? null : peek.shown}
+                    label={side ? `Side line ${startName(side)}, after ${posName(pos)}: play any move`
+                      : m ? `Position after ${moveName(cur, m.san)}` : "Start position"} />
+                </div>
+                {strip(orientation)}
+                {navbtns}
+                {why && !cmp && <p className="muted small nav-note" role="status">{noCompare(m, me, g.opponent)}</p>}
+                {threatFen && <Threat fen={threatFen} line={threatLine} depth={live.depth} status={live.status} error={live.error} me={me} />}
+                {exploring && (
+                  <PlayOn bots={summary.bots} bot={bot} busy={botBusy} error={botError}>
+                    {over ? <b>{over}.</b>
+                      : sideMove?.by ? <>{sideMove.by} played <b className="san">{posName(pos)}</b>
+                          {sideMove.p != null ? ` (${Math.round(sideMove.p * 100)}% of its choices here)` : ""}. Your move.</>
+                      : <span className="muted">{bot.name ? `Make a move on the board and ${bot.name} answers.` : "Nobody answers: play any move, for either side."}</span>}
+                  </PlayOn>
                 )}
               </div>
-              {strip(orientation === "white" ? "black" : "white")}
-              <div className="board-row">
-                <EvalBar value={bar} orientation={orientation} me={me} live={barLive}
-                  note={barLive ? `live, depth ${live.depth}` : undefined} />
-                <Board id={`game-${g.id}`} fen={shownFen} orientation={orientation} arrows={arrows} highlight={highlight}
-                  selected={selected} dots={dots} onDrop={(from, to) => play(from, to)} onSquare={onSquare} peek={exploring ? null : peek.shown}
-                  label={side ? `Side line ${startName(side)}, after ${posName(pos)}: play any move`
-                    : m ? `Position after ${moveName(cur, m.san)}` : "Start position"} />
+            )}
+            <section className="card v-graph">
+              <div className="card-head">
+                <h2>Win% and think time</h2>
+                <span className="legend-inline">
+                  {SEVERITIES.map((s) => <span key={s}><Nag severity={s} /> {SEV[s]}</span>)}
+                </span>
               </div>
-              {strip(orientation)}
-              {navbtns}
-              {why && !cmp && <p className="muted small nav-note" role="status">{noCompare(m, me, g.opponent)}</p>}
-              {threatFen && <Threat fen={threatFen} line={threatLine} depth={live.depth} status={live.status} error={live.error} me={me} />}
-              {exploring && (
-                <PlayOn bots={summary.bots} bot={bot} busy={botBusy} error={botError}>
-                  {over ? <b>{over}.</b>
-                    : sideMove?.by ? <>{sideMove.by} played <b className="san">{posName(pos)}</b>
-                        {sideMove.p != null ? ` (${Math.round(sideMove.p * 100)}% of its choices here)` : ""}. Your move.</>
-                    : <span className="muted">{bot.name ? `Make a move on the board and ${bot.name} answers.` : "Nobody answers: play any move, for either side."}</span>}
-                </PlayOn>
-              )}
-            </div>
-          )}
-          <section className="card v-graph">
-            <div className="card-head">
-              <h2>Win% and think time</h2>
-              <span className="legend-inline">
-                {SEVERITIES.map((s) => <span key={s}><Nag severity={s} /> {SEV[s]}</span>)}
-              </span>
-            </div>
-            <EvalChart cur={cur} myWin={myWin} labels={labels} records={records} turning={turning}
-              endgameStart={g.endgame?.start_ply ?? null} onPick={go} />
-            <div className="label">Your think time per move</div>
-            <ThinkChart cur={cur} n={n} bars={bars} onPick={go} />
-          </section>
+              <EvalChart cur={cur} myWin={myWin} labels={labels} records={records} turning={turning}
+                endgameStart={g.endgame?.start_ply ?? null} onPick={go} />
+              <div className="label">Your think time per move</div>
+              <ThinkChart cur={cur} n={n} bars={bars} onPick={go} />
+            </section>
+          </div>
+          <div className="colB">
+            {exploring ? (
+              <LivePanel live={live} lines={liveLines} fen={shownFen} me={me} over={over}
+                side={side ? { name: startName(side), tokens: sideTokens, moves: side.moves, at: pos.at } : null}
+                onPlay={(uci) => { const p = uciParts(uci); play(p.from, p.to, p.promotion); }}
+                onAt={(k) => side && goPos({ line: side.id, at: k })} onClose={leave} />
+            ) : (
+              <Explain g={g} me={me} cur={cur} m={m} r={r} myWin={myWin} turning={turning} cmp={cmp} comparing={comparing} fens={fens}
+                onCompare={(step) => openCompare(cur, step)} prev={cur >= 2 ? { fen: fens[cur - 2], uci: g.moves[cur - 2].uci } : null}
+                peek={peek} />
+            )}
+            <section className="card v-moves">
+              <div className="card-head"><h2>Moves</h2><span className="muted small">← → to step · F to flip</span></div>
+              <MoveList moves={g.moves.slice(0, n)} recAt={recAt} me={me} turning={turning} pos={pos} vars={vars} baseOf={baseOf}
+                onPick={go} onPos={goPos} onDrop={dropVar} />
+            </section>
+          </div>
         </div>
-        <div className="colB">
-          {exploring ? (
-            <LivePanel live={live} lines={liveLines} fen={shownFen} me={me} over={over}
-              side={side ? { name: startName(side), tokens: sideTokens, moves: side.moves, at: pos.at } : null}
-              onPlay={(uci) => { const p = uciParts(uci); play(p.from, p.to, p.promotion); }}
-              onAt={(k) => side && goPos({ line: side.id, at: k })} onClose={leave} />
-          ) : (
-            <Explain g={g} me={me} cur={cur} m={m} r={r} myWin={myWin} turning={turning} cmp={cmp} comparing={comparing} fens={fens}
-              onCompare={(step) => openCompare(cur, step)} prev={cur >= 2 ? { fen: fens[cur - 2], uci: g.moves[cur - 2].uci } : null}
-              peek={peek} />
-          )}
-          <section className="card v-moves">
-            <div className="card-head"><h2>Moves</h2><span className="muted small">← → to step · F to flip</span></div>
-            <MoveList moves={g.moves.slice(0, n)} recAt={recAt} me={me} turning={turning} pos={pos} vars={vars} baseOf={baseOf}
-              onPick={go} onPos={goPos} onDrop={dropVar} />
-          </section>
-        </div>
-      </div>
+      )}
     </>
   );
 }
@@ -697,9 +713,9 @@ function LiveBest({ fen, line, live, me }: { fen: string; line: LiveLine | null;
   );
 }
 
-function GameHead({ g, me, opp, onTurning, broken, onClass, onGo }: {
+function GameHead({ g, me, opp, onTurning, broken, onClass, onGo, onKey }: {
   g: Game; me: Side; opp: Side; onTurning?: () => void; broken: number | null; onClass: (side: Side, c: string) => void;
-  onGo: (ply: number) => void;
+  onGo: (ply: number) => void; onKey?: () => void;
 }) {
   const turning = g.loss?.turning_ply ?? null;
   // Each move's class as chess.com counts them: its mark (Brilliant, Great, Miss) if it has one, else its label.
@@ -738,18 +754,24 @@ function GameHead({ g, me, opp, onTurning, broken, onClass, onGo }: {
           <RepertoireNote c={g.repertoire} opponent={g.opponent} onMove={g.repertoire.san ? () => onGo(g.repertoire!.ply) : undefined} />
         </p>
       )}
-      {g.loss && (
+      {(g.loss || (onKey && g.key)) && (
         <div className="chips">
-          {onTurning && turning != null ? (
+          {g.loss && (onTurning && turning != null ? (
             <button type="button" className="cause-chip" onClick={onTurning}>
               Why you lost: <b>{TYPE[g.loss.cause] ?? g.loss.cause}</b>
               {g.loss.subtype ? ` (${tagName(g.loss.subtype)})` : ""} at {moveName(turning, g.moves[turning - 1]?.san ?? "")}
             </button>
           ) : (
             <span className="cause-chip">Why you lost: <b>{TYPE[g.loss.cause] ?? g.loss.cause}</b></span>
+          ))}
+          {g.loss?.flags.map((f) => <span key={f} className="pill">{FLAG[f] ?? f}</span>)}
+          {g.loss?.cause === "gave_up" && <Link className="small" to={`/play?play=${resignedId(g.id)}`}>Play on from where it ended →</Link>}
+          {onKey && g.key && (
+            <button type="button" className="cause-chip key-chip" onClick={onKey}
+              title="The position before it again: find a better move, judged by Stockfish's stored scores">
+              Key moment: find a better move than <b className="san">{moveName(g.key.ply, g.moves[g.key.ply - 1]?.san ?? "")}</b>
+            </button>
           )}
-          {g.loss.flags.map((f) => <span key={f} className="pill">{FLAG[f] ?? f}</span>)}
-          {g.loss.cause === "gave_up" && <Link className="small" to={`/play?play=${resignedId(g.id)}`}>Play on from where it ended →</Link>}
         </div>
       )}
       <details className="classes">
@@ -824,7 +846,12 @@ function Explain({ g, me, cur, m, r, myWin, turning, cmp, comparing, fens, onCom
       </div>
       {m.mark && <MarkWhy g={g} me={me} cur={cur} m={m} mark={m.mark} before={fens[cur - 1]} after={fens[cur]} />}
       {cur === turning && (
-        <div className="callout"><b>Turning point. </b>The first move in this loss that took you from 40% or more to 25% or less.</div>
+        <div className="callout">
+          <b>Turning point. </b>
+          {g.loss?.turning_rule === "no_way_back"
+            ? `After this move your Win% never got back to 40%. It cost you ${n1(before - after)} Win%; no single move in this loss took you from 40% or more to 25% or less.`
+            : "The first move in this loss that took you from 40% or more to 25% or less."}
+        </div>
       )}
       {g.thrown && cur === g.thrown.ply && (
         <div className="callout">

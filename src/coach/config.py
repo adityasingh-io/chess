@@ -107,6 +107,7 @@ class Losses:
     playable: float
     turning_from: float
     turning_to: float
+    turning_drop: float
     winning: float
 
 
@@ -147,6 +148,11 @@ class Analysis:
     openings: Openings
     endgames: Endgames
     insights: Insights
+
+
+@dataclass(frozen=True)
+class KeyMoments:
+    games: int
 
 
 @dataclass(frozen=True)
@@ -260,6 +266,7 @@ class Config:
     engine: EngineConfig
     garbage_time: GarbageTime
     analysis: Analysis
+    key_moments: KeyMoments
     explorer: Explorer
     rating_map: RatingMap
     bots: Bots
@@ -360,6 +367,7 @@ def load_config(root: Path | None = None) -> Config:
             endgames=_section(Endgames, analysis["endgames"]),
             insights=_section(Insights, analysis["insights"]),
         ),
+        key_moments=_section(KeyMoments, raw["key_moments"]),
         explorer=_section(Explorer, raw["explorer"]),
         rating_map=_section(RatingMap, raw["rating_map"]),
         bots=_section(Bots, raw["bots"]),

@@ -1,7 +1,7 @@
 // Which puzzles a session shows and in what order. Ordering only, so the puzzles are stubs.
 import { niceTicks } from "../src/components/charts";
-import { byLevel, byNewestGame, drillQueue, dueIds, MINE_IN_DRILL, queue, SESSION } from "../src/lib/drill";
-import { normalise, type Item } from "../src/lib/progress";
+import { byLevel, byNewestGame, drillQueue, dueIds, gradeOf, keyGame, keyId, MINE_IN_DRILL, queue, SESSION } from "../src/lib/drill";
+import { normalise, Rating, type Item } from "../src/lib/progress";
 import type { Puzzle } from "../src/types/export";
 
 const pz = (id: string, extra: Partial<Puzzle> = {}) => ({ id, source: "mine", tags: ["fork"], game: "1", ply: 1, rating: null, ...extra }) as Puzzle;
@@ -30,10 +30,30 @@ test("a leak drill takes my own puzzles first, then Lichess puzzles nearest my l
   expect(byLevel(1000)(lichess[1], lichess[0])).toBeLessThan(0);
 });
 
+test("a shorter drill keeps the same share of my own puzzles", () => {
+  const p = normalise({ level: 1000 });
+  const mine = Array.from({ length: 8 }, (_, i) => pz(`m${i}`, { game: String(i) }));
+  const lichess = [1400, 1050, 600].map((r, i) => pz(`l${i}`, { source: "lichess", rating: r }));
+  expect(drillQueue("fork", mine, lichess, p, 3).map((z) => z.id)).toEqual(["m7", "m6", "l1"]);
+  expect(drillQueue("fork", mine, lichess, p, 2).map((z) => z.id)).toEqual(["m7", "l1"]);
+  expect(drillQueue("fork", mine, [], p, 3)).toHaveLength(3);
+});
+
 test("due ids are per kind", () => {
-  const p = normalise({ items: { a: item(1), b: { ...item(1), kind: "line" }, c: item(5000) } });
+  const p = normalise({ items: { a: item(1), b: { ...item(1), kind: "line" }, c: item(5000), [keyId("185895104948", 24)]: { ...item(1), kind: "key" } } });
   expect(dueIds(p, "puzzle", 1000)).toEqual(["a"]);
   expect(dueIds(p, "line", 1000)).toEqual(["b"]);
+  expect(dueIds(p, "key", 1000)).toEqual(["k-185895104948-24"]);
+  expect(keyGame("k-185895104948-24")).toBe("185895104948");
+});
+
+test("an answer's grade: clean is Good, one slip or a hint is Hard, two slips or shown is Again", () => {
+  const o = { solved: true, wrong: 0, hint: false, revealed: false };
+  expect(gradeOf(o)).toBe(Rating.Good);
+  expect(gradeOf({ ...o, wrong: 1 })).toBe(Rating.Hard);
+  expect(gradeOf({ ...o, hint: true })).toBe(Rating.Hard);
+  expect(gradeOf({ ...o, wrong: 2 })).toBe(Rating.Again);
+  expect(gradeOf({ ...o, solved: false, revealed: true })).toBe(Rating.Again);
 });
 
 test("chart ticks are round numbers that cover the maximum", () => {

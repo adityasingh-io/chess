@@ -17,6 +17,7 @@ from pydantic.json_schema import models_json_schema
 from coach import schema as S
 from coach.book import book, check
 from coach.config import Config
+from coach.keymoments import key_out
 from coach.model import GameModel, Ply, Record
 from coach.puzzles import endgame_tags, lichess_puzzle, load_subset, my_puzzles
 from coach.reports import (
@@ -93,14 +94,14 @@ def move_out(p: Ply, evals1: dict[str, dict], record_ids: dict[int, str], plies:
 
 
 def game_out(cfg: Config, m: GameModel, evals1: dict[str, dict], evals2: dict[str, dict], notes: dict[str, str],
-             puzzles: int, rep: dict | None) -> S.Game:
+             puzzles: int, rep: dict | None, key: S.KeyMoment | None) -> S.Game:
     row = m.row
     record_ids = {r.ply.number: r.id for r in m.records}
     loss = None
     if m.loss:
         loss = S.LossInfo(cause=m.loss.cause, subtype=m.loss.subtype, flags=m.loss.flags,
                           turning_ply=m.loss.turning_point.number if m.loss.turning_point else None,
-                          record=m.loss.record.id if m.loss.record else None)
+                          turning_rule=m.loss.rule, record=m.loss.record.id if m.loss.record else None)
     thrown = None
     if m.thrown:
         p = m.thrown.move
@@ -119,20 +120,20 @@ def game_out(cfg: Config, m: GameModel, evals1: dict[str, dict], evals2: dict[st
         chesscom_accuracy={"white": row["cc_acc_white"], "black": row["cc_acc_black"]},
         moves=[move_out(p, evals1, record_ids, cfg.engine.pv_plies) for p in m.plies],
         records=[record_out(r, notes) for r in m.records], puzzles=puzzles,
-        loss=loss, thrown=thrown, endgame=endgame_out(m, evals2, evals1),
+        loss=loss, thrown=thrown, key=key, endgame=endgame_out(m, evals2, evals1),
         repertoire=S.RepertoireCheck(**rep) if rep else None,
     )
 
 
-def game_summary(m: GameModel, puzzles: int, rep: dict | None) -> S.GameSummary:
+def game_summary(m: GameModel, puzzles: int, rep: dict | None, key: S.KeyMoment | None) -> S.GameSummary:
     mine = Counter(p.label for p in m.mine())
     return S.GameSummary(
         id=m.id, start_ts=m.row["start_ts"], colour=m.row["my_color"], opponent=m.row["opp_username"],
         opp_rating=m.row["opp_rating"], my_rating=m.row["my_rating"], result=m.row["result"], my_code=m.row["my_code"],
         opening=m.opening.family if m.opening else None, accuracy=r1(m.my_accuracy), plies=len(m.plies),
         inaccuracies=mine["inaccuracy"], mistakes=mine["mistake"], blunders=mine["blunder"],
-        loss_cause=m.loss.cause if m.loss else None, thrown=m.thrown is not None, puzzles=puzzles,
-        repertoire=S.RepertoireCheck(**rep) if rep else None,
+        loss_cause=m.loss.cause if m.loss else None, thrown=m.thrown is not None, key_ply=key.ply if key else None,
+        puzzles=puzzles, repertoire=S.RepertoireCheck(**rep) if rep else None,
     )
 
 
@@ -235,7 +236,9 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
     mine = S.PuzzleSet(as_of=stamp, source="mine", puzzles=[S.Puzzle(**p, why=why(by_record[p["id"][2:]]))
                                                             for p in my_puzzles(cfg, ordered, evals2)])
     per_game = Counter(p.game for p in mine.puzzles)
-    games = {m.id: game_out(cfg, m, evals1, evals2, notes or {}, per_game[m.id], checks.get(m.id)) for m in ordered}
+    keys = {m.id: key_out(cfg, m, evals1) for m in ordered}
+    games = {m.id: game_out(cfg, m, evals1, evals2, notes or {}, per_game[m.id], checks.get(m.id), keys[m.id])
+             for m in ordered}
     record_index = [r for g in games.values() for r in g.records]
     lichess = S.PuzzleSet(as_of=stamp, source="lichess", puzzles=lichess_puzzles(cfg))
     files: dict[str, BaseModel] = {
@@ -252,7 +255,8 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
             bots=S.Bots(maia=[S.MaiaLevel(chesscom=c, lichess=cfg.rating_map.lichess_of(c)) for c in cfg.bots.maia_chesscom],
                         me_lichess=cfg.rating_map.lichess_of(rated[-1].row["my_rating"]) if rated else None),
         ),
-        "games/index.json": S.GamesIndex(as_of=stamp, games=[game_summary(m, per_game[m.id], checks.get(m.id)) for m in reversed(ordered)]),
+        "games/index.json": S.GamesIndex(as_of=stamp, games=[game_summary(m, per_game[m.id], checks.get(m.id), keys[m.id])
+                                                             for m in reversed(ordered)]),
         "mistakes/index.json": S.MistakesIndex(as_of=stamp, records=record_index),
         "losses.json": S.Losses(
             as_of=stamp, total=len(lost), causes=dict(loss_summary(models)), causes_30_days=dict(loss_summary(models, month_ago)),

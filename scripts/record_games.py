@@ -1,8 +1,9 @@
 """Copy a few analysed games and their Stockfish results into tests/fixtures/games.json.
 
 Model and export tests run on these instead of hand-written evaluations. The games are picked to
-cover different loss causes, record types and marks. Stockfish lines are trimmed to pv_plies, which is
-all the model reads. Run after `coach analyze`:
+cover different loss causes, turning-point rules, key moments, record types and marks, and come with the
+scores of every move at their key moments. Stockfish lines are trimmed to pv_plies, which is all the model
+reads. Run after `coach update`:
     uv run python scripts/record_games.py
 """
 
@@ -13,10 +14,12 @@ import json
 from coach import db
 from coach.analysis import load_games, planned_pass2_keys, select_game_ids
 from coach.config import load_config
+from coach.keymoments import wanted
 from coach.model import build_all
 from coach.openings import load_openings, openings_dir
 
-WANT = 14
+WANT = 18
+ALWAYS = ("147999020662", "185492359042")   # games the tests name
 
 
 def trim(result: dict, plies: int) -> dict:
@@ -32,20 +35,22 @@ def main() -> None:
     games = load_games(conn, select_game_ids(conn))
     models = build_all(cfg, games, evals1, evals2, load_openings(openings_dir(cfg.root), cfg.data_dir))
 
-    # Greedy: each pick adds a loss cause or record type not covered yet; then fill with the rest.
+    # Greedy, newest game first (their key moments are the ones scored): each pick adds a loss cause or record type
+    # not covered yet. The games the tests name come first.
     chosen, seen = [], set()
-    for m in sorted(models, key=lambda m: m.id):
-        tags = {f"cause:{m.loss.cause}"} if m.loss else {f"result:{m.row['result']}"}
+    for m in sorted(models, key=lambda m: (m.id not in ALWAYS, -m.row["start_ts"])):
+        tags = {f"cause:{m.loss.cause}", f"rule:{m.loss.rule}"} if m.loss else {f"result:{m.row['result']}"}
+        tags |= {f"key:{m.key.kind}"} if m.key else set()
         tags |= {f"type:{r.primary}" for r in m.records} | {f"sub:{r.subtype}" for r in m.records if r.subtype}
         tags |= {f"end:{m.endgame.outcome}"} if m.endgame else set()
         tags |= {f"mark:{p.mark.kind}" for p in m.plies if p.mark}
-        if tags - seen:
+        if tags - seen or m.id in ALWAYS:
             chosen.append(m)
             seen |= tags
         if len(chosen) >= WANT:
             break
     picked = [m.game for m in chosen]
-    keys = {k for g in picked for k in g.position_keys()}
+    keys = {k for g in picked for k in g.position_keys()} | set(wanted(chosen))
     keys2 = (keys | planned_pass2_keys(cfg, picked, evals1, evals2)) & set(evals2)
     plies = cfg.engine.pv_plies
     out = {

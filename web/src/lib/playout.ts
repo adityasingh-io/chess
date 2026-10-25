@@ -74,3 +74,16 @@ export function writeJson(key: string, value: unknown) {
 
 export const readTally = () => readJson<{ [id: string]: Tally }>(RESULTS_KEY, {});
 export const writeTally = (t: { [id: string]: Tally }) => writeJson(RESULTS_KEY, t);
+/** One more try at a position, and whether it reached its goal; returns the whole record. */
+export function recordTry(id: string, ok: boolean) {
+  const all = readTally(), t = all[id] ?? { tries: 0, reached: 0, last: 0 };
+  const next = { ...all, [id]: { tries: t.tries + 1, reached: t.reached + (ok ? 1 : 0), last: Date.now() } };
+  writeTally(next);
+  return next;
+}
+
+const SKILL_KEY = "coach-playout-skill";
+export const SKILLS: [number, string][] = [[20, "Full strength"], [10, "Skill 10 of 20"], [3, "Skill 3 of 20"]];
+/** Stockfish's skill level for playing on, as last picked on the Play it out page. */
+export const readSkill = () => readJson<number>(SKILL_KEY, 10);
+export const writeSkill = (s: number) => writeJson(SKILL_KEY, s);

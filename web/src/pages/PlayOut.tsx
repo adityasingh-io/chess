@@ -14,14 +14,12 @@ import { moveName, n1, plural } from "../lib/format";
 import { useMoveInput } from "../lib/moveInput";
 import { useOpponent } from "../lib/opponent";
 import {
-  ENDGAME_LOSING, ENDGAME_WINNING, endgameStarts, PLAYABLE, reached, readJson, readTally, resignedStarts, thrownStarts,
-  WINNING, writeJson, writeTally, type Start, type Tally,
+  ENDGAME_LOSING, ENDGAME_WINNING, endgameStarts, PLAYABLE, reached, readSkill, readTally, recordTry, resignedStarts, SKILLS,
+  thrownStarts, WINNING, writeSkill, type Start, type Tally,
 } from "../lib/playout";
 
 const PAGE = 10;
 const REPLY_MS = 250;
-const SKILLS: [number, string][] = [[20, "Full strength"], [10, "Skill 10 of 20"], [3, "Skill 3 of 20"]];
-const SKILL_KEY = "coach-playout-skill";
 
 export type Result = "win" | "draw" | "loss";
 type End = { result: Result; text: string };
@@ -54,7 +52,7 @@ export default function PlayOut() {
   const losses = useLosses();
   const [params, setParams] = useSearchParams();
   const { hash } = useLocation();
-  const [skill, setSkillState] = useState(() => readJson<number>(SKILL_KEY, 10));
+  const [skill, setSkillState] = useState(readSkill);
   const [tally, setTally] = useState(readTally);
   const endgames = useEndgames();
   const thrown = thrownStarts(losses.thrown), resigned = resignedStarts(losses.losses);
@@ -64,13 +62,8 @@ export default function PlayOut() {
   const setPlaying = (s: Start | null) => setParams(s ? { play: s.id } : {});
   // /play#endgames (from the Endgames page) opens at that list.
   useEffect(() => { if (hash && !playing) document.getElementById(hash.slice(1))?.scrollIntoView?.({ block: "start" }); }, [hash, playing]);
-  const setSkill = (s: number) => { setSkillState(s); writeJson(SKILL_KEY, s); };
-  const record = (id: string, ok: boolean) => {
-    const t = tally[id] ?? { tries: 0, reached: 0, last: 0 };
-    const next = { ...tally, [id]: { tries: t.tries + 1, reached: t.reached + (ok ? 1 : 0), last: Date.now() } };
-    setTally(next);
-    writeTally(next);
-  };
+  const setSkill = (s: number) => { setSkillState(s); writeSkill(s); };
+  const record = (id: string, ok: boolean) => setTally(recordTry(id, ok));
 
   if (playing) {
     return <Play key={`${playing.id}-${skill}`} start={playing} skill={skill} onEnd={(ok) => record(playing.id, ok)} onBack={() => setPlaying(null)} />;
@@ -150,7 +143,11 @@ function StartRow({ start, tally, done, onPlay }: { start: Start; tally?: Tally;
   );
 }
 
-function Play({ start, skill, onEnd, onBack }: { start: Start; skill: number; onEnd: (ok: boolean) => void; onBack: () => void }) {
+/** One position played on. `embedded` (the Today session) leaves out the page heading, and `back` names the button
+    that leaves it. */
+export function Play({ start, skill, onEnd, onBack, embedded = false, back = "All positions" }: {
+  start: Start; skill: number; onEnd: (ok: boolean) => void; onBack: () => void; embedded?: boolean; back?: string;
+}) {
   const me = start.colour;
   const game = useRef(new Chess(start.fen));
   const [fen, setFen] = useState(start.fen);
@@ -222,10 +219,12 @@ function Play({ start, skill, onEnd, onBack }: { start: Start; skill: number; on
   const side = me === "white" ? "White" : "Black";
   return (
     <>
-      <div className="page-head">
-        <h1>Play it out</h1>
-        <p className="muted">{start.title}</p>
-      </div>
+      {!embedded && (
+        <div className="page-head">
+          <h1>Play it out</h1>
+          <p className="muted">{start.title}</p>
+        </div>
+      )}
       <div className="puzzle">
         <div className="puzzle-board">
           <Board id={`playout-${start.id}`} fen={fen} orientation={me} label={`Play it out: you are ${side}`}
@@ -277,7 +276,7 @@ function Play({ start, skill, onEnd, onBack }: { start: Start; skill: number; on
               ? <button type="button" className="btn" onClick={restart}>Play it again</button>
               : <button type="button" className="btn ghost" onClick={stop} disabled={!sans.length}>Stop</button>}
             {!end && sans.length > 0 && <button type="button" className="btn ghost" onClick={restart}>Start over</button>}
-            <button type="button" className="btn ghost" onClick={onBack}>All positions</button>
+            <button type="button" className="btn ghost" onClick={onBack}>{back}</button>
           </div>
           <p className="muted small" style={{ margin: 0 }}>
             <span className="live-badge">LIVE</span> Stockfish 19 lite in this browser, {SKILLS.find(([s]) => s === skill)?.[1].toLowerCase()}.
