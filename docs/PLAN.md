@@ -229,8 +229,9 @@ this file wins.
   (`supabase/migrations/0001_progress.sql`). A sync pulls, merges and pushes; it runs at start, when the
   device comes back online and five seconds after a change. Setup steps: [DEPLOY.md](DEPLOY.md). Set up
   2026-10-25: project `chess-coach` (Mumbai, free plan; "automatically expose new tables" off, so the
-  migration's grants are the only ones), my account invited, sign-ups off; the Pages build gets the two
-  values from repository variables.
+  migration's grants are the only ones), my account invited and confirmed in SQL (see DEPLOY.md),
+  sign-ups off; the Pages build gets the two values from repository variables. Sign-in stays the emailed
+  link: a 6-digit code would need custom SMTP, since the built-in sender's templates can't be edited.
 - **Installable and offline:** a web manifest and a service worker written at build time. Install caches
   the app shell, every built file and the training data (summary, insights, losses, games index, leaks,
   endgames, puzzles, repertoire). Pages and data are network-first with the cache as fallback; built assets and engine files

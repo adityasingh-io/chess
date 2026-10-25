@@ -19,7 +19,10 @@ merges with the server when it's online (for each puzzle or line the newer answe
    `https://<your site>/settings` and `http://localhost:5173/settings` to the redirect URLs.
 4. **My account, then no more sign-ups.** Authentication → Users → Add user, with my email. Then turn off
    "Allow new users to sign up". The app also asks for links with `shouldCreateUser: false`, so it can't
-   make accounts itself.
+   make accounts itself. "Send invitation" (the option that needs no password) leaves the account
+   unconfirmed until the invite is opened, and with sign-ups off Supabase can treat a sign-in link for an
+   unconfirmed account as a sign-up and refuse it; confirming it in the SQL editor avoids that:
+   `update auth.users set email_confirmed_at = now() where email = '<my email>';`.
 5. **Keys.** Project Settings → API Keys: copy the project URL and the **publishable** key
    (`sb_publishable_…`) into the repo-root `.env` as `VITE_SUPABASE_URL` and
    `VITE_SUPABASE_PUBLISHABLE_KEY` (see `.env.example`), and into the host's build environment. Both are
@@ -27,7 +30,8 @@ merges with the server when it's online (for each puzzle or line the newer answe
 6. **Build and sign in.** Rebuild (`npm run build` in `web/`). In the app, Settings → Sync → send the link,
    open it on the same device. Do this once on each device.
 
-Supabase's built-in email sender allows only a few emails an hour, which is plenty for one person.
+Supabase's built-in email sender allows only a few emails an hour, which is plenty for one person. It sends
+the default templates (a sign-in link, no code); editing them, say to add a 6-digit code, needs custom SMTP.
 
 ## The GitHub repo
 
