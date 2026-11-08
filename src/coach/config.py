@@ -156,6 +156,14 @@ class KeyMoments:
 
 
 @dataclass(frozen=True)
+class Rivals:
+    usernames: tuple[str, ...]
+    months: int
+    plies: int
+    min_times: int
+
+
+@dataclass(frozen=True)
 class Explorer:
     url: str
     masters_url: str
@@ -267,6 +275,7 @@ class Config:
     garbage_time: GarbageTime
     analysis: Analysis
     key_moments: KeyMoments
+    rivals: Rivals
     explorer: Explorer
     rating_map: RatingMap
     bots: Bots
@@ -368,6 +377,7 @@ def load_config(root: Path | None = None) -> Config:
             insights=_section(Insights, analysis["insights"]),
         ),
         key_moments=_section(KeyMoments, raw["key_moments"]),
+        rivals=_section(Rivals, raw["rivals"]),
         explorer=_section(Explorer, raw["explorer"]),
         rating_map=_section(RatingMap, raw["rating_map"]),
         bots=_section(Bots, raw["bots"]),

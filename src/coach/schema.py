@@ -627,6 +627,71 @@ class Repertoire(Model):
     positions: dict[str, list[Alternative]]   # every legal move where a drill asks for mine, best first
 
 
+class RivalMove(Model):
+    """A move played from a position of a rival's tree. Scores are pass 1 and from the mover's side; they're None
+    where either position isn't scored."""
+    uci: str
+    san: str
+    games: int                 # times it was played here
+    score: float               # the rival's score in percent in those games
+    win: float | None          # the mover's Win% after it
+    drop: float | None         # the mover's Win% drop
+    label: str | None          # book, best, excellent, good, inaccuracy, mistake or blunder
+    eval: Eval | None          # Stockfish's score after it
+    reply: str | None          # Stockfish's best answer to it, and its line from there
+    reply_san: str | None
+    reply_line: list[str]
+    reply_line_san: str
+
+
+class RivalNode(Model):
+    key: str
+    fen: str                   # with the move counters of a game that reached it first
+    rival_turn: bool
+    games: int                 # the rival's games that reached it
+    vs_me: list[str]           # those against me (game ids)
+    score: float               # the rival's score in percent in those games
+    opening: str | None        # the deepest named opening on the way here (chess-openings)
+    eval: Eval | None          # Stockfish's score here (pass 1)
+    best: str | None           # Stockfish's best move here, for the side to move
+    best_san: str | None
+    moves: list[RivalMove]     # what was played next, most often first
+
+
+class RivalSide(Model):
+    colour: Colour             # the rival's colour in these games
+    games: int
+    score: float | None        # the rival's score in percent
+    tree: list[RivalNode]      # positions reached in at least `min_times` of these games, most reached first
+
+
+class Habit(Model):
+    """A move the rival keeps playing that Stockfish says costs them (PLAN.md, reading 26)."""
+    colour: Colour             # the rival's colour
+    key: str                   # the position before it, a node of that colour's tree
+    fen: str
+    opening: str | None
+    reached: int               # the rival's games that reached the position
+    move: RivalMove            # played in `move.games` of them
+    best: str | None           # Stockfish's best move there instead
+    best_san: str | None
+    vs_me: list[str]           # my games against the rival where it was played
+
+
+class Rival(Model):
+    as_of: int                 # the end of the rival's newest game read
+    username: str
+    time_classes: list[str]
+    months: list[str]          # the monthly archives read
+    games: int                 # the rival's standard games in those time classes
+    vs_me: int                 # of them against me
+    plies: int
+    min_times: int
+    white: RivalSide
+    black: RivalSide
+    habits: list[Habit]        # most Win% given away first (drop × times played)
+
+
 FILES = {
     "summary.json": Summary,
     "games/index.json": GamesIndex,

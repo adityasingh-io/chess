@@ -1133,6 +1133,88 @@
    "title": "GroupStat",
    "type": "object"
   },
+  "Habit": {
+   "additionalProperties": false,
+   "description": "A move the rival keeps playing that Stockfish says costs them (PLAN.md, reading 26).",
+   "properties": {
+    "colour": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Colour",
+     "type": "string"
+    },
+    "key": {
+     "title": "Key",
+     "type": "string"
+    },
+    "fen": {
+     "title": "Fen",
+     "type": "string"
+    },
+    "opening": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Opening"
+    },
+    "reached": {
+     "title": "Reached",
+     "type": "integer"
+    },
+    "move": {
+     "$ref": "#/$defs/RivalMove"
+    },
+    "best": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Best"
+    },
+    "best_san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Best San"
+    },
+    "vs_me": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Vs Me",
+     "type": "array"
+    }
+   },
+   "required": [
+    "colour",
+    "key",
+    "fen",
+    "opening",
+    "reached",
+    "move",
+    "best",
+    "best_san",
+    "vs_me"
+   ],
+   "title": "Habit",
+   "type": "object"
+  },
   "Insights": {
    "additionalProperties": false,
    "properties": {
@@ -3338,6 +3420,331 @@
     "slip_games"
    ],
    "title": "RepertoireLine",
+   "type": "object"
+  },
+  "Rival": {
+   "additionalProperties": false,
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "username": {
+     "title": "Username",
+     "type": "string"
+    },
+    "time_classes": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Time Classes",
+     "type": "array"
+    },
+    "months": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Months",
+     "type": "array"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "vs_me": {
+     "title": "Vs Me",
+     "type": "integer"
+    },
+    "plies": {
+     "title": "Plies",
+     "type": "integer"
+    },
+    "min_times": {
+     "title": "Min Times",
+     "type": "integer"
+    },
+    "white": {
+     "$ref": "#/$defs/RivalSide"
+    },
+    "black": {
+     "$ref": "#/$defs/RivalSide"
+    },
+    "habits": {
+     "items": {
+      "$ref": "#/$defs/Habit"
+     },
+     "title": "Habits",
+     "type": "array"
+    }
+   },
+   "required": [
+    "as_of",
+    "username",
+    "time_classes",
+    "months",
+    "games",
+    "vs_me",
+    "plies",
+    "min_times",
+    "white",
+    "black",
+    "habits"
+   ],
+   "title": "Rival",
+   "type": "object"
+  },
+  "RivalMove": {
+   "additionalProperties": false,
+   "description": "A move played from a position of a rival's tree. Scores are pass 1 and from the mover's side; they're None\nwhere either position isn't scored.",
+   "properties": {
+    "uci": {
+     "title": "Uci",
+     "type": "string"
+    },
+    "san": {
+     "title": "San",
+     "type": "string"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "score": {
+     "title": "Score",
+     "type": "number"
+    },
+    "win": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Win"
+    },
+    "drop": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Drop"
+    },
+    "label": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Label"
+    },
+    "eval": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Eval"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "reply": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Reply"
+    },
+    "reply_san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Reply San"
+    },
+    "reply_line": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Reply Line",
+     "type": "array"
+    },
+    "reply_line_san": {
+     "title": "Reply Line San",
+     "type": "string"
+    }
+   },
+   "required": [
+    "uci",
+    "san",
+    "games",
+    "score",
+    "win",
+    "drop",
+    "label",
+    "eval",
+    "reply",
+    "reply_san",
+    "reply_line",
+    "reply_line_san"
+   ],
+   "title": "RivalMove",
+   "type": "object"
+  },
+  "RivalNode": {
+   "additionalProperties": false,
+   "properties": {
+    "key": {
+     "title": "Key",
+     "type": "string"
+    },
+    "fen": {
+     "title": "Fen",
+     "type": "string"
+    },
+    "rival_turn": {
+     "title": "Rival Turn",
+     "type": "boolean"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "vs_me": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Vs Me",
+     "type": "array"
+    },
+    "score": {
+     "title": "Score",
+     "type": "number"
+    },
+    "opening": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Opening"
+    },
+    "eval": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Eval"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "best": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Best"
+    },
+    "best_san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Best San"
+    },
+    "moves": {
+     "items": {
+      "$ref": "#/$defs/RivalMove"
+     },
+     "title": "Moves",
+     "type": "array"
+    }
+   },
+   "required": [
+    "key",
+    "fen",
+    "rival_turn",
+    "games",
+    "vs_me",
+    "score",
+    "opening",
+    "eval",
+    "best",
+    "best_san",
+    "moves"
+   ],
+   "title": "RivalNode",
+   "type": "object"
+  },
+  "RivalSide": {
+   "additionalProperties": false,
+   "properties": {
+    "colour": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Colour",
+     "type": "string"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "score": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Score"
+    },
+    "tree": {
+     "items": {
+      "$ref": "#/$defs/RivalNode"
+     },
+     "title": "Tree",
+     "type": "array"
+    }
+   },
+   "required": [
+    "colour",
+    "games",
+    "score",
+    "tree"
+   ],
+   "title": "RivalSide",
    "type": "object"
   },
   "Slip": {

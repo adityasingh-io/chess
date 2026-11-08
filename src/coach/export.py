@@ -349,13 +349,17 @@ def write(cfg: Config, built: Built) -> tuple[int, int]:
     for stale in (out / "games").glob("*.json"):
         if stale.name not in keep:
             stale.unlink()
+    rivals = {f"{name.lower()}.json" for name in cfg.rivals.usernames}
+    for stale in (out / "rivals").glob("*.json"):   # players no longer in config.toml's [rivals]
+        if stale.name not in rivals:
+            stale.unlink()
     write_schema(cfg)
     return written, unchanged
 
 
 def write_schema(cfg: Config) -> Path:
     """JSON Schema for every export model, for generating the web app's TypeScript types."""
-    models = sorted({*S.FILES.values(), S.Game}, key=lambda m: m.__name__)
+    models = sorted({*S.FILES.values(), S.Game, S.Rival}, key=lambda m: m.__name__)
     _, schema = models_json_schema([(m, "serialization") for m in models], title="Chess coach export")
     path = cfg.root / "web" / "schema" / "export.schema.json"
     text = json.dumps(schema, indent=1) + "\n"

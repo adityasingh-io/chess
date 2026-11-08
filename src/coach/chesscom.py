@@ -8,6 +8,7 @@ import sqlite3
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
 from rich.console import Console
@@ -66,12 +67,14 @@ def needs_fetch(month: str, fetched_at: int | None) -> bool:
     return fetched_at is None or fetched_at < month_end_ts(month) + COMPLETE_AFTER_MONTH_END
 
 
-def fetch(cfg: Config, conn: sqlite3.Connection, console: Console, api: ChessCom | None = None) -> list[str]:
-    if api is None:
-        if not cfg.secrets.chesscom_contact_email:
-            raise SystemExit("Set CHESSCOM_CONTACT_EMAIL in .env (copy .env.example) before fetching.")
-        api = ChessCom(cfg.secrets.chesscom_contact_email)
+def _client(cfg: Config) -> ChessCom:
+    if not cfg.secrets.chesscom_contact_email:
+        raise SystemExit("Set CHESSCOM_CONTACT_EMAIL in .env (copy .env.example) before fetching.")
+    return ChessCom(cfg.secrets.chesscom_contact_email)
 
+
+def fetch(cfg: Config, conn: sqlite3.Connection, console: Console, api: ChessCom | None = None) -> list[str]:
+    api = api or _client(cfg)
     since_month = cfg.player.since.strftime("%Y-%m")
     archives = api.get_json(f"{API}/player/{cfg.player.username.lower()}/games/archives")["archives"]
     cfg.raw_dir.mkdir(parents=True, exist_ok=True)
@@ -98,4 +101,42 @@ def fetch(cfg: Config, conn: sqlite3.Connection, console: Console, api: ChessCom
         console.print(f"fetched {month}: {len(data.get('games', []))} games")
     if not updated:
         console.print("archives up to date")
+    return updated
+
+
+def rival_dir(cfg: Config, username: str) -> Path:
+    return cfg.raw_dir / "rivals" / username.lower()
+
+
+def fetch_rivals(cfg: Config, conn: sqlite3.Connection, console: Console, api: ChessCom | None = None) -> list[str]:
+    """Each rival's newest `rivals.months` monthly archives, kept the way mine are: a month is fetched again until
+    it's over."""
+    if not cfg.rivals.usernames:
+        return []
+    api = api or _client(cfg)
+    updated = []
+    for name in cfg.rivals.usernames:
+        user, folder = name.lower(), rival_dir(cfg, name)
+        folder.mkdir(parents=True, exist_ok=True)
+        urls = api.get_json(f"{API}/player/{user}/games/archives")["archives"]
+        for url in sorted(urls, key=archive_month)[-cfg.rivals.months:]:
+            month, path = archive_month(url), folder / f"{archive_month(url)}.json"
+            row = conn.execute("SELECT fetched_at FROM rival_archives WHERE username = ? AND month = ?",
+                               (user, month)).fetchone()
+            if path.exists() and not needs_fetch(month, row["fetched_at"] if row else None):
+                continue
+            data = api.get_json(url)
+            body = json.dumps(data, sort_keys=True, separators=(",", ":"))
+            path.write_text(body)
+            conn.execute(
+                """INSERT INTO rival_archives (username, month, url, fetched_at, sha256) VALUES (?, ?, ?, ?, ?)
+                   ON CONFLICT(username, month) DO UPDATE SET url = excluded.url, fetched_at = excluded.fetched_at,
+                   sha256 = excluded.sha256""",
+                (user, month, url, int(time.time()), hashlib.sha256(body.encode()).hexdigest()),
+            )
+            conn.commit()
+            updated.append(f"{user} {month}")
+            console.print(f"fetched {user} {month}: {len(data.get('games', []))} games")
+    if not updated:
+        console.print("rival archives up to date")
     return updated

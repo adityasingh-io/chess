@@ -15,6 +15,16 @@ CREATE TABLE IF NOT EXISTS archives (
     parsed_sha  TEXT                        -- sha256 last parsed into games/moves
 );
 
+-- The same, for the players in config.toml's [rivals] (their raw files are under raw/rivals/<username>/).
+CREATE TABLE IF NOT EXISTS rival_archives (
+    username    TEXT NOT NULL,              -- lower case
+    month       TEXT NOT NULL,
+    url         TEXT NOT NULL,
+    fetched_at  INTEGER NOT NULL,
+    sha256      TEXT NOT NULL,
+    PRIMARY KEY (username, month)
+);
+
 CREATE TABLE IF NOT EXISTS games (
     id            TEXT PRIMARY KEY,         -- chess.com game id (last URL segment)
     url           TEXT NOT NULL,

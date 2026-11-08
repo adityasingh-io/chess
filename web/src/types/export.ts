@@ -437,6 +437,44 @@ score: (number | null)
 accuracy: (number | null)
 }
 /**
+ * A move the rival keeps playing that Stockfish says costs them (PLAN.md, reading 26).
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "Habit".
+ */
+export interface Habit {
+colour: ("white" | "black")
+key: string
+fen: string
+opening: (string | null)
+reached: number
+move: RivalMove
+best: (string | null)
+best_san: (string | null)
+vs_me: string[]
+}
+/**
+ * A move played from a position of a rival's tree. Scores are pass 1 and from the mover's side; they're None
+ * where either position isn't scored.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "RivalMove".
+ */
+export interface RivalMove {
+uci: string
+san: string
+games: number
+score: number
+win: (number | null)
+drop: (number | null)
+label: (string | null)
+eval: (Eval | null)
+reply: (string | null)
+reply_san: (string | null)
+reply_line: string[]
+reply_line_san: string
+}
+/**
  * This interface was referenced by `Export`'s JSON-Schema
  * via the `definition` "Insights".
  */
@@ -795,6 +833,50 @@ game: string
 ts: number
 ply: number
 san: string
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "Rival".
+ */
+export interface Rival {
+as_of: number
+username: string
+time_classes: string[]
+months: string[]
+games: number
+vs_me: number
+plies: number
+min_times: number
+white: RivalSide
+black: RivalSide
+habits: Habit[]
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "RivalSide".
+ */
+export interface RivalSide {
+colour: ("white" | "black")
+games: number
+score: (number | null)
+tree: RivalNode[]
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "RivalNode".
+ */
+export interface RivalNode {
+key: string
+fen: string
+rival_turn: boolean
+games: number
+vs_me: string[]
+score: number
+opening: (string | null)
+eval: (Eval | null)
+best: (string | null)
+best_san: (string | null)
+moves: RivalMove[]
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema

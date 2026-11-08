@@ -431,6 +431,17 @@ this file wins.
     tried in the review gets the drop and the label it would have got in the game. A key moment is
     exported once all of its moves are scored. Only my newest 50 games' are scored (`key_moments.games`, about
     35 positions a game), so the nightly run's share stays small; one scored earlier stays exported.
+26. Rivals (added 2026-11-08, phase 1 of 3: the data; then the page, then a prep session): the players in
+    `[rivals]`, starting with rk200123. Their public chess.com games are fetched the way mine are (their newest
+    `months` monthly archives, a month fetched again until it's over) and read with the same parser: my time
+    classes, standard chess from the starting position. Their opening tree covers each game's first `plies`
+    plies, and a game that repeats a position counts there once. Positions they reached in at least
+    `min_times` games are scored with pass 1, and on their turn so is the position after every move they
+    played there, so a move of theirs gets the drop and the label one of my games would give it (Book, Best,
+    then the band). A habit is a move they played at least `min_times` times from such a position that isn't
+    Stockfish's best and drops their Win% by an Inaccuracy's or more, judged by the drop alone so a named
+    opening that costs them counts too; habits are ordered by Win% given away (drop × times played). The
+    export is `rivals/<username>.json`, public like the rest of the data.
 
 ## Phases
 
