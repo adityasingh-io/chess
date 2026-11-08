@@ -30,8 +30,8 @@ they differ).
 ## Layout and commands
 
 - `src/coach/`: pipeline (`uv run coach --help`; `coach update` does everything new, `coach puzzles` picks
-  the Lichess subset, `coach repertoire` writes the starter `repertoire.pgn`, `coach rivals` fetches and
-  scores the openings of the players in `[rivals]`). `config.toml` holds every
+  the Lichess subset, `coach repertoire` writes the starter `repertoire.pgn`, `coach rivals NAME` fetches
+  and scores a rival's openings, only when asked). `config.toml` holds every
   tunable number; `.env` holds secrets (and the two public `VITE_SUPABASE_*` values the app build reads).
   `data/` (gitignored) holds raw archives and `coach.sqlite`.
 - `uv run pytest` (add `-m "not engine"` to skip tests that run Stockfish).

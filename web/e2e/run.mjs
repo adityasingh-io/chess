@@ -29,6 +29,7 @@ const LONG_GAME = process.env.E2E_GAME ?? "164948678288";
 const longGame = data(`games/${LONG_GAME}.json`);
 const retryGame = data("games/index.json").games.find((g) => g.puzzles > 0);
 const keyGame = data("games/index.json").games.find((g) => g.key_ply != null);
+const rival = data("rivals/index.json").rivals[0].username;
 
 let base = process.env.E2E_URL, server = null;
 if (!base) {
@@ -121,6 +122,8 @@ try {
     { path: "/coordinates", name: "coordinates", ready: ".board" },
     { path: "/puzzles?tab=missed", name: "missed", ready: ".card h2" },
     { path: "/more", name: "more", ready: ".rows" },
+    { path: "/rivals", name: "rivals", ready: ".rows" },
+    { path: `/rivals/${rival}`, name: "rival", ready: ".pos .board" },
   ];
   for (const theme of ["dark", "light"]) {
     for (const width of [390, 1280]) {

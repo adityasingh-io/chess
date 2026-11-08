@@ -450,6 +450,40 @@
    "title": "Endgames",
    "type": "object"
   },
+  "Endings": {
+   "additionalProperties": false,
+   "description": "How the rival's games ended, by chess.com result code: the loser's when they won or lost, theirs when drawn.",
+   "properties": {
+    "won": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "title": "Won",
+     "type": "object"
+    },
+    "lost": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "title": "Lost",
+     "type": "object"
+    },
+    "drawn": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "title": "Drawn",
+     "type": "object"
+    }
+   },
+   "required": [
+    "won",
+    "lost",
+    "drawn"
+   ],
+   "title": "Endings",
+   "type": "object"
+  },
   "EngineInfo": {
    "additionalProperties": false,
    "properties": {
@@ -1168,6 +1202,10 @@
      "title": "Reached",
      "type": "integer"
     },
+    "yours": {
+     "title": "Yours",
+     "type": "boolean"
+    },
     "move": {
      "$ref": "#/$defs/RivalMove"
     },
@@ -1207,12 +1245,261 @@
     "fen",
     "opening",
     "reached",
+    "yours",
     "move",
     "best",
     "best_san",
     "vs_me"
    ],
    "title": "Habit",
+   "type": "object"
+  },
+  "HeadToHead": {
+   "additionalProperties": false,
+   "properties": {
+    "username": {
+     "title": "Username",
+     "type": "string"
+    },
+    "games": {
+     "items": {
+      "$ref": "#/$defs/HeadToHeadGame"
+     },
+     "title": "Games",
+     "type": "array"
+    },
+    "score": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Score"
+    },
+    "rates": {
+     "items": {
+      "$ref": "#/$defs/HeadToHeadRate"
+     },
+     "title": "Rates",
+     "type": "array"
+    },
+    "phases": {
+     "items": {
+      "$ref": "#/$defs/HeadToHeadPhase"
+     },
+     "title": "Phases",
+     "type": "array"
+    }
+   },
+   "required": [
+    "username",
+    "games",
+    "score",
+    "rates",
+    "phases"
+   ],
+   "title": "HeadToHead",
+   "type": "object"
+  },
+  "HeadToHeadGame": {
+   "additionalProperties": false,
+   "properties": {
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "ts": {
+     "title": "Ts",
+     "type": "integer"
+    },
+    "colour": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Colour",
+     "type": "string"
+    },
+    "result": {
+     "enum": [
+      "win",
+      "draw",
+      "loss"
+     ],
+     "title": "Result",
+     "type": "string"
+    },
+    "opening": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Opening"
+    },
+    "accuracy": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Accuracy"
+    },
+    "their_accuracy": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Their Accuracy"
+    },
+    "loss": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/LossInfo"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "turning_san": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Turning San"
+    },
+    "turning_drop": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Turning Drop"
+    },
+    "key_ply": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Key Ply"
+    },
+    "thrown": {
+     "title": "Thrown",
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "id",
+    "ts",
+    "colour",
+    "result",
+    "opening",
+    "accuracy",
+    "their_accuracy",
+    "loss",
+    "turning_san",
+    "turning_drop",
+    "key_ply",
+    "thrown"
+   ],
+   "title": "HeadToHeadGame",
+   "type": "object"
+  },
+  "HeadToHeadPhase": {
+   "additionalProperties": false,
+   "properties": {
+    "phase": {
+     "title": "Phase",
+     "type": "string"
+    },
+    "mine": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Mine"
+    },
+    "theirs": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Theirs"
+    },
+    "my_moves": {
+     "title": "My Moves",
+     "type": "integer"
+    },
+    "their_moves": {
+     "title": "Their Moves",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "phase",
+    "mine",
+    "theirs",
+    "my_moves",
+    "their_moves"
+   ],
+   "title": "HeadToHeadPhase",
+   "type": "object"
+  },
+  "HeadToHeadRate": {
+   "additionalProperties": false,
+   "properties": {
+    "tag": {
+     "title": "Tag",
+     "type": "string"
+    },
+    "against": {
+     "title": "Against",
+     "type": "number"
+    },
+    "usual": {
+     "title": "Usual",
+     "type": "number"
+    }
+   },
+   "required": [
+    "tag",
+    "against",
+    "usual"
+   ],
+   "title": "HeadToHeadRate",
    "type": "object"
   },
   "Insights": {
@@ -3475,6 +3762,19 @@
      },
      "title": "Habits",
      "type": "array"
+    },
+    "your_openings": {
+     "items": {
+      "$ref": "#/$defs/Habit"
+     },
+     "title": "Your Openings",
+     "type": "array"
+    },
+    "endings": {
+     "$ref": "#/$defs/Endings"
+    },
+    "time_trouble": {
+     "$ref": "#/$defs/TimeTrouble"
     }
    },
    "required": [
@@ -3488,7 +3788,10 @@
     "min_times",
     "white",
     "black",
-    "habits"
+    "habits",
+    "your_openings",
+    "endings",
+    "time_trouble"
    ],
    "title": "Rival",
    "type": "object"
@@ -3622,6 +3925,10 @@
      "title": "Rival Turn",
      "type": "boolean"
     },
+    "yours": {
+     "title": "Yours",
+     "type": "boolean"
+    },
     "games": {
      "title": "Games",
      "type": "integer"
@@ -3692,6 +3999,7 @@
     "key",
     "fen",
     "rival_turn",
+    "yours",
     "games",
     "vs_me",
     "score",
@@ -3745,6 +4053,29 @@
     "tree"
    ],
    "title": "RivalSide",
+   "type": "object"
+  },
+  "Rivals": {
+   "additionalProperties": false,
+   "description": "rivals/index.json: from my games alone, so it's current after every update.",
+   "properties": {
+    "as_of": {
+     "title": "As Of",
+     "type": "integer"
+    },
+    "rivals": {
+     "items": {
+      "$ref": "#/$defs/HeadToHead"
+     },
+     "title": "Rivals",
+     "type": "array"
+    }
+   },
+   "required": [
+    "as_of",
+    "rivals"
+   ],
+   "title": "Rivals",
    "type": "object"
   },
   "Slip": {
@@ -4121,6 +4452,47 @@
     "drop"
    ],
    "title": "ThrownInfo",
+   "type": "object"
+  },
+  "TimeTrouble": {
+   "additionalProperties": false,
+   "properties": {
+    "share": {
+     "title": "Share",
+     "type": "number"
+    },
+    "timed": {
+     "title": "Timed",
+     "type": "integer"
+    },
+    "games": {
+     "title": "Games",
+     "type": "integer"
+    },
+    "lost_on_time": {
+     "title": "Lost On Time",
+     "type": "integer"
+    },
+    "score": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Score"
+    }
+   },
+   "required": [
+    "share",
+    "timed",
+    "games",
+    "lost_on_time",
+    "score"
+   ],
+   "title": "TimeTrouble",
    "type": "object"
   },
   "TopLeak": {

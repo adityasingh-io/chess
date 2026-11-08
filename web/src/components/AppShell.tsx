@@ -23,7 +23,7 @@ type Tab = { to: string; long: string; end?: boolean };
 const TOP: Tab[] = [
   { to: "/", long: "Dashboard", end: true }, { to: "/leaks", long: "Leaks" }, { to: "/puzzles", long: "Puzzles" },
   { to: "/trainer", long: "Trainer" }, { to: "/play", long: "Play it out" }, { to: "/games", long: "Games" }, { to: "/openings", long: "Openings" },
-  { to: "/endgames", long: "Endgames" }, { to: "/insights", long: "Insights" },
+  { to: "/endgames", long: "Endgames" }, { to: "/insights", long: "Insights" }, { to: "/rivals", long: "Rivals" },
 ];
 export const MORE = [
   { to: "/openings", name: "Openings", what: "Your opening tree per colour: what you play, Stockfish's best and players at your level" },
@@ -31,6 +31,7 @@ export const MORE = [
   { to: "/trainer", name: "Repertoire trainer", what: "Play your repertoire and leak lines from memory, with spaced repetition" },
   { to: "/endgames", name: "Endgames", what: "How your endgames turn out, by type, and the moves that spoiled them" },
   { to: "/insights", name: "Insights", what: "Score and accuracy by colour, opponent, time of day and more; think time; trends" },
+  { to: "/rivals", name: "Rivals", what: "Players you prepare for: your games against them, and the openings they get wrong" },
   { to: "/coordinates", name: "Coordinates", what: "Learn the square names: tap the square that's asked, against the clock" },
   { to: "/settings", name: "Settings", what: "Board options (square names, hanging pieces, sounds), progress, sync, theme" },
 ];

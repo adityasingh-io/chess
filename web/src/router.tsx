@@ -18,6 +18,7 @@ const Trainer = lazy(() => import("./pages/Trainer"));
 const PlayOut = lazy(() => import("./pages/PlayOut"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Coordinates = lazy(() => import("./pages/Coordinates"));
+const Rivals = lazy(() => import("./pages/Rivals"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 export const routes = [
@@ -42,6 +43,8 @@ export const routes = [
       { path: "play", element: <PlayOut /> },
       { path: "settings", element: <Settings /> },
       { path: "coordinates", element: <Coordinates /> },
+      { path: "rivals", element: <Rivals /> },
+      { path: "rivals/:name", element: <Rivals /> },
       { path: "*", element: <NotFound /> },
     ],
   },

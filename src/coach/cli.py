@@ -61,7 +61,7 @@ def analyze(last: Last = None, reviewed: Reviewed = 0, pass1_only: bool = False,
 def update(last: Last = None, reviewed: Reviewed = 0,
            notes: Annotated[bool, typer.Option(help="Also ask for AI notes when they're on in config.toml.")] = True) -> None:
     """Fetch, parse, analyse, fetch explorer stats and export, touching only what's new."""
-    from coach.build import fetch_explorer, fetch_key_moments, fetch_puzzles, fetch_rival_scores, fetch_trainer, run_build
+    from coach.build import fetch_explorer, fetch_key_moments, fetch_puzzles, fetch_trainer, run_build
 
     cfg, conn = _setup()
     timings: dict[str, float] = {}
@@ -73,7 +73,6 @@ def update(last: Last = None, reviewed: Reviewed = 0,
         return out
 
     step("fetch", fetch_archives, cfg, conn, console)
-    step("rival games", fetch_rivals, cfg, conn, console)
     step("parse", parse_all, cfg, conn, console)
     games = load_games(conn, select_game_ids(conn, last, reviewed))
     step("analyse", run_analysis, cfg, conn, games, console)
@@ -83,7 +82,6 @@ def update(last: Last = None, reviewed: Reviewed = 0,
         console.print("LICHESS_TOKEN not set: skipping explorer stats")
     step("trainer", fetch_trainer, cfg, conn, console)
     step("key moments", fetch_key_moments, cfg, conn, console)
-    step("rivals", fetch_rival_scores, cfg, conn, console)
     step("puzzles", fetch_puzzles, cfg, conn, console)
     if notes and cfg.notes.enabled:
         from coach.build import write_notes
@@ -170,23 +168,29 @@ def build() -> None:
 
 
 @app.command("rivals")
-def rivals_cmd() -> None:
-    """Fetch the games of the players in config.toml's [rivals], score their openings, and export."""
-    from coach import schema as S
-    from coach.build import fetch_rival_scores, run_build
+def rivals_cmd(names: Annotated[list[str] | None, typer.Argument(help="Rivals to do (default: every rival in config.toml).")] = None) -> None:
+    """Fetch the games of the rivals listed in config.toml, score their openings, and write their files.
+
+    Only when asked: the nightly update never fetches a rival. My games against them are in rivals/index.json, which every build writes.
+    """
+    from coach import rivals
+    from coach.build import fetch_rival_scores
+    from coach.openings import load_openings, openings_dir
 
     cfg, conn = _setup()
-    fetch_rivals(cfg, conn, console)
-    fetch_rival_scores(cfg, conn, console)
-    result = run_build(cfg, conn, console)
-    for rel, r in result.built.files.items():
-        if isinstance(r, S.Rival):
-            console.print(f"{rel}: {r.games} games ({r.vs_me} against me) in {r.months[0]}…{r.months[-1]}, "
-                          f"{len(r.white.tree) + len(r.black.tree)} positions, {len(r.habits)} habits")
-            for h in r.habits[:5]:
-                console.print(f"  as {h.colour}: {h.move.san} in {h.move.games} of {h.reached} games, "
-                              f"−{h.move.drop:.1f} ({h.move.label}); Stockfish's best {h.best_san}, "
-                              f"answer {h.move.reply_san}")
+    which = rivals.names(cfg, names)
+    fetch_rivals(cfg, conn, console, which=which)
+    fetch_rival_scores(cfg, conn, console, which)
+    evals1 = db.load_evals(conn, cfg.engine.version, cfg.engine.pass1.key)
+    out = rivals.files(cfg, conn, evals1, load_openings(openings_dir(cfg.root), cfg.data_dir), which)
+    console.print(f"{rivals.write(cfg, out)} of {len(out)} rival files written")
+    for rel, r in out.items():
+        console.print(f"{rel}: {r.games} games ({r.vs_me} against me) in {r.months[0]}…{r.months[-1]}, "
+                      f"{len(r.white.tree) + len(r.black.tree)} positions, {len(r.habits)} habits, "
+                      f"{len(r.your_openings)} costly moves in my openings")
+        for h in r.habits[:5]:
+            console.print(f"  as {h.colour}: {h.move.san} in {h.move.games} of {h.reached} games, "
+                          f"−{h.move.drop:.1f} ({h.move.label}); Stockfish's best {h.best_san}, answer {h.move.reply_san}")
 
 
 @app.command("explorer")

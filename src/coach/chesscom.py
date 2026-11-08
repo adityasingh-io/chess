@@ -108,14 +108,16 @@ def rival_dir(cfg: Config, username: str) -> Path:
     return cfg.raw_dir / "rivals" / username.lower()
 
 
-def fetch_rivals(cfg: Config, conn: sqlite3.Connection, console: Console, api: ChessCom | None = None) -> list[str]:
-    """Each rival's newest `rivals.months` monthly archives, kept the way mine are: a month is fetched again until
-    it's over."""
-    if not cfg.rivals.usernames:
+def fetch_rivals(cfg: Config, conn: sqlite3.Connection, console: Console, api: ChessCom | None = None,
+                 which: list[str] | None = None) -> list[str]:
+    """Each rival's (or each of `which`'s) newest `rivals.months` monthly archives, kept the way mine are: a month is
+    fetched again until it's over."""
+    which = list(cfg.rivals.usernames) if which is None else which
+    if not which:
         return []
     api = api or _client(cfg)
     updated = []
-    for name in cfg.rivals.usernames:
+    for name in which:
         user, folder = name.lower(), rival_dir(cfg, name)
         folder.mkdir(parents=True, exist_ok=True)
         urls = api.get_json(f"{API}/player/{user}/games/archives")["archives"]

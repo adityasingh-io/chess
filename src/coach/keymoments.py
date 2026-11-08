@@ -3,7 +3,8 @@
 Every legal move in the position before my move is scored with pass-1 settings on the position after it, the
 same way each move of my games is scored, so a move tried in the review gets the drop and the label it would
 have got in the game. `analyse` fetches what's missing for the newest games (config.toml, key_moments), newest
-first; `key_out` only reads the cache, so a key moment stays exported once its moves are scored.
+first, and for every game against a rival however old; `key_out` only reads the cache, so a key moment stays exported
+once its moves are scored.
 """
 
 from __future__ import annotations
@@ -26,11 +27,12 @@ def _board(m: GameModel) -> chess.Board:
     return chess.Board(m.key.record.ply.move["fen_before"])
 
 
-def wanted(models: list[GameModel], games: int | None = None) -> list[str]:
-    """The position after every legal move at each key moment of the newest `games` games (all of them by default),
-    newest game first."""
+def wanted(models: list[GameModel], games: int | None = None, also: frozenset[str] = frozenset()) -> list[str]:
+    """The position after every legal move at each key moment of the newest `games` games (all of them by default)
+    and of the games in `also`, newest game first."""
     keys = []
-    for m in sorted(models, key=lambda m: -m.row["start_ts"])[:games]:
+    newest = sorted(models, key=lambda m: -m.row["start_ts"])
+    for m in [m for i, m in enumerate(newest) if games is None or i < games or m.id in also]:
         if m.key:
             board = _board(m)
             for move in board.legal_moves:
@@ -42,7 +44,9 @@ def wanted(models: list[GameModel], games: int | None = None) -> list[str]:
 
 def analyse(cfg: Config, conn: sqlite3.Connection, models: list[GameModel], console: Console) -> None:
     engine = check_engine(cfg.secrets.stockfish_path, cfg.engine.version)
-    analyse_positions(conn, wanted(models, cfg.key_moments.games), cfg.engine.pass1, engine_path=cfg.secrets.stockfish_path,
+    rivals = {n.lower() for n in cfg.rivals.usernames}
+    also = frozenset(m.id for m in models if m.row["opp_username"].lower() in rivals)
+    analyse_positions(conn, wanted(models, cfg.key_moments.games, also), cfg.engine.pass1, engine_path=cfg.secrets.stockfish_path,
                       engine=engine, workers=cfg.engine.workers, console=console, label="key moments")
 
 

@@ -140,6 +140,23 @@ table: {
 endgames: EndgameGame[]
 }
 /**
+ * How the rival's games ended, by chess.com result code: the loser's when they won or lost, theirs when drawn.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "Endings".
+ */
+export interface Endings {
+won: {
+[k: string]: number
+}
+lost: {
+[k: string]: number
+}
+drawn: {
+[k: string]: number
+}
+}
+/**
  * This interface was referenced by `Export`'s JSON-Schema
  * via the `definition` "EngineInfo".
  */
@@ -448,6 +465,7 @@ key: string
 fen: string
 opening: (string | null)
 reached: number
+yours: boolean
 move: RivalMove
 best: (string | null)
 best_san: (string | null)
@@ -473,6 +491,55 @@ reply: (string | null)
 reply_san: (string | null)
 reply_line: string[]
 reply_line_san: string
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "HeadToHead".
+ */
+export interface HeadToHead {
+username: string
+games: HeadToHeadGame[]
+score: (number | null)
+rates: HeadToHeadRate[]
+phases: HeadToHeadPhase[]
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "HeadToHeadGame".
+ */
+export interface HeadToHeadGame {
+id: string
+ts: number
+colour: ("white" | "black")
+result: ("win" | "draw" | "loss")
+opening: (string | null)
+accuracy: (number | null)
+their_accuracy: (number | null)
+loss: (LossInfo | null)
+turning_san: (string | null)
+turning_drop: (number | null)
+key_ply: (number | null)
+thrown: boolean
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "HeadToHeadRate".
+ */
+export interface HeadToHeadRate {
+tag: string
+against: number
+usual: number
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "HeadToHeadPhase".
+ */
+export interface HeadToHeadPhase {
+phase: string
+mine: (number | null)
+theirs: (number | null)
+my_moves: number
+their_moves: number
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -850,6 +917,9 @@ min_times: number
 white: RivalSide
 black: RivalSide
 habits: Habit[]
+your_openings: Habit[]
+endings: Endings
+time_trouble: TimeTrouble
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema
@@ -869,6 +939,7 @@ export interface RivalNode {
 key: string
 fen: string
 rival_turn: boolean
+yours: boolean
 games: number
 vs_me: string[]
 score: number
@@ -877,6 +948,27 @@ eval: (Eval | null)
 best: (string | null)
 best_san: (string | null)
 moves: RivalMove[]
+}
+/**
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "TimeTrouble".
+ */
+export interface TimeTrouble {
+share: number
+timed: number
+games: number
+lost_on_time: number
+score: (number | null)
+}
+/**
+ * rivals/index.json: from my games alone, so it's current after every update.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "Rivals".
+ */
+export interface Rivals {
+as_of: number
+rivals: HeadToHead[]
 }
 /**
  * This interface was referenced by `Export`'s JSON-Schema

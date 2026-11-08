@@ -15,7 +15,7 @@ import { endgameStarts } from "../src/lib/playout";
 import { keyId } from "../src/lib/drill";
 import { losingTags, newKeys } from "../src/lib/today";
 import { tagName } from "../src/lib/names";
-import type { Endgames, Game, GamesIndex, Insights, Leaks, Losses, OpeningReport, PuzzleIndex, PuzzleSet, Repertoire, Summary } from "../src/types/export";
+import type { Endgames, Game, GamesIndex, Insights, Leaks, Losses, OpeningReport, PuzzleIndex, PuzzleSet, Repertoire, Rival, Rivals, Summary } from "../src/types/export";
 
 const data = <T,>(p: string): T => JSON.parse(readFileSync(join(__dirname, "../public/data", p), "utf8"));
 const summary = data<Summary>("summary.json");
@@ -726,4 +726,42 @@ test("Today: my newest games' key moments first, then the drill on what loses ga
   const plan = JSON.parse(localStorage.getItem("coach-today-v1")!);
   expect(plan.at).toBe(keys.length);
   expect(plan.marks.slice(0, keys.length)).toEqual(keys.map(() => "skipped"));
+}, 30_000);
+
+test("a rival: my games against them, how I lose, and their costly moves in my openings", async () => {
+  const h = data<Rivals>("rivals/index.json").rivals[0];
+  const r = data<Rival>(`rivals/${h.username.toLowerCase()}.json`);
+  await open("/rivals");
+  expect((await screen.findByRole("link", { name: new RegExp(`vs ${h.username}`) }, SLOW)).getAttribute("href")).toBe(`/rivals/${h.username}`);
+  cleanup();
+  await open(`/rivals/${h.username}`);
+  // Every game together, newest first, opening at its key moment when it has one.
+  const together = await screen.findByRole("region", { name: "Head to head" }, SLOW);
+  expect(within(together).getAllByRole("link").map((a) => a.getAttribute("href")))
+    .toEqual(h.games.map((g) => `/games/${g.id}${g.key_ply != null ? "?key=1" : ""}`));
+  // Each loss links to the move it turned on.
+  const lost = h.games.filter((g) => g.result === "loss" && g.loss);
+  const lose = screen.getByRole("region", { name: "When you lose to them" });
+  expect(within(lose).getAllByRole("link").map((a) => a.getAttribute("href")))
+    .toEqual(lost.map((g) => `/games/${g.id}${g.loss!.turning_ply ? `?ply=${g.loss!.turning_ply}` : ""}`));
+  // Their own games: the costly moves in my openings, most Win% given away first.
+  const yours = await screen.findByRole("region", { name: "Their costly moves in your openings" }, SLOW);
+  expect(within(yours).getByText(plural(r.your_openings.length, "move"))).toBeTruthy();
+  const cards = within(yours).getAllByRole("article");
+  expect(cards).toHaveLength(Math.min(6, r.your_openings.length));
+  const first = r.your_openings[0];
+  const ply = (Number(first.fen.split(" ")[5]) - 1) * 2 + (first.fen.split(" ")[1] === "w" ? 1 : 2);
+  expect(cards[0].textContent).toContain(moveName(ply, first.move.san));
+  expect(cards[0].textContent).toContain(`−${n1(first.move.drop!)} Win%`);
+  expect(cards[0].textContent).toContain(`played in ${first.move.games} of ${plural(first.reached, "game")}`);
+  // The tree from my side: as Black I see their first moves as White.
+  const tree = screen.getByRole("region", { name: "Their tree" });
+  await act(async () => { fireEvent.click(within(tree).getByRole("button", { name: "You're Black" })); });
+  const root = r.white.tree.find((n) => n.key === "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -")!;
+  expect(within(tree).getByText(plural(root.games, "game"))).toBeTruthy();
+  expect(within(tree).getAllByRole("row").length).toBe(root.moves.length + 1);
+  // How their games end, from the counts in their file.
+  const won = Object.values(r.endings.won).reduce((a, b) => a + b, 0);
+  const end = screen.getByRole("region", { name: "How their games end" });
+  expect(within(end).getByText((_, el) => el?.tagName === "P" && !!el.textContent?.startsWith(`Wins ${grouped(won)}:`))).toBeTruthy();
 }, 30_000);

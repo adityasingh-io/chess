@@ -93,15 +93,19 @@ def move_out(p: Ply, evals1: dict[str, dict], record_ids: dict[int, str], plies:
     )
 
 
+def loss_info(m: GameModel) -> S.LossInfo | None:
+    if not m.loss:
+        return None
+    return S.LossInfo(cause=m.loss.cause, subtype=m.loss.subtype, flags=m.loss.flags,
+                      turning_ply=m.loss.turning_point.number if m.loss.turning_point else None,
+                      turning_rule=m.loss.rule, record=m.loss.record.id if m.loss.record else None)
+
+
 def game_out(cfg: Config, m: GameModel, evals1: dict[str, dict], evals2: dict[str, dict], notes: dict[str, str],
              puzzles: int, rep: dict | None, key: S.KeyMoment | None) -> S.Game:
     row = m.row
     record_ids = {r.ply.number: r.id for r in m.records}
-    loss = None
-    if m.loss:
-        loss = S.LossInfo(cause=m.loss.cause, subtype=m.loss.subtype, flags=m.loss.flags,
-                          turning_ply=m.loss.turning_point.number if m.loss.turning_point else None,
-                          turning_rule=m.loss.rule, record=m.loss.record.id if m.loss.record else None)
+    loss = loss_info(m)
     thrown = None
     if m.thrown:
         p = m.thrown.move
@@ -214,6 +218,8 @@ class Built:
 
 def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, dict], evals2: dict[str, dict],
           explorer: dict[str, dict], notes: dict[str, str] | None = None, masters: dict[str, dict] | None = None) -> Built:
+    from coach.rivals import head_to_head   # rivals reads this module's helpers
+
     stamp = as_of(models)
     ordered = by_time(models)
     masters = masters or {}
@@ -291,6 +297,7 @@ def build(cfg: Config, models: list[GameModel], n_games: int, evals1: dict[str, 
         "puzzles/lichess.json": lichess,
         "puzzles/index.json": S.PuzzleIndex(as_of=stamp, mine=tag_counts(mine), lichess=tag_counts(lichess)),
         "repertoire.json": repertoire_out(cfg, lines, evals1, explorer, masters, slips, stamp),
+        "rivals/index.json": head_to_head(cfg, models, keys, stamp),
     }
     return Built(files, games)
 
@@ -349,7 +356,7 @@ def write(cfg: Config, built: Built) -> tuple[int, int]:
     for stale in (out / "games").glob("*.json"):
         if stale.name not in keep:
             stale.unlink()
-    rivals = {f"{name.lower()}.json" for name in cfg.rivals.usernames}
+    rivals = {f"{name.lower()}.json" for name in cfg.rivals.usernames} | {"index.json"}
     for stale in (out / "rivals").glob("*.json"):   # players no longer in config.toml's [rivals]
         if stale.name not in rivals:
             stale.unlink()

@@ -241,6 +241,13 @@ this file wins.
   line does after it. Hint marks the piece Stockfish's move moves; Show Stockfish's move ends it. Then
   Stockfish's line, my move's line, the record's explanation and the other good moves. An answer schedules
   the key moment's next review (FSRS, graded as a puzzle is).
+- **Rivals** (added 2026-11-08, reading 26): `/rivals` lists them; `/rivals/<name>` has, from my games (always
+  current): head to head (record by colour, each game with both accuracies, opening at its key moment), and
+  when I lose to them (each loss's cause and deciding move, my records per game against them next to my usual
+  rate, both sides' move accuracy by phase). From their own games (as of the last `coach rivals`): their first
+  moves, their costly moves in positions my games reach, their habits elsewhere, each on a board with
+  Stockfish's answer and its line to step through, their tree from my side of the board (every move with its
+  label and drop on their turn), and how their games end with their clock. In the top bar, and under More.
 - **Sync:** Supabase, off unless the build has `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
   (from the repo-root `.env`; Vite exposes only `VITE_` variables). The client library loads only then.
   Magic-link sign-in without account creation; one `progress` row per user under row-level security
@@ -431,17 +438,24 @@ this file wins.
     tried in the review gets the drop and the label it would have got in the game. A key moment is
     exported once all of its moves are scored. Only my newest 50 games' are scored (`key_moments.games`, about
     35 positions a game), so the nightly run's share stays small; one scored earlier stays exported.
-26. Rivals (added 2026-11-08, phase 1 of 3: the data; then the page, then a prep session): the players in
-    `[rivals]`, starting with rk200123. Their public chess.com games are fetched the way mine are (their newest
-    `months` monthly archives, a month fetched again until it's over) and read with the same parser: my time
-    classes, standard chess from the starting position. Their opening tree covers each game's first `plies`
-    plies, and a game that repeats a position counts there once. Positions they reached in at least
-    `min_times` games are scored with pass 1, and on their turn so is the position after every move they
-    played there, so a move of theirs gets the drop and the label one of my games would give it (Book, Best,
-    then the band). A habit is a move they played at least `min_times` times from such a position that isn't
-    Stockfish's best and drops their Win% by an Inaccuracy's or more, judged by the drop alone so a named
-    opening that costs them counts too; habits are ordered by Win% given away (drop × times played). The
-    export is `rivals/<username>.json`, public like the rest of the data.
+26. Rivals (added 2026-11-08; phase 1 the data, phase 2 the page, then a prep session): the players in
+    `[rivals]`, starting with rk200123. Their games are fetched only when I ask (`coach rivals NAME`, run by
+    Claude on the Mac and pushed), never by the nightly run: their newest `months` monthly chess.com archives,
+    read with the same parser as mine (my time classes, standard chess from the starting position). Their
+    opening tree covers each game's first `plies` plies, and a game that repeats a position counts there once.
+    Positions they reached in at least `min_times` games, and any position my own games reach (in their first
+    `plies` plies, with the other colour), are scored with pass 1; on their turn so is the position after every
+    move they played there, so a move of theirs gets the drop and the label one of my games would give it
+    (Book, Best, then the band). A costly move isn't Stockfish's best and drops their Win% by an Inaccuracy's or
+    more, judged by the drop alone so a named opening that costs them counts too. A habit is a costly move
+    played at least `min_times` times from one position; "in your openings" lists every costly move from a
+    position my games reach, however often. Both are ordered by Win% given away (drop × times played). Their
+    endings count chess.com result codes, and time trouble is their clock below `flags.time_trouble` of the
+    starting time (reading 18). `rivals/<username>.json` is public like the rest of the data and as old as the
+    last `coach rivals`. `rivals/index.json` is the head-to-head, from my analysed games alone, so every
+    build writes it: each game with both accuracies, the loss cause and the key moment (every game against a
+    rival gets one, however old), my records per game against them next to my usual rate, and both sides'
+    average move accuracy by phase.
 
 ## Phases
 

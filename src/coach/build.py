@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from rich.console import Console
 
-from coach import db, explorer, notes, rivals
+from coach import db, explorer, notes
 from coach.analysis import load_games, select_game_ids
 from coach.config import Config
 from coach.export import Built, build, write
@@ -70,11 +70,11 @@ def fetch_key_moments(cfg: Config, conn: sqlite3.Connection, console: Console) -
     keymoments.analyse(cfg, conn, models, console)
 
 
-def fetch_rival_scores(cfg: Config, conn: sqlite3.Connection, console: Console) -> None:
-    """Score the positions my rivals reach often, and the moves they play there."""
+def fetch_rival_scores(cfg: Config, conn: sqlite3.Connection, console: Console, which: list[str]) -> None:
+    """Score the positions these rivals reach often or my games reach too, and the moves they play there."""
     from coach import rivals
 
-    rivals.analyse(cfg, conn, console)
+    rivals.analyse(cfg, conn, console, which)
 
 
 def write_notes(cfg: Config, conn: sqlite3.Connection, console: Console) -> tuple[int, int]:
@@ -90,6 +90,5 @@ def run_build(cfg: Config, conn: sqlite3.Connection, console: Console) -> BuildR
     missing = len(explorer_keys(cfg, models, evals1) - set(stats))
     worded = notes.load(conn, cfg, notes.costliest(cfg, models)) if cfg.notes.enabled else {}
     built = build(cfg, models, len(games), evals1, evals2, stats, worded, explorer.load(conn, cfg, "masters"))
-    built.files.update(rivals.files(cfg, evals1, load_openings(openings_dir(cfg.root), cfg.data_dir)))
     written, unchanged = write(cfg, built)
     return BuildResult(len(games), models, built, written, unchanged, time.perf_counter() - started, missing)

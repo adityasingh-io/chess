@@ -648,6 +648,7 @@ class RivalNode(Model):
     key: str
     fen: str                   # with the move counters of a game that reached it first
     rival_turn: bool
+    yours: bool                # my games reach it too (with the other colour)
     games: int                 # the rival's games that reached it
     vs_me: list[str]           # those against me (game ids)
     score: float               # the rival's score in percent in those games
@@ -672,10 +673,26 @@ class Habit(Model):
     fen: str
     opening: str | None
     reached: int               # the rival's games that reached the position
+    yours: bool                # my games reach the position too
     move: RivalMove            # played in `move.games` of them
     best: str | None           # Stockfish's best move there instead
     best_san: str | None
     vs_me: list[str]           # my games against the rival where it was played
+
+
+class Endings(Model):
+    """How the rival's games ended, by chess.com result code: the loser's when they won or lost, theirs when drawn."""
+    won: dict[str, int]
+    lost: dict[str, int]
+    drawn: dict[str, int]
+
+
+class TimeTrouble(Model):
+    share: float               # of the starting time (flags.time_trouble)
+    timed: int                 # the rival's games with clocks in the PGN
+    games: int                 # of them, games where the rival's clock fell below that share
+    lost_on_time: int          # of those, lost on time
+    score: float | None        # the rival's score in percent in those games
 
 
 class Rival(Model):
@@ -690,6 +707,52 @@ class Rival(Model):
     white: RivalSide
     black: RivalSide
     habits: list[Habit]        # most Win% given away first (drop × times played)
+    your_openings: list[Habit] # every costly move of theirs from a position my games reach, played any number of times
+    endings: Endings
+    time_trouble: TimeTrouble
+
+
+class HeadToHeadGame(Model):
+    id: str
+    ts: int
+    colour: Colour             # mine
+    result: Result             # mine
+    opening: str | None        # family
+    accuracy: float | None     # mine
+    their_accuracy: float | None
+    loss: LossInfo | None
+    turning_san: str | None    # the move the loss turned on, and my Win% drop there
+    turning_drop: float | None
+    key_ply: int | None
+    thrown: bool
+
+
+class HeadToHeadRate(Model):
+    tag: str                   # a primary type
+    against: float             # my records of that type per game against the rival
+    usual: float               # per game in all my games
+
+
+class HeadToHeadPhase(Model):
+    phase: str
+    mine: float | None         # my average move accuracy in that phase of our games
+    theirs: float | None
+    my_moves: int
+    their_moves: int
+
+
+class HeadToHead(Model):
+    username: str
+    games: list[HeadToHeadGame]   # newest first
+    score: float | None        # my score in percent
+    rates: list[HeadToHeadRate]
+    phases: list[HeadToHeadPhase]
+
+
+class Rivals(Model):
+    """rivals/index.json: from my games alone, so it's current after every update."""
+    as_of: int
+    rivals: list[HeadToHead]
 
 
 FILES = {
@@ -706,4 +769,5 @@ FILES = {
     "puzzles/lichess.json": PuzzleSet,
     "puzzles/index.json": PuzzleIndex,
     "repertoire.json": Repertoire,
+    "rivals/index.json": Rivals,
 }

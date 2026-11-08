@@ -81,7 +81,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .gear:hover, .gear.active { color: var(--ink); background: var(--soft); }
 .theme-btn { border: 1px solid var(--line); background: transparent; border-radius: var(--radius-sm); padding: 4px 8px; font-size: .8rem; color: var(--muted); cursor: pointer; white-space: nowrap; }
 .tabs-top { display: none; gap: 2px; margin-left: auto; }
-.tabs-top a, .tabs-top span { text-decoration: none; padding: 6px 12px; border-radius: var(--radius-sm); font-weight: 600; font-size: .92rem; color: var(--muted); }
+.tabs-top a, .tabs-top span { text-decoration: none; padding: 6px 12px; border-radius: var(--radius-sm); font-weight: 600; font-size: .92rem; color: var(--muted); white-space: nowrap; }
 .tabs-top a.active { background: var(--soft); color: var(--ink); }
 .tabs-top .later, .tabbar .later { opacity: .45; cursor: default; }
 .tabbar {
@@ -93,6 +93,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .tabbar a.active { color: var(--ink); }
 .tabbar svg { width: 22px; height: 22px; }
 @media (min-width: 900px) { .tabs-top { display: flex; } .tabbar { display: none; } .who { margin-left: 0; } }
+@media (min-width: 900px) and (max-width: 1199px) { .tabs-top { gap: 0; } .tabs-top a, .tabs-top span { padding: 6px 6px; font-size: .84rem; } }
 
 /* Page */
 .page {
@@ -553,3 +554,6 @@ button.row { background: none; border: 0; border-top: 1px solid var(--line); col
 /* "Fetch new games" on the Games page */
 .update .card-head { align-items: center; }
 .update p { margin: 0; }
+
+.facts-list { display: grid; gap: 4px; }
+.tm.plain tbody th { font-family: inherit; white-space: normal; }

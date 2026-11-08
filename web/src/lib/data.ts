@@ -4,7 +4,7 @@
 import { use } from "react";
 import type {
   Endgames, Game, GamesIndex, Insights, Leaks, Losses, MistakesIndex, OpeningReport, PuzzleIndex, PuzzleSet, Record as MistakeRecord,
-  Repertoire, Summary,
+  Repertoire, Rival, Rivals, Summary,
 } from "../types/export";
 
 const BASE = `${import.meta.env.BASE_URL}data/`;
@@ -38,6 +38,9 @@ export const useGame = (id: string) => use(load<Game>(`games/${encodeURIComponen
 export const usePuzzles = (source: "mine" | "lichess") => use(load<PuzzleSet>(`puzzles/${source}.json`));
 export const usePuzzleIndex = () => use(load<PuzzleIndex>("puzzles/index.json"));
 export const useRepertoire = () => use(load<Repertoire>("repertoire.json"));
+// My games against each rival (every build), and a rival's own games (only when `coach rivals` was run for them).
+export const useRivals = () => use(load<Rivals>("rivals/index.json"));
+export const useRival = (name: string) => use(load<Rival>(`rivals/${encodeURIComponent(name.toLowerCase())}.json`));
 
 // The mistakes index is the largest file (a few MB); only leak detail pages read it.
 const recordMaps = new WeakMap<MistakesIndex, Map<string, MistakeRecord>>();
