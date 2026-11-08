@@ -4,11 +4,11 @@
 // would have got in the game: Best, Excellent or Good finds one; anything else snaps back with the Win% it loses
 // and what Stockfish's line does after it. Hint marks the piece Stockfish's move moves; Show Stockfish's move
 // ends it. Nothing here judges a move: the labels and the lines are stored.
-import { useMemo, useRef, useState } from "react";
-import { numberedLine, replay, sideToMove, tryMove } from "../lib/chess";
+import { useMemo, useState } from "react";
+import { numberedLine, replay, sideToMove } from "../lib/chess";
 import type { Outcome } from "../lib/drill";
+import { FOUND, useFindMove } from "../lib/findMove";
 import { moveName, n1, sanTokens, signed } from "../lib/format";
-import { useMoveInput } from "../lib/moveInput";
 import { LABEL, SEV } from "../lib/names";
 import { bestKinds, myKinds, type RefLine } from "../lib/refs";
 import type { Game, KeyMove } from "../types/export";
@@ -16,15 +16,12 @@ import { LineChips, Nag } from "./bits";
 import { Board, type ArrowKind, type HighlightKind } from "./Board";
 import { RefText, usePeek } from "./RefText";
 
-/** The labels that find a better move: less than 5 Win% lost (config.toml, analysis.labels). */
-const FOUND = new Set(["best", "excellent", "good"]);
 export const KEY_KIND = {
   turning: "The move this loss turned on",
   thrown: "The move that let a winning game go",
   costliest: "Your costliest move in this game",
 } as const;
 
-type Status = "play" | "found" | "shown";
 /** Stepping through a line once it's over: Stockfish's, or my move in the game and its answer. */
 type View = { line: "best" | "played"; k: number };
 type Line = { ucis: string[]; tokens: string[]; fens: string[] };
@@ -54,37 +51,9 @@ export function KeyMomentBoard({ g, onDone, onNext, nextLabel = "Next", onWhole 
   const prev = km.ply >= 2 ? g.moves[km.ply - 2] : undefined;   // the opponent's move before mine
   const others = km.moves.filter((x) => x.label && FOUND.has(x.label) && x.uci !== answer.uci);
 
-  const [status, setStatus] = useState<Status>("play");
-  const [wrong, setWrong] = useState(0);
-  const [miss, setMiss] = useState<KeyMove | null>(null);
-  const [hint, setHint] = useState(false);
-  const [found, setFound] = useState<{ move: KeyMove; fen: string } | null>(null);
+  const { status, wrong, miss, hint, found, playing, input, selected, showHint, reveal, ...f } = useFindMove(km.fen, byUci, answer, onDone);
   const [view, setView] = useState<View | null>(null);
-  const reported = useRef(false);
-
-  const finish = (s: Status, o: Outcome) => {
-    setStatus(s);
-    setMiss(null);
-    if (!reported.current) { reported.current = true; onDone(o); }
-  };
-  const onMove = (from: string, to: string) => {
-    if (status !== "play") return false;
-    const mv = tryMove(km.fen, from, to, answer.uci.startsWith(from + to) ? answer.uci[4] : undefined);
-    const x = mv ? byUci.get(mv.uci) : undefined;
-    if (!mv || !x) return false;
-    if (x.label && FOUND.has(x.label)) {
-      setFound({ move: x, fen: mv.fen });
-      finish("found", { solved: true, wrong, hint, revealed: false });
-      return true;
-    }
-    setWrong((w) => w + 1);
-    setMiss(x);
-    return false;
-  };
-  const playing = status === "play";
-  const input = useMoveInput(km.fen, playing, onMove);
-  const reveal = () => finish("shown", { solved: false, wrong, hint, revealed: true });
-  const retry = () => { setStatus("play"); setFound(null); setView(null); setMiss(null); setHint(false); };
+  const retry = () => { f.retry(); setView(null); };
 
   const line = view ? (view.line === "best" ? best : played) : null;
   const fen = line && view!.k ? line.fens[view!.k - 1] ?? km.fen : view ? km.fen
@@ -95,7 +64,6 @@ export function KeyMomentBoard({ g, onDone, onNext, nextLabel = "Next", onWhole 
     : status === "shown" ? { uci: answer.uci, kind: "best" as const }
     : prev ? { uci: prev.uci, kind: "them" as const } : null;
   const arrows = miss && playing ? [{ uci: miss.uci, kind: "them" as const }] : [];
-  const selected = hint && playing ? answer.uci.slice(0, 2) : input.selected;
 
   // The lines a text names moves from: a move tried (its why names it, then Stockfish's answer), or once it's over
   // Stockfish's line and mine.
@@ -145,7 +113,7 @@ export function KeyMomentBoard({ g, onDone, onNext, nextLabel = "Next", onWhole 
               </div>
             )}
             <div className="puzzle-actions">
-              <button type="button" className="btn ghost" onClick={() => setHint(true)} disabled={hint}>Hint</button>
+              <button type="button" className="btn ghost" onClick={showHint} disabled={hint}>Hint</button>
               <button type="button" className="btn ghost" onClick={reveal}>Show Stockfish's move</button>
             </div>
           </>

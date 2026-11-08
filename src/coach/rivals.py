@@ -20,17 +20,19 @@ from statistics import mean
 import chess
 from rich.console import Console
 
-from coach import schema as S
+from coach import db, schema as S
 from coach.analysis import evaluation, needs_engine
 from coach.chesscom import rival_dir
 from coach.config import Config
 from coach.engine import analyse_positions, check_engine
 from coach.export import _dump, ev, loss_info, r1, write_schema
 from coach.model import PRIMARY_TYPES, GameModel, band, top
-from coach.openings import Opening
+from coach.openings import Opening, load_openings, openings_dir
 from coach.parse import ParsedGame, parse_game
+from coach.positions import position_key
 from coach.reports import POINTS
 from coach.templates import line_san, move_san
+from coach.trainer import alternatives
 from coach.winpct import for_side, position_win_pct
 
 COLOURS = ("white", "black")
@@ -133,10 +135,20 @@ def wanted(cfg: Config, games: list[ParsedGame], mine: dict[str, set[str]]) -> l
 
 def analyse(cfg: Config, conn: sqlite3.Connection, console: Console, which: list[str]) -> None:
     mine = my_positions(cfg, conn)
-    keys = [k for name in which for k in wanted(cfg, load(cfg, name)[0], mine)]
+    loaded = {name: load(cfg, name) for name in which}
     engine = check_engine(cfg.secrets.stockfish_path, cfg.engine.version)
-    analyse_positions(conn, keys, cfg.engine.pass1, engine_path=cfg.secrets.stockfish_path, engine=engine,
-                      workers=cfg.engine.workers, console=console, label="rivals")
+
+    def run(keys: list[str], label: str) -> None:
+        analyse_positions(conn, keys, cfg.engine.pass1, engine_path=cfg.secrets.stockfish_path, engine=engine,
+                          workers=cfg.engine.workers, console=console, label=label)
+
+    run([k for games, _ in loaded.values() for k in wanted(cfg, games, mine)], "rivals")
+    # Then every answer to the costly moves the prep session asks about, which are known once the tree is scored.
+    evals1 = db.load_evals(conn, cfg.engine.version, cfg.engine.pass1.key)
+    openings = load_openings(openings_dir(cfg.root), cfg.data_dir)
+    run([k for name, (games, months) in loaded.items() if months
+         for k in prep_wanted(cfg, rival_out(cfg, name, games, months, evals1, openings, mine).your_openings)],
+        "rival prep")
 
 
 def score(games: list[ParsedGame]) -> float | None:
@@ -184,6 +196,57 @@ def node_out(cfg: Config, n: Node, evals1: dict[str, dict], openings: dict[str, 
 def costly(cfg: Config, m: S.RivalMove, best: str | None) -> bool:
     """Not Stockfish's best, and a drop of an Inaccuracy's or more, by the drop alone (so a book move can be)."""
     return m.drop is not None and m.uci != best and band(cfg, m.drop) in COSTLY
+
+
+def prep_picks(cfg: Config, yours: list[S.Habit]) -> list[S.Habit]:
+    """The costly moves in my openings the prep session asks me to punish: most often played first, then the
+    costliest."""
+    return sorted(yours, key=lambda h: (-h.move.games, -(h.move.drop or 0), h.key, h.move.uci))[: cfg.rivals.prep]
+
+
+def _after(h: S.Habit) -> chess.Board:
+    board = chess.Board(h.fen)
+    board.push_uci(h.move.uci)
+    return board
+
+
+def prep_wanted(cfg: Config, yours: list[S.Habit]) -> list[str]:
+    """The position after every legal move of mine once they've played each picked move."""
+    keys = []
+    for h in prep_picks(cfg, yours):
+        board = _after(h)
+        for move in board.legal_moves:
+            board.push(move)
+            keys.append(position_key(board))
+            board.pop()
+    return [k for k in dict.fromkeys(keys) if needs_engine(k)]
+
+
+def prep_out(cfg: Config, yours: list[S.Habit], evals1: dict[str, dict]) -> list[S.PrepStep]:
+    """The picked moves whose every answer is scored, each answer labelled as keymoments.key_out labels a key
+    moment's moves: Best for Stockfish's move, else the band of the Win% it loses against my Win% there."""
+    out = []
+    for h in prep_picks(cfg, yours):
+        board = _after(h)
+        result = evaluation(position_key(board), evals1)
+        here = top(result)
+        if here is None:   # not scored yet
+            continue
+        me = board.turn
+        win = for_side(position_win_pct(result), me == chess.WHITE)
+        best = here["pv"][0] if here["pv"] else None
+        moves = []
+        for a in alternatives(cfg, board, me, evals1):
+            if a.win is None:
+                break
+            drop = win - a.win
+            moves.append(S.KeyMove(**{**a.model_dump(), "win": r1(a.win)}, drop=r1(drop),
+                                   label="best" if a.uci == best else band(cfg, drop)))
+        else:
+            line = here["pv"][: cfg.engine.pv_plies]
+            out.append(S.PrepStep(colour=h.colour, key=h.key, fen=board.fen(), opening=h.opening, reached=h.reached,
+                                  move=h.move, win=r1(win), moves=moves, best_line=line, best_line_san=line_san(board.fen(), line)))
+    return out
 
 
 def endings(games: list[ParsedGame]) -> S.Endings:
@@ -236,7 +299,8 @@ def rival_out(cfg: Config, username: str, games: list[ParsedGame], months: list[
                    time_classes=list(cfg.player.time_classes), months=months, games=len(games),
                    vs_me=len(vs_me(cfg, games)), plies=cfg.rivals.plies, min_times=cfg.rivals.min_times,
                    white=sides["white"], black=sides["black"], habits=sorted(habits, key=cost),
-                   your_openings=sorted(yours, key=cost), endings=endings(games), time_trouble=time_trouble(cfg, games))
+                   your_openings=sorted(yours, key=cost), prep=prep_out(cfg, yours, evals1), endings=endings(games),
+                   time_trouble=time_trouble(cfg, games))
 
 
 def files(cfg: Config, conn: sqlite3.Connection, evals1: dict[str, dict], openings: dict[str, Opening],

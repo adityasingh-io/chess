@@ -809,6 +809,25 @@ my_drop: number
 record: (string | null)
 }
 /**
+ * A costly move of the rival's in my openings, for the prep session to punish (PLAN.md, reading 26): every
+ * legal move of mine after it is scored with pass 1 and labelled against my Win% there, as a key moment's are.
+ * 
+ * This interface was referenced by `Export`'s JSON-Schema
+ * via the `definition` "PrepStep".
+ */
+export interface PrepStep {
+colour: ("white" | "black")
+key: string
+fen: string
+opening: (string | null)
+reached: number
+move: RivalMove
+win: number
+moves: KeyMove[]
+best_line: string[]
+best_line_san: string
+}
+/**
  * A position to solve. The solver is the side to move in `fen`; the solution alternates the solver's
  * moves (even indices) and the replies.
  * 
@@ -918,6 +937,7 @@ white: RivalSide
 black: RivalSide
 habits: Habit[]
 your_openings: Habit[]
+prep: PrepStep[]
 endings: Endings
 time_trouble: TimeTrouble
 }

@@ -187,3 +187,34 @@ def test_rival_files_stay_while_the_rival_is_configured(recorded):
     (cfg.export_dir / "rivals" / "friend.json").write_text("{}")
     write(cfg, Built(files={}, games={}))
     assert not old.exists() and (cfg.export_dir / "rivals" / "friend.json").exists()
+
+
+def habit(key: str, fen: str, uci: str, san: str, games: int = 1, drop: float = 6.0) -> "rivals.S.Habit":
+    S = rivals.S
+    move = S.RivalMove(uci=uci, san=san, games=games, score=0.0, win=None, drop=drop, label=None, eval=None, reply=None,
+                       reply_san=None, reply_line=[], reply_line_san="")
+    return S.Habit(colour="white", key=key, fen=fen, opening=None, reached=games, yours=True, move=move, best=None,
+                   best_san=None, vs_me=[])
+
+
+def test_prep_picks_the_most_played_costly_moves_then_the_costliest(recorded):
+    cfg = replace(recorded.cfg, rivals=replace(recorded.cfg.rivals, prep=3))
+    hs = [habit("a", chess.STARTING_FEN, "e2e4", "e4", 1, 40.0), habit("b", chess.STARTING_FEN, "d2d4", "d4", 3, 6.0),
+          habit("c", chess.STARTING_FEN, "c2c4", "c4", 1, 20.0), habit("d", chess.STARTING_FEN, "g1f3", "Nf3", 2, 5.5)]
+    assert [h.key for h in rivals.prep_picks(cfg, hs)] == ["b", "d", "a"]
+
+
+def test_a_prep_step_scores_every_answer_as_a_key_moment_does(recorded):
+    """The opponent's move just before one of my key moments, as a rival's costly move: the prep step's answers are
+    the key moment's moves, with the same labels and drops (both against my Win% in that position)."""
+    r = recorded
+    cfg = replace(r.cfg, rivals=replace(r.cfg.rivals, prep=1))
+    m = next(m for m in r.models if m.key and key_out(cfg, m, r.evals1) and m.key.record.ply.number > 1)
+    km = key_out(cfg, m, r.evals1)
+    theirs = m.game.moves[km.ply - 2]   # the opponent's move before mine
+    step = rivals.prep_out(cfg, [habit(theirs["key_before"], theirs["fen_before"], theirs["uci"], theirs["san"])], r.evals1)
+    assert len(step) == 1 and step[0].fen == km.fen and step[0].win == km.win_before
+    assert [(x.uci, x.label, x.drop, x.win) for x in step[0].moves] == [(x.uci, x.label, x.drop, x.win) for x in km.moves]
+    assert step[0].best_line == top(r.evals1[position_key(chess.Board(km.fen))])["pv"][: cfg.engine.pv_plies]
+    # A position whose answers aren't all scored isn't exported.
+    assert rivals.prep_out(cfg, [habit(START, chess.STARTING_FEN, "a2a3", "a3")], r.evals1) == []

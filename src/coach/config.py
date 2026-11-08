@@ -161,6 +161,7 @@ class Rivals:
     months: int
     plies: int
     min_times: int
+    prep: int
 
 
 @dataclass(frozen=True)

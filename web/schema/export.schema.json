@@ -2916,6 +2916,82 @@
    "title": "PhaseStat",
    "type": "object"
   },
+  "PrepStep": {
+   "additionalProperties": false,
+   "description": "A costly move of the rival's in my openings, for the prep session to punish (PLAN.md, reading 26): every\nlegal move of mine after it is scored with pass 1 and labelled against my Win% there, as a key moment's are.",
+   "properties": {
+    "colour": {
+     "enum": [
+      "white",
+      "black"
+     ],
+     "title": "Colour",
+     "type": "string"
+    },
+    "key": {
+     "title": "Key",
+     "type": "string"
+    },
+    "fen": {
+     "title": "Fen",
+     "type": "string"
+    },
+    "opening": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Opening"
+    },
+    "reached": {
+     "title": "Reached",
+     "type": "integer"
+    },
+    "move": {
+     "$ref": "#/$defs/RivalMove"
+    },
+    "win": {
+     "title": "Win",
+     "type": "number"
+    },
+    "moves": {
+     "items": {
+      "$ref": "#/$defs/KeyMove"
+     },
+     "title": "Moves",
+     "type": "array"
+    },
+    "best_line": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Best Line",
+     "type": "array"
+    },
+    "best_line_san": {
+     "title": "Best Line San",
+     "type": "string"
+    }
+   },
+   "required": [
+    "colour",
+    "key",
+    "fen",
+    "opening",
+    "reached",
+    "move",
+    "win",
+    "moves",
+    "best_line",
+    "best_line_san"
+   ],
+   "title": "PrepStep",
+   "type": "object"
+  },
   "Puzzle": {
    "additionalProperties": false,
    "description": "A position to solve. The solver is the side to move in `fen`; the solution alternates the solver's\nmoves (even indices) and the replies.",
@@ -3770,6 +3846,13 @@
      "title": "Your Openings",
      "type": "array"
     },
+    "prep": {
+     "items": {
+      "$ref": "#/$defs/PrepStep"
+     },
+     "title": "Prep",
+     "type": "array"
+    },
     "endings": {
      "$ref": "#/$defs/Endings"
     },
@@ -3790,6 +3873,7 @@
     "black",
     "habits",
     "your_openings",
+    "prep",
     "endings",
     "time_trouble"
    ],

@@ -248,6 +248,11 @@ this file wins.
   moves, their costly moves in positions my games reach, their habits elsewhere, each on a board with
   Stockfish's answer and its line to step through, their tree from my side of the board (every move with its
   label and drop on their turn), and how their games end with their clock. In the top bar, and under More.
+  `/rivals/<name>/prep` is a session before playing them: their likely line against each of my colours (their
+  most played move at each of their turns, mine from my opening tree at each of mine, to 16 plies, stopping
+  before a move of theirs played only once; "Drill it" adds it to the trainer), each prep position to punish
+  (found as a key moment is), then up to 4 of my key moments against them, losses first. The step is kept in
+  the URL; key moments schedule their next review as everywhere, punish steps count for the session only.
 - **Sync:** Supabase, off unless the build has `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
   (from the repo-root `.env`; Vite exposes only `VITE_` variables). The client library loads only then.
   Magic-link sign-in without account creation; one `progress` row per user under row-level security
@@ -455,7 +460,10 @@ this file wins.
     last `coach rivals`. `rivals/index.json` is the head-to-head, from my analysed games alone, so every
     build writes it: each game with both accuracies, the loss cause and the key moment (every game against a
     rival gets one, however old), my records per game against them next to my usual rate, and both sides'
-    average move accuracy by phase.
+    average move accuracy by phase. Phase 3 (added 2026-11-08), the prep session: the `prep` costly moves of
+    theirs in my openings, most often played first, then the costliest, have every legal answer of mine scored
+    with pass 1 and labelled against my Win% there as a key moment's moves are, so Best, Excellent or Good
+    punishes the move; a position is exported once all its answers are scored.
 
 ## Phases
 

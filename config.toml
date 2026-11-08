@@ -94,6 +94,8 @@ plies = 24                      # their opening tree runs to this many plies (12
 min_times = 3                   # a position they reached this often (or any my games reach) is scored with pass 1; a
                                 # costly move of theirs (not Stockfish's best, an Inaccuracy's drop or more) played
                                 # there this often is a habit
+prep = 5                        # the prep session asks me to punish this many of their costly moves in my openings
+                                # (most often played first, then the costliest); every answer there is scored
 
 [analysis.openings]
 leak_drop = 10.0                # leak position: my move there loses this much Win% on average,

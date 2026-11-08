@@ -14,6 +14,7 @@ import { Chess } from "chess.js";
 import { endgameStarts } from "../src/lib/playout";
 import { keyId } from "../src/lib/drill";
 import { losingTags, newKeys } from "../src/lib/today";
+import { prepPlan } from "../src/lib/prep";
 import { tagName } from "../src/lib/names";
 import type { Endgames, Game, GamesIndex, Insights, Leaks, Losses, OpeningReport, PuzzleIndex, PuzzleSet, Repertoire, Rival, Rivals, Summary } from "../src/types/export";
 
@@ -764,4 +765,28 @@ test("a rival: my games against them, how I lose, and their costly moves in my o
   const won = Object.values(r.endings.won).reduce((a, b) => a + b, 0);
   const end = screen.getByRole("region", { name: "How their games end" });
   expect(within(end).getByText((_, el) => el?.tagName === "P" && !!el.textContent?.startsWith(`Wins ${grouped(won)}:`))).toBeTruthy();
+}, 30_000);
+
+test("the prep session before a rival: their likely line, a costly move to punish, then my key moments", async () => {
+  localStorage.clear();
+  setProgress(normalise({}));   // the module keeps progress between tests
+  const h = data<Rivals>("rivals/index.json").rivals[0];
+  const r = data<Rival>(`rivals/${h.username.toLowerCase()}.json`);
+  const items = prepPlan(h, r, { white: data<OpeningReport>("openings/white.json"), black: data<OpeningReport>("openings/black.json") });
+  await open(`/rivals/${h.username}/prep`);
+  const steps = await screen.findByRole("list", { name: "Prep session" }, SLOW);
+  expect(within(steps).getByText("Punish their moves").parentElement!.textContent).toBe(`Punish their moves 0 of ${r.prep.length}`);
+  expect(await screen.findByRole("heading", { name: "Their likely line when you're White" }, SLOW)).toBeTruthy();
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Drill it in the trainer" })); });
+  expect(screen.getByRole("link", { name: "In the trainer" })).toBeTruthy();
+  cleanup();
+  // The first costly move to punish: Show Stockfish's move gives the stored best answer.
+  const at = items.findIndex((x) => x.kind === "punish");
+  const step = r.prep[0];
+  await open(`/rivals/${h.username}/prep?step=${at}`);
+  expect(await screen.findByRole("heading", { name: `Punish: ${step.opening ?? "your opening"}` }, SLOW)).toBeTruthy();
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Show Stockfish's move" })); });
+  const best = step.moves.find((x) => x.label === "best")!;
+  expect(screen.getByText((_, el) => el?.tagName === "P" && !!el.textContent?.startsWith(`Stockfish's move here: ${best.san}`))).toBeTruthy();
+  expect(screen.getByRole("heading", { name: new RegExp(`^Punish`) }).closest("section")!.textContent).toContain(`Step ${at + 1} of ${items.length}`);
 }, 30_000);

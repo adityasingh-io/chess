@@ -680,6 +680,21 @@ class Habit(Model):
     vs_me: list[str]           # my games against the rival where it was played
 
 
+class PrepStep(Model):
+    """A costly move of the rival's in my openings, for the prep session to punish (PLAN.md, reading 26): every
+    legal move of mine after it is scored with pass 1 and labelled against my Win% there, as a key moment's are."""
+    colour: Colour             # the rival's colour
+    key: str                   # the position before their move, a node of that colour's tree
+    fen: str                   # the position after it, with my move to play
+    opening: str | None
+    reached: int               # the rival's games that reached `key`
+    move: RivalMove            # their move, played in `move.games` of them
+    win: float                 # my Win% in `fen`
+    moves: list[KeyMove]       # every legal move of mine, best first; a step is exported once all are scored
+    best_line: list[str]       # Stockfish's line from `fen`
+    best_line_san: str
+
+
 class Endings(Model):
     """How the rival's games ended, by chess.com result code: the loser's when they won or lost, theirs when drawn."""
     won: dict[str, int]
@@ -708,6 +723,7 @@ class Rival(Model):
     black: RivalSide
     habits: list[Habit]        # most Win% given away first (drop × times played)
     your_openings: list[Habit] # every costly move of theirs from a position my games reach, played any number of times
+    prep: list[PrepStep]       # the costly moves in my openings the prep session asks me to punish
     endings: Endings
     time_trouble: TimeTrouble
 

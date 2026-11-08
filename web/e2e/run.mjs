@@ -124,6 +124,7 @@ try {
     { path: "/more", name: "more", ready: ".rows" },
     { path: "/rivals", name: "rivals", ready: ".rows" },
     { path: `/rivals/${rival}`, name: "rival", ready: ".pos .board" },
+    { path: `/rivals/${rival}/prep`, name: "rival-prep", ready: ".puzzle .board" },
   ];
   for (const theme of ["dark", "light"]) {
     for (const width of [390, 1280]) {

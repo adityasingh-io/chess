@@ -72,6 +72,14 @@ function RivalPage({ h }: { h: HeadToHead }) {
         <h1>vs {h.username}</h1>
         <p className="muted">Your games together, then their openings from their own games on chess.com. Every verdict on a move is Stockfish's.</p>
       </div>
+      <section className="card today-card" aria-label="Prepare for them">
+        <div className="card-head"><h2>Prepare for them</h2></div>
+        <p className="small" style={{ margin: 0 }}>
+          A short session before you play {h.username}: what they're likely to play against you, the costly moves of theirs in
+          your openings to punish, then your key moments against them.
+        </p>
+        <div className="puzzle-actions"><Link className="btn" to={`/rivals/${h.username}/prep`}>Start</Link></div>
+      </section>
       <div className="grid-2">
         <Together h={h} />
         <WhenYouLose h={h} />
