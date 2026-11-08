@@ -26,6 +26,8 @@ jobs:
       - run: uv sync --locked
       # The Linux Stockfish must reproduce the results recorded on the Mac, or the two can't share a cache.
       - run: .github/scripts/stockfish.sh
+        env:
+          GH_TOKEN: ${{ github.token }}   # the download's second route is the API
       - run: uv run pytest
 
   web:
