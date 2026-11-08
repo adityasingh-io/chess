@@ -8,7 +8,14 @@ this file wins.
 - **Scope:** rapid games from 2026-01-01 only (rated and unrated). The rating chart uses rated games.
 - **Opening names** come from the Lichess `chess-openings` dataset (CC0), using the deepest named position
   a game reaches, so families match the puzzle `OpeningTags` and the explorer. `ECOUrl` is kept for
-  display and the chess.com link.
+  display and the chess.com link. Expanded 2026-11-08 with Scid's ECO file (GPL, `vendor/scid`), which
+  names 7,748 positions Lichess's list doesn't, many of them transpositions (1. d4 d5 2. c4 Nf6 3. Nc3 dxc4
+  4. e4 is Lichess's Alekhine System after 4. Nc3): each takes the name of the deepest position Lichess's list
+  names along Scid's own line, so every name stays one of Lichess's, and Lichess's name wins where both list a
+  position. A move into a position on either list is Book. Against chess.com's names for my games, the opening
+  family now agrees in 508 of 553 games instead of 467; naming any position one move beyond a named one
+  instead was tried and rejected (it got 103 games wrong, e.g. Caro-Kann games named after a Scandinavian
+  gambit they transpose to).
 - **Engine:** Stockfish 19 (Homebrew build for Apple Silicon), pinned with `brew pin stockfish`.
   `config.toml` names the version and the pipeline refuses any other binary.
 - **Budgets come from data.** `coach calibrate` compares every candidate budget with a much deeper
